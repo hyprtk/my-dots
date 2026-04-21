@@ -76,7 +76,7 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 ```
 # Make sure that you're in your home directory
 
-git clone https://raw.githubusercontent.com/hyprtk/my-dots/install.sh
+git clone https://raw.githubusercontent.com/hyprtk/my-dots
 cd my-dots
 ./install.sh
 
