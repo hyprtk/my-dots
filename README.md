@@ -1,6 +1,6 @@
-# Hyprland garuda-dots
+# Hyprland Dots
 
-This is the configuration for Arch Linux, Arcolinux, Manjaro based installations of Hyprland (Wayland) and/or XFCE (Xorg).
+This is the configuration for Arch Linux, Arcolinux, Garuda, Manjaro based installations of Hyprland (Wayland) and/or XFCE (Xorg).
 
 This will work on most flavours of Arch.
 
@@ -30,9 +30,21 @@ This will work on most flavours of Arch.
 
 ## Templating
 
-Hyprland: Included is a pywal16 configuration that changes the color scheme based on a randomly selected wallpaper. With the key binding SuperKey + Shift + w you can change the wallpaper. SuperKey + Ctrl + w opens rofi with a list of installed wallpapers for your individual selection. See also the .bashrc and the key bindings on Hyprland and Qtile for more alias definitions.
+Hyprland: Included is a pywal16 configuration that changes the color scheme based on a randomly selected wallpaper. 
 
-Hyprland: In addition, you can switch the Waybar Template with SUPER + CTRL + T or by pressing the "..." icon in Waybar. The templates are available in ~/garuda-dots/waybar/themes. You can add your own personal themes into this folder. The script will read in the folder structure.
+	Keybinding SuperKey + Shift + w you can change the wallpaper.
+
+	Keybinding SuperKey + Ctrl + w opens rofi with a list of installed wallpapers.
+
+	Keybinding SuperKey + w opens matuwall to display all wallpapers on a film roll (Editable)
+
+See also the .zshrc and the key bindings on Hyprland and XFCE for more alias definitions.
+
+Hyprland: In addition, you can switch the Waybar Template
+
+	Keybinding SUPER + CTRL + T or by pressing the _ icon under the picture icon in waybat.
+
+The templates are available in ~/dotfiles/waybar/themes. You can add your own personal themes into this folder. The script will read in the folder structure.
 
 ## Screenshots & Video
 
@@ -63,19 +75,10 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 
 ```
 # Make sure that you're in your home directory
-cd
 
-# Clone the repository to your home directory
-git clone https://github.com/hyprtk/garuda-dots.git
+git clone https://raw.githubusercontent.com/hyprtk/my-dots/install.sh
+cd my-dots
+./install.sh
 
-# Or download the lastest version and unzip into ~/garuda-dots folder
-
-# Change into the new garuda-dots folder
-cd garuda-dots
-
-# Just run the single install file and go through every step, please be aware that this installs both Hyprland (Wayland) and XFCE (Xorg) environments at once
-./1-install.sh
-
-```
-Please note that every Arch Linux system is different and I cannot guarantee that everything works fine on your system.
+# Please note that every Arch Linux system is different and I cannot guarantee that everything works fine on your system.
 
