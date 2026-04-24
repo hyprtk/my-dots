@@ -26,6 +26,7 @@ echo "
 #########################################################
 "
 sleep 2
+sudo pacman -Rns plasma-meta kde-applications-meta --noconfirm
 sudo pacman -Rns plasma kde-applications --noconfirm
 echo""
 clear
