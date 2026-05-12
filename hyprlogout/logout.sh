@@ -40,15 +40,20 @@ no=''
 
 # Rofi CMD
 rofi_cmd() {
-    rofi -dmenu \
-        -p "Uptime: $uptime" \
-        -mesg "Uptime: $uptime" \
-        -theme ${dir}/${theme}.rasi
+    rofi -theme-str 'window {location: center; anchor: center; fullscreen: false; width: 600px; height: 450px;}' \
+         -theme-str 'mainbox {children: [ "message", "listview" ];}' \
+         -theme-str 'listview {columns: 3; lines: 2;}' \
+         -theme-str 'element-text {horizontal-align: 0.5;}' \
+         -theme-str 'textbox {horizontal-align: 0.5;}' \
+         -dmenu \
+         -p "Uptime: $uptime" \
+         -mesg "Uptime: $uptime" \
+         -theme ${dir}/${theme}.rasi
 }
 
 # Confirmation CMD
 confirm_cmd() {
-    rofi -theme-str 'window {location: center; anchor: center; fullscreen: false; width: 400px;}' \
+    rofi -theme-str 'window {location: center; anchor: center; fullscreen: false; width: 400px; height: 300px;}' \
          -theme-str 'mainbox {children: [ "message", "listview" ];}' \
          -theme-str 'listview {columns: 2; lines: 1;}' \
          -theme-str 'element-text {horizontal-align: 0.5;}' \
