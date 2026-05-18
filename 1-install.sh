@@ -538,6 +538,7 @@ echo "-------------------------------------"
 echo "-> Install Hyprland my-dots"
 echo "-------------------------------------"
 echo ""
+mv ~/.config/hypr ~/.config/hypr-old
 _installSymLink hypr ~/.config/hypr ~/my-dots/hypr/ ~/.config
 _installSymLink fastfetch ~/.config/fastfetch ~/my-dots/fastfetch/ ~/.config
 _installSymLink waybar ~/.config/waybar ~/my-dots/waybar/ ~/.config
