@@ -13,15 +13,16 @@
 # ----------------------------------------------------- 
 */
 
-/* ---- Configuration ---- */
+/*****----- Configuration -----*****/
+
 configuration {
-    modi:                       "drun,run";
+    modi:                       "drun,run,filebrowser,window";
     show-icons:                 true;
     icon-theme:                 "Papirus-Dark";
-    display-drun:               "APPS";
-    display-run:                "RUN";
-    display-filebrowser:        "FILES";
-    display-window:             "WINDOW";
+    display-drun:               "";
+    display-run:                "";
+    display-filebrowser:        "";
+    display-window:             "";
     drun-display-format:        "{name}";
     hover-select:               true;
     me-select-entry:            "";
@@ -41,7 +42,8 @@ window {
     location:                    center;
     anchor:                      center;
     fullscreen:                  false;
-    width:                       650px;
+    width:                       725px;
+    height:                      475px;
     x-offset:                    0px;
     y-offset:                    0px;
 
@@ -126,6 +128,7 @@ mode-switcher{
 }
 
 button {
+    font:                        "Iosevka Nerd Font 10";
     padding:                      10px;
     border-radius:                10px;
     background-color:             @background;
@@ -233,17 +236,17 @@ element-text {
 
 /*****----- Message -----*****/
 message {
-    enabled:                     true;
-    margin:                      0px 100px;
-    padding:                     15px;
-    border:                      3px solid;
-    border-radius:               15px;
-    border-color:                @color11;
-    background-color:            @color4;
-    text-color:                  #ffffff;
+    enabled:                      true;
+    margin:                       15px;
+    text-color:                   #ffffff;
+    spacing:                      0px;
+    padding:                      15px;
+    border-radius:                10px;
+    border-color:                 transparent;
+    background-color:             @background;
 }
 textbox {
-    background-color:            inherit;
+    background-color:            transparent;
     text-color:                  #ffffff;
     vertical-align:              0.5;
     horizontal-align:            0.5;
@@ -255,7 +258,6 @@ error-message {
     padding:                     12px;
     border:                      0px solid;
     border-radius:               0px;
-    border-color:                @color11;
-    background-color:            @color4;
+    background-color:            @background;
     text-color:                  #ffffff;
 }
