@@ -8,7 +8,7 @@ echo " You will now be asked to enter your Root password to proceed with the ins
 echo""
 sleep 2
 sudo pacman -S figlet --noconfirm
-sudo cp ~/my-dots/figlet/fonts/* /usr/share/figlet/fonts/
+sudo cp ~/hyprtk/figlet/fonts/* /usr/share/figlet/fonts/
 figlet -f 3d "Install"
 echo "
 
@@ -51,7 +51,7 @@ echo ""
 source $(dirname "$0")/scripts/library.sh
 echo ""
 echo ""
-sh ~/my-dots/scripts/set-timezone.sh
+sh ~/hyprtk/scripts/set-timezone.sh
 echo ""
 sleep 2
 clear
@@ -81,7 +81,7 @@ else
     git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git
     cd ~/Downloads/yay-git
     makepkg -si
-    cd ~/my-dots/
+    cd ~/hyprtk/
     clear
 fi
 echo ""
@@ -113,7 +113,7 @@ echo ""
 sleep 2
 echo ""
 clear
-sh ~/my-dots/hypr/packages/graphics-card.sh
+sh ~/hyprtk/hypr/packages/graphics-card.sh
 sleep 2
 clear
 while true; do
@@ -141,63 +141,63 @@ echo "
 "
 
 echo ""
-sh ~/my-dots/hypr/packages/hyprland.sh
+sh ~/hyprtk/hypr/packages/hyprland.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/xfce4.sh
+sh ~/hyprtk/hypr/packages/xfce4.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/filetools.sh
+sh ~/hyprtk/hypr/packages/filetools.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/webtools.sh
+sh ~/hyprtk/hypr/packages/webtools.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/printers.sh
+sh ~/hyprtk/hypr/packages/printers.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/network.sh
+sh ~/hyprtk/hypr/packages/network.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/media.sh
+sh ~/hyprtk/hypr/packages/media.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/terminaltools.sh
+sh ~/hyprtk/hypr/packages/terminaltools.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/systemtools.sh
+sh ~/hyprtk/hypr/packages/systemtools.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/system.sh
+sh ~/hyprtk/hypr/packages/system.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/hyprviz.sh
+sh ~/hyprtk/hypr/packages/hyprviz.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/sddm-check.sh
+sh ~/hyprtk/hypr/packages/sddm-check.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/sddmgrub.sh
+sh ~/hyprtk/hypr/packages/sddmgrub.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/hypr/packages/matuwall.sh
+sh ~/hyprtk/hypr/packages/matuwall.sh
 echo ""
 sleep 2
 echo ""
-sh ~/my-dots/scripts/awww-wrapper.sh
+sh ~/hyprtk/scripts/awww-wrapper.sh
 echo ""
 echo "
 #########################################################
@@ -240,7 +240,7 @@ echo "
 "
 echo ""
 echo ""
-sh ~/my-dots/hypr/packages/wallpapers.sh
+sh ~/hyprtk/hypr/packages/wallpapers.sh
 echo ""
 sleep 2
 echo "
@@ -261,7 +261,7 @@ echo "
 "
 echo ""
 echo ""
-sh ~/my-dots/hypr/packages/fonts.sh
+sh ~/hyprtk/hypr/packages/fonts.sh
 echo ""
 sleep 2
 echo "
@@ -304,12 +304,12 @@ echo "
 "
 echo ""
 echo "-> Init pywal16"
-wal -i ~/my-dots/Wallpapers/default.png
+wal -i ~/hyprtk/Wallpapers/default.png
 echo "pywal16 initiated."
 echo ""
 echo ""
 echo "-> Copy default wallpaper to .cache"
-cp ~/my-dots/Wallpapers/default.png ~/.cache/current-wallpaper.png
+cp ~/hyprtk/Wallpapers/default.png ~/.cache/current-wallpaper.png
 sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png
 echo "default wallpaper copied."
 echo ""
@@ -381,8 +381,8 @@ echo "
 #                                                       #
 #########################################################
 "
-sudo cp ~/my-dots/os-release/os-release /usr/lib/
-sudo cp ~/my-dots/User-Management/manage-users.desktop /usr/share/applications/
+sudo cp ~/hyprtk/os-release/os-release /usr/lib/
+sudo cp ~/hyprtk/User-Management/manage-users.desktop /usr/share/applications/
 sudo systemctl enable --now cockpit.socket
 sudo systemctl start cockpit.socket
 echo ""
@@ -395,7 +395,7 @@ echo "
 #                                                       #
 #########################################################
 "
-sudo cp ~/my-dots/smb/smb.conf /etc/samba/
+sudo cp ~/hyprtk/smb/smb.conf /etc/samba/
 sudo systemctl enable smb nmb
 sudo systemctl start smb nmb
 sudo systemctl restart smb nmb
@@ -412,17 +412,17 @@ echo "
 echo ""
 echo ""
 echo "If you installed an NVIDIA Graphics Card please follow the instructions in the"
-echo "nvidia.conf file located ~/my-dots/hypr/conf/nvidia.conf"
+echo "nvidia.conf file located ~/hyprtk/hypr/conf/nvidia.conf"
 echo ""
 sleep 5
 clear
-figlet -f 3d "my-dots"
+figlet -f 3d "hyprtk"
 echo ""
 echo " by hyprtk (Kori Tk) (2026) "
 echo " ------------------------------------------------------------------- "
 echo ""
 echo "The script will ask for permission to remove existing directories and files from ~/.config/"
-echo "Symbolic links will then be created from ~/my-dots into your ~/.config/ directory."
+echo "Symbolic links will then be created from ~/hyprtk into your ~/.config/ directory."
 echo "But you can decide to keep your personal versions by answering with No (Nn)."
 echo ""
 sleep 5
@@ -479,19 +479,19 @@ echo "
 echo ""
 echo ""
 echo "-------------------------------------"
-echo "-> Install general my-dots"
+echo "-> Install general hyprtk"
 echo "-------------------------------------"
 echo ""
 echo ""
-_installSymLink alacritty ~/.config/alacritty ~/my-dots/alacritty/ ~/.config
-_installSymLink ranger ~/.config/ranger ~/my-dots/ranger/ ~/.config
-_installSymLink vim ~/.config/vim ~/my-dots/vim/ ~/.config
-_installSymLink nvim ~/.config/nvim ~/my-dots/nvim/ ~/.config
-_installSymLink starship ~/.config/starship.toml ~/my-dots/starship/starship.toml ~/.config/starship.toml
-_installSymLink rofi ~/.config/rofi ~/my-dots/rofi/ ~/.config
-_installSymLink dunst ~/.config/dunst ~/my-dots/dunst/ ~/.config
-_installSymLink wal ~/.config/wal ~/my-dots/wal/ ~/.config
-_installSymLink btop ~/.config/btop ~/my-dots/btop/ ~/.config
+_installSymLink alacritty ~/.config/alacritty ~/hyprtk/alacritty/ ~/.config
+_installSymLink ranger ~/.config/ranger ~/hyprtk/ranger/ ~/.config
+_installSymLink vim ~/.config/vim ~/hyprtk/vim/ ~/.config
+_installSymLink nvim ~/.config/nvim ~/hyprtk/nvim/ ~/.config
+_installSymLink starship ~/.config/starship.toml ~/hyprtk/starship/starship.toml ~/.config/starship.toml
+_installSymLink rofi ~/.config/rofi ~/hyprtk/rofi/ ~/.config
+_installSymLink dunst ~/.config/dunst ~/hyprtk/dunst/ ~/.config
+_installSymLink wal ~/.config/wal ~/hyprtk/wal/ ~/.config
+_installSymLink btop ~/.config/btop ~/hyprtk/btop/ ~/.config
 echo ""
 clear
 echo "
@@ -502,7 +502,7 @@ echo "
 #########################################################
 "
 echo ""
-wal -i ~/my-dots/Wallpapers/default.png
+wal -i ~/hyprtk/Wallpapers/default.png
 echo "Pywal16 templates initiated!"
 echo ""
 echo ""
@@ -516,40 +516,40 @@ echo "
 echo ""
 clear
 echo "-------------------------------------"
-echo "-> Install GTK my-dots"
+echo "-> Install GTK hyprtk"
 echo "-------------------------------------"
 echo ""
-_installSymLink gtk-3.0 ~/.config/gtk-3.0 ~/my-dots/gtk/gtk-3.0/ ~/.config/
-_installSymLink gtk-4.0 ~/.config/gtk-4.0 ~/my-dots/gtk/gtk-4.0/ ~/.config/
-_installSymLink themes ~/.local/share/themes ~/my-dots/themes ~/.local/share/
-_installSymLink icons ~/.local/share/icons ~/my-dots/papirus-icons/icons ~/.local/share/
-echo ""
-clear
-echo "-------------------------------------"
-echo "-> Install Xfce my-dots"
-echo "-------------------------------------"
-echo ""
-_installSymLink xfce4 ~/.config/xfce4 ~/my-dots/xfce4 ~/.config/
-_installSymLink Thunar ~/.config/Thunar ~/my-dots/Thunar ~/.config/
-_installSymLink Mousepad ~/.config/Mousepad ~/my-dots/Mousepad ~/.config/
+_installSymLink gtk-3.0 ~/.config/gtk-3.0 ~/hyprtk/gtk/gtk-3.0/ ~/.config/
+_installSymLink gtk-4.0 ~/.config/gtk-4.0 ~/hyprtk/gtk/gtk-4.0/ ~/.config/
+_installSymLink themes ~/.local/share/themes ~/hyprtk/themes ~/.local/share/
+_installSymLink icons ~/.local/share/icons ~/hyprtk/papirus-icons/icons ~/.local/share/
 echo ""
 clear
 echo "-------------------------------------"
-echo "-> Install Hyprland my-dots"
+echo "-> Install Xfce hyprtk"
+echo "-------------------------------------"
+echo ""
+_installSymLink xfce4 ~/.config/xfce4 ~/hyprtk/xfce4 ~/.config/
+_installSymLink Thunar ~/.config/Thunar ~/hyprtk/Thunar ~/.config/
+_installSymLink Mousepad ~/.config/Mousepad ~/hyprtk/Mousepad ~/.config/
+echo ""
+clear
+echo "-------------------------------------"
+echo "-> Install Hyprland hyprtk"
 echo "-------------------------------------"
 echo ""
 mv ~/.config/hypr ~/.config/hypr-old
-_installSymLink hypr ~/.config/hypr ~/my-dots/hypr/ ~/.config
-_installSymLink fastfetch ~/.config/fastfetch ~/my-dots/fastfetch/ ~/.config
-_installSymLink waybar ~/.config/waybar ~/my-dots/waybar/ ~/.config
-_installSymLink swaylock ~/.config/swaylock ~/my-dots/swaylock/ ~/.config
-_installSymLink swappy ~/.config/swappy ~/my-dots/swappy/ ~/.config
-_installSymLink hyprlogout ~/.config/hyprlogout ~/my-dots/hyprlogout/ ~/.config
-_installSymLink waypaper ~/.config/waypaper ~/my-dots/waypaper/ ~/.config
-_installSymLink zshrc ~/.config/zshrc ~/my-dots/zshrc/ ~/.config
-_installSymLink ohmyposh ~/.config/ohmyposh ~/my-dots/ohmyposh/ ~/.config
-_installSymLink matuwall ~/.config/matuwall ~/my-dots/matuwall/ ~/.config
-_installSymLink wob ~/.config/wob ~/my-dots/wob/ ~/.config
+_installSymLink hypr ~/.config/hypr ~/hyprtk/hypr/ ~/.config
+_installSymLink fastfetch ~/.config/fastfetch ~/hyprtk/fastfetch/ ~/.config
+_installSymLink waybar ~/.config/waybar ~/hyprtk/waybar/ ~/.config
+_installSymLink swaylock ~/.config/swaylock ~/hyprtk/swaylock/ ~/.config
+_installSymLink swappy ~/.config/swappy ~/hyprtk/swappy/ ~/.config
+_installSymLink hyprlogout ~/.config/hyprlogout ~/hyprtk/hyprlogout/ ~/.config
+_installSymLink waypaper ~/.config/waypaper ~/hyprtk/waypaper/ ~/.config
+_installSymLink zshrc ~/.config/zshrc ~/hyprtk/zshrc/ ~/.config
+_installSymLink ohmyposh ~/.config/ohmyposh ~/hyprtk/ohmyposh/ ~/.config
+_installSymLink matuwall ~/.config/matuwall ~/hyprtk/matuwall/ ~/.config
+_installSymLink wob ~/.config/wob ~/hyprtk/wob/ ~/.config
 mkdir ~/.local/bin
 echo ""
 clear
@@ -581,7 +581,7 @@ echo "
 echo ""
 echo "-> Install .zshrc"
 echo ""
-_installSymLink .zshrc ~/.zshrc ~/my-dots/.zshrc ~/.zshrc
+_installSymLink .zshrc ~/.zshrc ~/hyprtk/.zshrc ~/.zshrc
 echo ""
 sudo chsh -s /bin/zsh
 chsh -s /bin/zsh
@@ -593,8 +593,8 @@ echo "
 #########################################################
 "
 echo ""
-_installSymLink standalone ~/.local/bin ~/my-dots/standalone/ ~/.local/bin
-_installSymLink oh-my-zsh ~/.oh-my-zsh/oh-my-zsh.sh ~/my-dots/oh-my-zsh/oh-my-zsh.sh ~/.oh-my-zsh
+_installSymLink standalone ~/.local/bin ~/hyprtk/standalone/ ~/.local/bin
+_installSymLink oh-my-zsh ~/.oh-my-zsh/oh-my-zsh.sh ~/hyprtk/oh-my-zsh/oh-my-zsh.sh ~/.oh-my-zsh
 echo ""
 clear
 echo ""
@@ -603,7 +603,7 @@ echo "-------------------------------------"
 echo "-> Setup Root User Config"
 echo "-------------------------------------"
 echo ""
-sudo cp -r ~/my-dots/root /
+sudo cp -r ~/hyprtk/root /
 echo " Copying Config and Themes to ROOT User "
 echo ""
 sleep 3
@@ -620,6 +620,6 @@ echo "-------------------------------------"
 echo ""
 echo "DONE!"
 echo ""
-echo "NEXT: Update the keyboard layout and screen resolution in ~/my-dots/hypr/hyprland.conf"
+echo "NEXT: Update the keyboard layout and screen resolution in ~/hyprtk/hypr/hyprland.conf"
 echo "Now proceed with rebooting your system and Enjoy!!!"
 echo ""

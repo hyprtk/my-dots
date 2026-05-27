@@ -3,7 +3,7 @@
 # NVIDIA Users
 
 if you are using an NVIDIA GPU or a laptop with NVIDIA GPU,
-please read the ~/my-dots/hypr/conf/nvidia.conf for setup and configuration of your GPU
+please read the ~/hyprtk/hypr/conf/nvidia.conf for setup and configuration of your GPU
 
 # AMDGPU Users
 
@@ -60,11 +60,11 @@ screen recordings are saved by default to your ~/videos/Recordings directory
   - Follow the github - https://github.com/hyprwm/Hyprland
 
 # user githubs
-  - https://github.com/mylinuxforwork/my-dots
+  - https://github.com/mylinuxforwork/hyprtk
   - https://github.com/JaKooLit/Hyprland-Dots
   - https://github.com/eldermf/bspwm-hyprland
-  - https://github.com/lauroro/hyprland-my-dots
-  - https://github.com/eneshecan/my-dots
+  - https://github.com/lauroro/hyprland-hyprtk
+  - https://github.com/eneshecan/hyprtk
 
 # share your own files on github 
   - so we can all learn

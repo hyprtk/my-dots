@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 INPUT_FILE="$HOME/.cache/wal/colors"
-OUTPUT_FILE="$HOME/my-dots/papirus-icons/scripts/folder-color.txt"
+OUTPUT_FILE="$HOME/hyprtk/papirus-icons/scripts/folder-color.txt"
 LINE_NUMBER=5 # wal colors start with a color of zero, so if i want to use color11 i must enter the value of 12 because of the row zero
 
 # Example
@@ -88,7 +88,7 @@ declare -A colors=(
 )
 
 # Read hex code from plaintext file
-hex=$(<~/my-dots/papirus-icons/scripts/folder-color.txt)
+hex=$(<~/hyprtk/papirus-icons/scripts/folder-color.txt)
 
 # Function to convert HEX to RGB
 hex_to_rgb() {

@@ -1,6 +1,6 @@
 ## Theme Switcher
 
-Select a theme with SUPER + CTRL + T (custom Hyprland key binding) to execute the themeswitcher.sh script. The script will open rofi to show the themes in the folder ~/my-dots/waybar/themes/
+Select a theme with SUPER + CTRL + T (custom Hyprland key binding) to execute the themeswitcher.sh script. The script will open rofi to show the themes in the folder ~/hyprtk/waybar/themes/
 
 ## Waybar Documentation
 Waybar github: https://github.com/Alexays/Waybar
@@ -8,7 +8,7 @@ Waybar Wiki: https://github.com/Alexays/Waybar/wiki
 
 ## Create your own theme
 
-Please check the configurations of the folders in ~/my-dots/waybar/themes/
+Please check the configurations of the folders in ~/hyprtk/waybar/themes/
 Create a folder for your theme and add your configuration. 
 A good starting point is to copy the default folder with the default waybar theme.
 

@@ -93,7 +93,7 @@ _installSymLink() {
     linktarget="$4";
     
     while true; do
-        read -p "DO YOU WANT TO INSTALL ${name}? (Existing my-dots will be removed!) (Yy/Nn): " yn
+        read -p "DO YOU WANT TO INSTALL ${name}? (Existing hyprtk will be removed!) (Yy/Nn): " yn
         case $yn in
             [Yy]* )
                 if [ -L "${symlink}" ]; then

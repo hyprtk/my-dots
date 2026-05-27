@@ -56,9 +56,9 @@
     // Cliphist
     "custom/cliphist": {
         "format": "",
-        "on-click": "sleep 0.1 && ~/my-dots/scripts/cliphist.sh",
-        "on-click-right": "sleep 0.1 && ~/my-dots/scripts/cliphist.sh d",
-        "on-click-middle": "sleep 0.1 && ~/my-dots/scripts/cliphist.sh w",
+        "on-click": "sleep 0.1 && ~/hyprtk/scripts/cliphist.sh",
+        "on-click-right": "sleep 0.1 && ~/hyprtk/scripts/cliphist.sh d",
+        "on-click-middle": "sleep 0.1 && ~/hyprtk/scripts/cliphist.sh w",
         "tooltip": true,
         "tooltip-format": "Clipboard History"
     },
@@ -76,11 +76,11 @@
     "custom/wf-recorder": {
         "format": "{} ",
         "interval": "once",
-        "exec": "~/my-dots/hypr/scripts/wf-record-text.py",
+        "exec": "~/hyprtk/hypr/scripts/wf-record-text.py",
         "return-type": "json",
         "tooltip": "true",
         "exec-if": "pgrep 'wf-recorder'",
-        "on-click": "exec ~/my-dots/hypr/scripts/wf-record-stop.sh",
+        "on-click": "exec ~/hyprtk/hypr/scripts/wf-record-stop.sh",
         "signal": 8
     },
     
@@ -90,17 +90,17 @@
         "tooltip-format": "{}",
         "escape": true,
         "return-type": "json",       
-        "exec": "~/my-dots/scripts/updates.sh",
+        "exec": "~/hyprtk/scripts/updates.sh",
         "restart-interval": 60,
-        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/my-dots/scripts/installupdates.sh",
+        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/hyprtk/scripts/installupdates.sh",
         "tooltip": false
     },
     
     // Wallpaper
     "custom/wallpaper": {
         "format": "",
-        "on-click": "~/my-dots/hypr/scripts/matuwall-toggle.sh",
-        "on-click-right": "~/my-dots/scripts/updatewal-awww.sh",
+        "on-click": "~/hyprtk/hypr/scripts/matuwall-toggle.sh",
+        "on-click-right": "~/hyprtk/scripts/updatewal-awww.sh",
         "tooltip": true,
         "tooltip-format": "Wallpaper Switcher"
     },
@@ -108,7 +108,7 @@
     // Waybar Theme
     "custom/waybarthemes": {
         "format": "",
-        "on-click": "~/my-dots/waybar/themeswitcher.sh",
+        "on-click": "~/hyprtk/waybar/themeswitcher.sh",
         "tooltip": true,
         "tooltip-format": "Waybar Theme Switcher"
     },
@@ -116,7 +116,7 @@
     // Icon Theme
     "custom/iconthemes": {
         "format": "",
-        "on-click": "~/my-dots/scripts/icon-color-select.sh",
+        "on-click": "~/hyprtk/scripts/icon-color-select.sh",
         "tooltip": true,
         "tooltip-format": "Folder Theme Switcher"
     },
@@ -124,7 +124,7 @@
         // Set sddm & grub to current wallpaper
     "custom/sddmgrub": {
         "format": "",
-        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/my-dots/sddm/update.sh",
+        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/hyprtk/sddm/update.sh",
         "tooltip": true,
         "tooltip-format": "sddm/grub updater"
     },
@@ -132,7 +132,7 @@
     // Filemanager Launcher
     "custom/filemanager": {
         "format": "🗁",
-        "on-click": "~/my-dots/scripts/filemanager.sh",
+        "on-click": "~/hyprtk/scripts/filemanager.sh",
         "tooltip": true,
         "tooltip-format": "File Manager"
     },
@@ -147,14 +147,14 @@
     // Rofi Calculator
     "custom/calculator": {
         "format": "",
-        "on-click": "~/my-dots/scripts/calculator.sh",
+        "on-click": "~/hyprtk/scripts/calculator.sh",
         "tooltip": false
     },
 
     // Rofi Application Launcher
     "custom/appmenu": {
         "format": " Home",
-        "on-click": "~/my-dots/scripts/applauncher.sh",
+        "on-click": "~/hyprtk/scripts/applauncher.sh",
         "tooltip": true,
         "tooltip-format": "Application Launcher"
     },
@@ -162,14 +162,14 @@
     // Power Menu
     "custom/exit": {
         "format": "",
-        "on-click": "~/my-dots/hyprlogout/logout.sh",
+        "on-click": "~/hyprtk/hyprlogout/logout.sh",
         "tooltip": false
     },
 
     // Screenshot
     "custom/screenshot": {
         "format": "",
-        "on-click": "~/my-dots/scripts/screenshot.sh",
+        "on-click": "~/hyprtk/scripts/screenshot.sh",
         "tooltip": true,
         "tooltip-format": "Take a Screenshot"
     },
@@ -190,7 +190,7 @@
     // custom keybooard state
       "custom/kbstate": {
         "return-type": "json",
-        "exec": "~/my-dots/scripts/keyboard_state.sh",
+        "exec": "~/hyprtk/scripts/keyboard_state.sh",
         "restart-interval": 5,
         "hide-empty-text": true
     },
@@ -257,7 +257,7 @@
         "format-muted": " {format_source}",
         "format-source": "{volume}% ",
         "format-source-muted": "",
-            "on-click-right": "~/my-dots/scripts/Volume.sh --toggle-mute",
+            "on-click-right": "~/hyprtk/scripts/Volume.sh --toggle-mute",
             "on-click": "pavucontrol -t 3",
         "format-icons": {
             "headphone": "",
@@ -267,8 +267,8 @@
             "portable": "",
             "car": "",
             "default": ["", " ", " "],
-            "on-scroll-up": "~/my-dots/scripts/Volume.sh --volume-inc",
-            "on-scroll-down": "~/my-dots/scripts/Volume.sh --volume-dec",
+            "on-scroll-up": "~/hyprtk/scripts/Volume.sh --volume-inc",
+            "on-scroll-down": "~/hyprtk/scripts/Volume.sh --volume-dec",
             "scroll-step": 5,  
         },
     },
@@ -277,10 +277,10 @@
         "format": "{format_source}",
         "format-source": " {volume}%",
         "format-source-muted": "",
-            "on-click-right": "~/my-dots/scripts/Volume.sh --toggle-mic",
+            "on-click-right": "~/hyprtk/scripts/Volume.sh --toggle-mic",
             "on-click": "pavucontrol -t 4",
-            "on-scroll-up": "~/my-dots/scripts/Volume.sh --mic-inc",
-            "on-scroll-down": "~/my-dots/scripts/Volume.sh --mic-dec",
+            "on-scroll-up": "~/hyprtk/scripts/Volume.sh --mic-inc",
+            "on-scroll-down": "~/hyprtk/scripts/Volume.sh --mic-dec",
             "scroll-step": 5,
         },
 
@@ -295,7 +295,7 @@
     //keybindings
     "custom/keybindings": {
     "format": "",
-    "on-click": "~/my-dots/scripts/keyhint.sh",
+    "on-click": "~/hyprtk/scripts/keyhint.sh",
     "tooltip": true,
     "tooltip-format": "Keybinding Help"
     },

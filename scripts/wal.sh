@@ -4,8 +4,8 @@
 
 wal -q -i ~/Pictures/Wallpapers/ 
 
-killall waybar 2>/dev/null; ~/my-dots/waybar/launch.sh
+killall waybar 2>/dev/null; ~/hyprtk/waybar/launch.sh
 
-~/my-dots/papirus-icons/scripts/change-icons.sh
+~/hyprtk/papirus-icons/scripts/change-icons.sh
 
 exit

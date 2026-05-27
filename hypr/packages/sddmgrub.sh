@@ -11,16 +11,16 @@ echo ""
 sudo rm -rf /usr/share/grub/themes/*
 sudo rm -rf /boot/grub/themes/*
 echo ""
-sudo cp ~/my-dots/sddm/sddm.conf /etc/sddm.conf.d/
+sudo cp ~/hyprtk/sddm/sddm.conf /etc/sddm.conf.d/
 echo "File /etc/sddm.conf.d/sddm.conf updated."
 echo ""
-cp ~/my-dots/default.png ~/.cache/current-wallpaper.png
+cp ~/hyprtk/default.png ~/.cache/current-wallpaper.png
 echo ""
 sudo cp ~/.cache/current-wallpaper.png /usr/share/sddm/themes/Sugar-Candy/Backgrounds/
 echo "Current wallpaper copied into sddm theme folder"
 echo ""
 echo ""
-sudo cp ~/my-dots/sddm/theme.conf /usr/share/sddm/themes/Sugar-Candy/
+sudo cp ~/hyprtk/sddm/theme.conf /usr/share/sddm/themes/Sugar-Candy/
 echo "File theme.conf updated in /usr/share/sddm/themes/Sugar-Candy/"
 echo ""
 echo ""

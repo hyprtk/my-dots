@@ -29,7 +29,7 @@
     // custom keybooard state
         "custom/kbstate": {
         "return-type": "json",
-        "exec": "~/my-dots/scripts/keyboard_state.sh",
+        "exec": "~/hyprtk/scripts/keyboard_state.sh",
         "restart-interval": 5,
         "hide-empty-text": true
     },
@@ -37,7 +37,7 @@
     // Waybar Theme
     "custom/waybarthemes": {
         "format": "",
-        "on-click": "~/my-dots/waybar/themeswitcher.sh",
+        "on-click": "~/hyprtk/waybar/themeswitcher.sh",
         "tooltip": true,
         "tooltip-format": "Waybar Theme Switcher"
     },

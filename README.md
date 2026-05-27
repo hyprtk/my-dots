@@ -49,29 +49,29 @@ The templates are available in ~/dotfiles/waybar/themes. You can add your own pe
 ## Screenshots & Video
 
 Arch Linux
-![MODEL](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-21_13-04-59.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-21_13-02-05.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-21_13-04-49.png)
+![MODEL](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-21_13-04-59.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-21_13-02-05.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-21_13-04-49.png)
 
 Endeavour
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-22_11-16-25.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-22_11-16-47.png)
-![MODEL](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-22_11-17-59.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-22_11-16-25.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-22_11-16-47.png)
+![MODEL](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-22_11-17-59.png)
 
 Garuda
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-22_09-43-27.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-22_09-42-03.png)
-![MODEL](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-22_09-43-12.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-22_09-43-27.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-22_09-42-03.png)
+![MODEL](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-22_09-43-12.png)
 
 Manjaro
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-21_15-01-38.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-21_15-00-19.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/screenshot-2026-04-21_15-01-24.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-21_15-01-38.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-21_15-00-19.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/screenshot-2026-04-21_15-01-24.png)
 
 ArcoLinux - No Longer producing Install ISO's (I am not removing the screenshots though)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/53256162013_6be4b66963_o.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/53256224204_aaa86aff2e_o.png)
-![Model](https://github.com/hyprtk/my-dots/blob/main/screenshots/53256357675_f6af5c7757_o.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/53256162013_6be4b66963_o.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/53256224204_aaa86aff2e_o.png)
+![Model](https://github.com/hyprtk/hyprtk/blob/main/screenshots/53256357675_f6af5c7757_o.png)
 
 
 ## Getting started
@@ -83,8 +83,8 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 ```
 # Make sure that you're in your home directory
 
-git clone https://raw.githubusercontent.com/hyprtk/my-dots
-cd my-dots
+git clone https://raw.githubusercontent.com/hyprtk/hyprtk
+cd hyprtk
 ./install.sh
 
 # Please note that every Arch Linux system is different and I cannot guarantee that everything works fine on your system.
