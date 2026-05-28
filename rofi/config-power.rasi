@@ -28,12 +28,13 @@ USE_BUTTONS=YES
 
 /*****----- Main Window -----*****/
 window {
-    /* properties for window widget */
+     /* properties for window widget */
     transparency:                "real";
     location:                    center;
     anchor:                      center;
     fullscreen:                  false;
-    width:                       650px;
+    width:                       700px;
+    height:                      450px;
     x-offset:                    0px;
     y-offset:                    0px;
 
@@ -65,20 +66,11 @@ mainbox {
 /*****----- Imagebox -----*****/
 imagebox {
     expand:                      false;
-    width:                       500px;
+    width:                       700px;
     spacing:                     0px;
     padding:                     100px;
     background-color:            transparent;
     children:                    [ "inputbar", "dummy", "message" ];
-}
-
-/*****----- User -----*****/
-userimage {
-    margin:                      0px 0px;
-    border:                      10px;
-    border-radius:               0px;
-    border-color:                @color11;
-    background-color:            transparent;
 }
 
 /*****----- Inputbar -----*****/
@@ -121,14 +113,14 @@ message {
     enabled:                     true;
     margin:                      0px 100px;
     padding:                     15px;
-    border:                      3px solid;
+    border:                      2px solid;
     border-radius:               15px;
     border-color:                @color11;
-    background-color:            @color4;
+    background-color:            @background;
     text-color:                  #ffffff;
 }
 textbox {
-    background-color:            inherit;
+    background-color:            transparent;
     text-color:                  #ffffff;
     vertical-align:              0.5;
     horizontal-align:            0.5;
@@ -175,7 +167,7 @@ element {
     spacing:                     0px;
     margin:                      0px;
     padding:                     40px 15px;
-    border:                      3px solid;
+    border:                      2px solid;
     border-radius:               20px;
     border-color:                @color11;
     background-color:            @background;

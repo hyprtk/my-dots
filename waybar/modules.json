@@ -154,7 +154,7 @@
     // Rofi Application Launcher
     "custom/appmenu": {
         "format": " Home",
-        "on-click": "~/hyprtk/scripts/applauncher.sh",
+        "on-click": "~/hyprtk/scripts/appsmenu.sh",
         "tooltip": true,
         "tooltip-format": "Application Launcher"
     },
@@ -169,7 +169,7 @@
     // Screenshot
     "custom/screenshot": {
         "format": "",
-        "on-click": "~/hyprtk/scripts/screenshot.sh",
+        "on-click": "~/hyprtk/scripts/ssdetect.sh",
         "tooltip": true,
         "tooltip-format": "Take a Screenshot"
     },

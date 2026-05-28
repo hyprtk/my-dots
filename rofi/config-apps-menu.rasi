@@ -1,25 +1,32 @@
 /*
 #
-#  ██
-# ░██
-# ░██  █████   ██████  ███████   ██████
-# ░██ ██░░░██ ██░░░░██░░██░░░██ ██░░░░
-# ░██░██  ░░ ░██   ░██ ░██  ░██░░█████
-# ░██░██   ██░██   ░██ ░██  ░██ ░░░░░██
-# ░██░░█████ ░░██████  ███  ░██ ██████
-# ░░  ░░░░░   ░░░░░░  ░░░   ░░ ░░░░░░
-#                    
+#   ██████                      ████ ██        
+#  ██░░░░██                    ░██░ ░░   █████ 
+# ██    ░░   ██████  ███████  ██████ ██ ██░░░██
+#░██        ██░░░░██░░██░░░██░░░██░ ░██░██  ░██
+#░██       ░██   ░██ ░██  ░██  ░██  ░██░░██████
+#░░██    ██░██   ░██ ░██  ░██  ░██  ░██ ░░░░░██
+# ░░██████ ░░██████  ███  ░██  ░██  ░██  █████ 
+#  ░░░░░░   ░░░░░░  ░░░   ░░   ░░   ░░  ░░░░░  
+#                 
 # by hyprtk (Kori Tk) (2026)
 # ----------------------------------------------------- 
 */
 
-/* ---- Configuration ---- */
+/*****----- Configuration -----*****/
 configuration {
-    modi:                       "drun,run";
-	hover-select:               true;
+    modi:                       "drun,run,filebrowser,window";
+    show-icons:                 true;
+    icon-theme:                 "Papirus-Dark";
+    display-drun:               "";
+    display-run:                "";
+    display-filebrowser:        "";
+    display-window:             "";
+    drun-display-format:        "{name}";
+    hover-select:               true;
     me-select-entry:            "";
     me-accept-entry:            "MousePrimary";
-    drun-display-format:        "{name}";
+    window-format:              "{w} · {c} · {t}";   
 }
 
 /*****----- Global Properties -----*****/
@@ -54,13 +61,8 @@ window {
 /*****----- Main Box -----*****/
 mainbox {
     enabled:                     true;
-    spacing:                     35px;
-    margin:                      0px;
-    padding:                     15px;
-    border:                      0px solid;
-    border-radius:               0px;
-    border-color:                @color11;
-    background-color:            transparent;
+    spacing:                     0px;
+    background-color:            @background;
     background-image:             url("~/.cache/current-wallpaper.png", height);
     orientation:                 vertical;
     children:                    [ "inputbar", "listbox" ];
@@ -83,9 +85,9 @@ inputbar {
     border-radius:                10px;
     border:                       0px;
     border-color:                 @color11;
-    background-color:             transparent;
+    background-color:             @background;
     separator-style:              none;
-    children:                     [ "entry" ];
+    children:                     [ "entry", "dummy", "mode-switcher" ];
 }
 textbox-prompt-colon {
     enabled:                     true;
@@ -98,7 +100,7 @@ textbox-prompt-colon {
 entry {
     enabled:                     true;
     expand:                      false;
-    width:                       690px;
+    width:                       300px;
     padding:                     12px 16px;
     border-radius:               100%;
     background-color:            @background;
@@ -106,8 +108,6 @@ entry {
     cursor:                      text;
     placeholder:                 "Search";
     placeholder-color:           inherit;
-    vertical-align:              0.5;
-    horizontal-align:            0.5;
 }
 dummy {
     expand:                      true;

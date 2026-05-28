@@ -24,7 +24,7 @@
 # ----------------------------------------------------- 
 
 sleep 1
-source ~/mydots-dots/scripts/library.sh
+source ~/hyprtk/scripts/library.sh
 clear
 
 # ------------------------------------------------------
@@ -54,7 +54,7 @@ then
                 read -p "Enter a comment for the snapshot: " c
                 sudo timeshift --create --comments "$c"
                 sudo timeshift --list
-                sudo ~/arch-dots/sddm/update-TS-run.sh
+                sudo ~/hyprtk/sddm/update-TS-run.sh
                 echo "DONE. Snapshot $c created!"
                 echo ""
             break;;
