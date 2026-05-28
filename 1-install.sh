@@ -464,6 +464,7 @@ install_dotfiles() {
     _forceSymLink "matuwall" ~/.config/matuwall ~/hyprtk/matuwall ~/.config/matuwall
     _forceSymLink "wob" ~/.config/wob ~/hyprtk/wob ~/.config/wob
     _forceSymLink "standalone" ~/.local/bin ~/hyprtk/standalone ~/.local/bin
+    _forceSymLink "zshrc" ~/.config/zshrc ~/hyprtk/zshrc ~/.config/zshrc
 }
 
 install_zsh() {
