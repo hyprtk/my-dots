@@ -32,9 +32,6 @@ run_dracut_rebuild() {
     fi
 }
 
-# Display output in a scrolling Zenity window (used as a pipe consumer)
-# Not directly called; we pipe the whole installation output into zenity.
-
 # Cleanup on exit
 cleanup() {
     rm -f "$ASKPASS_SCRIPT"
@@ -230,6 +227,25 @@ install_graphics_card() {
     esac
 }
 
+install_virt_drivers() {
+    echo "Installing QEMU/KVM and VMware guest drivers..."
+    
+    # QEMU/KVM drivers and tools
+    run_pacman -S --needed qemu-guest-agent spice-vdagent xf86-video-qxl mesa
+    # VMware drivers and tools
+    run_pacman -S --needed open-vm-tools xf86-video-vmware mesa
+    
+    # Enable services
+    echo "Enabling QEMU guest agent..."
+    sudo -A systemctl enable --now qemu-guest-agent 2>/dev/null || true
+    echo "Enabling SPICE vdagent..."
+    sudo -A systemctl enable --now spice-vdagentd 2>/dev/null || true
+    echo "Enabling VMware tools..."
+    sudo -A systemctl enable --now vmtoolsd 2>/dev/null || true
+    
+    echo "Virtualisation guest drivers installed."
+}
+
 install_hyprland() {
     echo "Installing Hyprland and core components..."
     run_pacman -S hyprland xdg-desktop-portal-wlr waybar swayidle swappy cliphist \
@@ -299,7 +315,7 @@ install_system() {
         python-psutil python-rich python-click xdg-desktop-portal-gtk xdg-user-dirs \
         xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp pcp-gui gtk4-layer-shell hyprpicker
     run_pacman -S $(pacman -Ssq 'pcp-pmda-*') 2>/dev/null || true
-    # Install pamac packages with existence check
+    # Install pamac packages with existence check (already handled by _installPackagesYay)
     _installPackagesYay pamac-all libpamac-full pamac-cli
     run_yay -S bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
     # Enable services
@@ -467,6 +483,19 @@ install_dotfiles() {
     _forceSymLink "zshrc" ~/.config/zshrc ~/hyprtk/zshrc ~/.config/zshrc
 }
 
+configure_zsh_compdump() {
+    # Append zcompdump configuration to .zshrc if not already present
+    local zshrc_file="$HOME/.zshrc"
+    local snippet="# --- Custom zcompdump location ---\nZSH_COMPDUMP=\"\$HOME/.cache/zsh/.zcompdump-\${ZSH_VERSION}\"\nmkdir -p \"\$HOME/.cache/zsh\"\nautoload -Uz compinit\ncompinit -d \"\$ZSH_COMPDUMP\"\n# ---------------------------------------"
+    
+    if ! grep -q "compinit -d" "$zshrc_file" 2>/dev/null; then
+        echo -e "\n$snippet" >> "$zshrc_file"
+        echo "Added zcompdump configuration to $zshrc_file"
+    else
+        echo "zcompdump configuration already present in $zshrc_file"
+    fi
+}
+
 install_zsh() {
     echo "Installing ZSH..."
     
@@ -500,6 +529,9 @@ install_zsh() {
     
     # ----- Link .zshrc from dotfiles -----
     _forceSymLink ".zshrc" ~/.zshrc ~/hyprtk/.zshrc ~/.zshrc
+
+    # ----- Configure zcompdump to use .cache/zsh -----
+    configure_zsh_compdump
 
     # ----- Set default shell for user and root (using a fresh root password) -----
     ROOT_PASSWORD2=$(ask_root_password "To set ZSH as the default shell for your user and root,\nplease enter the root password:")
@@ -582,6 +614,7 @@ COMPONENTS=$(zenity --list --checklist \
     TRUE "yay" "Install yay AUR helper" \
     FALSE "chaotic_aur" "Enable Chaotic AUR (optional)" \
     TRUE "graphics_card" "Graphics card drivers (Intel/AMD/Nvidia)" \
+    FALSE "virt_drivers" "Virtualization guest drivers (QEMU/KVM & VMware)" \
     TRUE "hyprland" "Hyprland WM and core packages" \
     TRUE "xfce4" "XFCE4 desktop environment" \
     TRUE "system" "Base system packages (SDDM, bluetooth, etc.)" \
@@ -635,6 +668,7 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
             yay)           install_yay ;;
             chaotic_aur)   install_chaotic_aur ;;
             graphics_card) install_graphics_card ;;
+            virt_drivers)  install_virt_drivers ;;
             hyprland)      install_hyprland ;;
             xfce4)         install_xfce4 ;;
             system)        install_system ;;
