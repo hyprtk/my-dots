@@ -32,8 +32,16 @@ run_dracut_rebuild() {
     fi
 }
 
-# Display output in a scrolling Zenity window (used as a pipe consumer)
-# Not directly called; we pipe the whole installation output into zenity.
+# Remove ~/.config/hypr symlink/directory forcefully
+remove_hypr_config() {
+    echo "Removing ~/.config/hypr symlink/directory..."
+    if [[ -L "$HOME/.config/hypr" ]] || [[ -e "$HOME/.config/hypr" ]]; then
+        rm -rf "$HOME/.config/hypr"
+        echo "Removed."
+    else
+        echo "~/.config/hypr does not exist."
+    fi
+}
 
 # Cleanup on exit
 cleanup() {
@@ -466,6 +474,7 @@ install_dotfiles() {
     # Ensure .config exists
     mkdir -p ~/.config
     mkdir -p ~/.local/bin
+
     
     _forceSymLink "alacritty" ~/.config/alacritty ~/hyprtk/alacritty ~/.config/alacritty
     _forceSymLink "ranger" ~/.config/ranger ~/hyprtk/ranger ~/.config/ranger
@@ -482,7 +491,9 @@ install_dotfiles() {
     _forceSymLink "icons" ~/.local/share/icons ~/hyprtk/papirus-icons/icons ~/.local/share/icons
     _forceSymLink "xfce4" ~/.config/xfce4 ~/hyprtk/xfce4 ~/.config/xfce4
     _forceSymLink "Thunar" ~/.config/Thunar ~/hyprtk/Thunar ~/.config/Thunar
-    _forceSymLink "Mousepad" ~/.config/Mousepad ~/hyprtk/Mousepad ~/.config/Mousepad
+    _forceSymLink "Mousepad" ~/.config/Mousepad ~/hyprtk/Mousepad ~/.config/Mousepad  
+    # Remove existing ~/.config/hypr before symlinking
+    remove_hypr_config
     _forceSymLink "hypr" ~/.config/hypr ~/hyprtk/hypr ~/.config/hypr
     _forceSymLink "fastfetch" ~/.config/fastfetch ~/hyprtk/fastfetch ~/.config/fastfetch
     _forceSymLink "waybar" ~/.config/waybar ~/hyprtk/waybar ~/.config/waybar
