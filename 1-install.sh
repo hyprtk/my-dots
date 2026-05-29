@@ -32,6 +32,9 @@ run_dracut_rebuild() {
     fi
 }
 
+# Display output in a scrolling Zenity window (used as a pipe consumer)
+# Not directly called; we pipe the whole installation output into zenity.
+
 # Cleanup on exit
 cleanup() {
     rm -f "$ASKPASS_SCRIPT"
@@ -165,7 +168,23 @@ install_yay() {
     run_pacman -S "base-devel"
     git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git
     pushd /tmp/yay-git >/dev/null
+    
+    # Ask for root password to install via makepkg -si (which calls pacman -U)
+    ROOT_PASSWORD=$(ask_root_password "yay installation requires root privileges to install the package.\nPlease enter your root password:")
+    if [[ -z "$ROOT_PASSWORD" ]]; then
+        echo "Root password not provided. Skipping yay installation."
+        popd >/dev/null
+        return 1
+    fi
+    ROOT_ASKPASS=$(mktemp /tmp/root_askpass.XXXXXX.sh)
+    echo '#!/bin/bash' > "$ROOT_ASKPASS"
+    echo "echo '$ROOT_PASSWORD'" >> "$ROOT_ASKPASS"
+    chmod +x "$ROOT_ASKPASS"
+    export SUDO_ASKPASS="$ROOT_ASKPASS"
     makepkg -si --noconfirm
+    rm -f "$ROOT_ASKPASS"
+    export SUDO_ASKPASS="$ASKPASS_SCRIPT"  # Restore original
+    
     popd >/dev/null
     rm -rf /tmp/yay-git
 }
@@ -185,8 +204,8 @@ install_graphics_card() {
     
     choice=$(zenity --list --radiolist --title="Graphics Card Driver" \
         --column="Pick" --column="GPU Type" \
-        FALSE "Intel" TRUE "AMD (Default)" FALSE "Nvidia" \
-        --width=400 --height=250)
+        FALSE "Intel" TRUE "AMD (Default)" FALSE "Nvidia" FALSE "Virtualization (QEMU/virt & VMware)" \
+        --width=400 --height=300)
     
     case "$choice" in
         Intel)
@@ -215,6 +234,15 @@ install_graphics_card() {
                 run_dracut_rebuild
             fi
             ;;
+        Virtualization*)
+            echo "Installing virtualization guest drivers (QEMU/virt & VMware)..."
+            run_pacman -S qemu-guest-agent spice-vdagent xf86-video-qxl mesa open-vm-tools xf86-video-vmware
+            # Enable services
+            sudo -A systemctl enable --now qemu-guest-agent 2>/dev/null || true
+            sudo -A systemctl enable --now spice-vdagentd 2>/dev/null || true
+            sudo -A systemctl enable --now vmtoolsd 2>/dev/null || true
+            echo "Virtualization drivers installed. For 3D acceleration, ensure VM supports virgl (QEMU) or 3D acceleration (VMware)."
+            ;;
         AMD|*)
             run_pacman -S xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau
             if [ "$initramfs_builder" = "mkinitcpio" ]; then
@@ -225,26 +253,6 @@ install_graphics_card() {
             fi
             ;;
     esac
-}
-
-install_virt_drivers() {
-    echo "Installing QEMU/KVM and VMware guest drivers..."
-    
-    # QEMU/KVM drivers and tools
-    run_pacman -S --needed qemu-guest-agent spice-vdagent xf86-video-qxl mesa
-    # VMware drivers and tools
-    run_pacman -S --needed open-vm-tools mesa
-    run_yay -S xf86-video-vmware
-    
-    # Enable services
-    echo "Enabling QEMU guest agent..."
-    sudo -A systemctl enable --now qemu-guest-agent 2>/dev/null || true
-    echo "Enabling SPICE vdagent..."
-    sudo -A systemctl enable --now spice-vdagentd 2>/dev/null || true
-    echo "Enabling VMware tools..."
-    sudo -A systemctl enable --now vmtoolsd 2>/dev/null || true
-    
-    echo "Virtualisation guest drivers installed."
 }
 
 install_hyprland() {
@@ -372,7 +380,11 @@ install_hyprviz() {
 
 install_matuwall() {
     echo "Installing Matuwall wallpaper picker..."
-    sudo -A rm -R ~/.local/share/Matuwall
+    # Check if directory exists and delete it for fresh install
+    if [[ -d ~/.local/share/Matuwall ]]; then
+        echo "Existing Matuwall installation found. Removing it for fresh install..."
+        rm -rf ~/.local/share/Matuwall
+    fi
     git clone https://github.com/naurissteins/Matuwall.git ~/.local/share/Matuwall
     pushd ~/.local/share/Matuwall >/dev/null
     python -m venv --system-site-packages .venv
@@ -484,19 +496,6 @@ install_dotfiles() {
     _forceSymLink "zshrc" ~/.config/zshrc ~/hyprtk/zshrc ~/.config/zshrc
 }
 
-configure_zsh_compdump() {
-    # Append zcompdump configuration to .zshrc if not already present
-    local zshrc_file="$HOME/.zshrc"
-    local snippet="# --- Custom zcompdump location ---\nZSH_COMPDUMP=\"\$HOME/.cache/zsh/.zcompdump-\${ZSH_VERSION}\"\nmkdir -p \"\$HOME/.cache/zsh\"\nautoload -Uz compinit\ncompinit -d \"\$ZSH_COMPDUMP\"\n# ---------------------------------------"
-    
-    if ! grep -q "compinit -d" "$zshrc_file" 2>/dev/null; then
-        echo -e "\n$snippet" >> "$zshrc_file"
-        echo "Added zcompdump configuration to $zshrc_file"
-    else
-        echo "zcompdump configuration already present in $zshrc_file"
-    fi
-}
-
 install_zsh() {
     echo "Installing ZSH..."
     
@@ -531,8 +530,19 @@ install_zsh() {
     # ----- Link .zshrc from dotfiles -----
     _forceSymLink ".zshrc" ~/.zshrc ~/hyprtk/.zshrc ~/.zshrc
 
-    # ----- Configure zcompdump to use .cache/zsh -----
-    configure_zsh_compdump
+    # ----- Configure custom zcompdump location in .zshrc -----
+    ZSHRC_FILE=~/.zshrc
+    if ! grep -q "ZSH_COMPDUMP=\"\$HOME/.cache/zsh/.zcompdump" "$ZSHRC_FILE" 2>/dev/null; then
+        echo "Adding custom zcompdump configuration to .zshrc..."
+        cat >> "$ZSHRC_FILE" << 'EOF'
+
+# Custom zcompdump location
+ZSH_COMPDUMP="$HOME/.cache/zsh/.zcompdump-${ZSH_VERSION}"
+mkdir -p "$HOME/.cache/zsh"
+autoload -Uz compinit
+compinit -d "$ZSH_COMPDUMP"
+EOF
+    fi
 
     # ----- Set default shell for user and root (using a fresh root password) -----
     ROOT_PASSWORD2=$(ask_root_password "To set ZSH as the default shell for your user and root,\nplease enter the root password:")
@@ -614,8 +624,7 @@ COMPONENTS=$(zenity --list --checklist \
     --column="Pick" --column="Component" --column="Description" \
     TRUE "yay" "Install yay AUR helper" \
     FALSE "chaotic_aur" "Enable Chaotic AUR (optional)" \
-    TRUE "graphics_card" "Graphics card drivers (Intel/AMD/Nvidia)" \
-    FALSE "virt_drivers" "Virtualization guest drivers (QEMU/KVM & VMware)" \
+    TRUE "graphics_card" "Graphics card drivers (Intel/AMD/Nvidia/Virtualization)" \
     TRUE "hyprland" "Hyprland WM and core packages" \
     TRUE "xfce4" "XFCE4 desktop environment" \
     TRUE "system" "Base system packages (SDDM, bluetooth, etc.)" \
@@ -669,7 +678,6 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
             yay)           install_yay ;;
             chaotic_aur)   install_chaotic_aur ;;
             graphics_card) install_graphics_card ;;
-            virt_drivers)  install_virt_drivers ;;
             hyprland)      install_hyprland ;;
             xfce4)         install_xfce4 ;;
             system)        install_system ;;
