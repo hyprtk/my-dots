@@ -105,64 +105,79 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Pre‑installation cleanup: remove KDE/GNOME packages & other DMs
+# 2. Pre‑installation cleanup functions
 # -----------------------------------------------------------------------------
 
-remove_kde_gnome() {
-    echo "Checking for installed KDE and GNOME packages..."
-    
-    # Groups to remove entirely
-    local groups_to_remove=("plasma" "kde-applications" "gnome" "gnome-extra")
-    local pkgs_to_remove=()
-    
-    # Collect packages from groups
-    for grp in "${groups_to_remove[@]}"; do
-        if pacman -Qg "$grp" &>/dev/null; then
-            mapfile -t grp_pkgs < <(pacman -Qg "$grp" | cut -d' ' -f2)
-            pkgs_to_remove+=("${grp_pkgs[@]}")
-        fi
-    done
-    
-    # Also remove any package whose name contains 'kde' or 'gnome' (except sddm)
-    mapfile -t name_pkgs < <(pacman -Qq 2>/dev/null | grep -E '(kde|gnome)' | grep -v 'sddm' || true)
-    pkgs_to_remove+=("${name_pkgs[@]}")
-    
-    # Remove duplicates
-    if [[ ${#pkgs_to_remove[@]} -gt 0 ]]; then
-        local unique_pkgs=($(printf "%s\n" "${pkgs_to_remove[@]}" | sort -u))
-        echo "The following KDE/GNOME packages will be removed:"
-        printf '  %s\n' "${unique_pkgs[@]}"
-        
-        # Use pacman to remove them (--noconfirm, but we also need to handle deps)
-        # Convert to space-separated list
-        local pkg_list="${unique_pkgs[*]}"
-        if ! sudo -A pacman -Rns --noconfirm $pkg_list 2>/dev/null; then
-            echo "Warning: Some packages could not be removed (maybe dependencies)."
-        fi
+# Forcefully uninstall any existing SDDM (package + config)
+uninstall_sddm() {
+    echo "Checking for existing SDDM installation..."
+    if pacman -Qs sddm >/dev/null 2>&1; then
+        echo "Removing SDDM package and configuration..."
+        sudo -A systemctl disable sddm 2>/dev/null || true
+        sudo -A systemctl stop sddm 2>/dev/null || true
+        run_pacman -Rns --noconfirm sddm || true
+        sudo -A rm -rf /etc/sddm.conf /etc/sddm.conf.d /usr/lib/sddm /usr/share/sddm
+        echo "SDDM removed."
     else
-        echo "No KDE/GNOME packages found."
+        echo "SDDM not installed."
     fi
 }
 
-disable_other_dms_and_enable_sddm() {
-    echo "Disabling other display managers (LightDM, GDM, LXDM, SLiM, KDM, Ly)..."
-    
-    # List of DMs and their Plymouth counterparts
+# Disable and remove other display managers (LightDM, GDM, LXDM, SLiM, KDM, Ly)
+remove_other_display_managers() {
     local dms=("lightdm" "gdm" "lxdm" "slim" "kdm" "ly")
     for dm in "${dms[@]}"; do
-        sudo -A systemctl disable "$dm" 2>/dev/null || true
-        sudo -A systemctl disable "${dm}-plymouth" 2>/dev/null || true
+        if pacman -Qs "$dm" >/dev/null 2>&1; then
+            echo "Removing $dm..."
+            sudo -A systemctl disable "$dm" 2>/dev/null || true
+            sudo -A systemctl disable "${dm}-plymouth" 2>/dev/null || true
+            sudo -A systemctl stop "$dm" 2>/dev/null || true
+            run_pacman -Rns --noconfirm "$dm" || true
+            echo "$dm removed."
+        else
+            echo "$dm not installed."
+        fi
     done
-    
-    echo "Ensuring SDDM is installed..."
-    if ! pacman -Qs sddm >/dev/null; then
-        run_pacman -S sddm
+}
+
+# Remove common KDE and GNOME packages (destructive, prompts user)
+remove_kde_gnome_packages() {
+    local kde_pkgs=("plasma-desktop" "plasma-meta" "kdebase" "kde-applications-meta" "dolphin" "konsole" "kate" "kde-gtk-config" "plasma-nm")
+    local gnome_pkgs=("gnome-shell" "gnome" "gnome-extra" "nautilus" "gnome-terminal" "gnome-control-center" "gdm" "gnome-keyring")
+    local to_remove=()
+
+    # Check KDE packages
+    for pkg in "${kde_pkgs[@]}"; do
+        if pacman -Qs "$pkg" >/dev/null 2>&1; then
+            to_remove+=("$pkg")
+        fi
+    done
+    # Check GNOME packages
+    for pkg in "${gnome_pkgs[@]}"; do
+        if pacman -Qs "$pkg" >/dev/null 2>&1; then
+            to_remove+=("$pkg")
+        fi
+    done
+
+    if [ ${#to_remove[@]} -eq 0 ]; then
+        echo "No KDE/GNOME packages detected."
+        return
     fi
-    
-    echo "Enabling SDDM as the default display manager..."
-    sudo -A systemctl enable sddm
-    sudo -A systemctl enable sddm --force   # Override any conflicts
-    echo "SDDM enabled."
+
+    # Warn user before removing
+    zenity --question --title="Remove KDE/GNOME?" \
+        --text="The following KDE/GNOME packages were detected:\n\n${to_remove[*]}\n\nDo you want to remove them? (Recommended for a clean Hyprland/XFCE setup)" \
+        --width=500 --ok-label="Remove" --cancel-label="Skip"
+
+    if [ $? -eq 0 ]; then
+        echo "Removing KDE/GNOME packages: ${to_remove[*]}"
+        # Use --nodeps to avoid breaking system, but this is risky.
+        # Instead we remove with dependencies but let user know.
+        run_pacman -Rns --noconfirm "${to_remove[@]}" || true
+        echo "Removal finished."
+    else
+        echo "Skipping removal of KDE/GNOME packages."
+    fi
 }
 
 # -----------------------------------------------------------------------------
@@ -689,11 +704,13 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Pre‑installation cleanup (runs before component selection)
+# 5. Pre‑installation cleanup (run before component selection)
 # -----------------------------------------------------------------------------
 echo "Performing pre‑installation cleanup..."
-remove_kde_gnome
-disable_other_dms_and_enable_sddm
+remove_hypr_config           # Remove old Hyprland config
+remove_kde_gnome_packages    # Remove KDE/GNOME packages (after user confirmation)
+uninstall_sddm               # Remove any existing SDDM
+remove_other_display_managers # Disable/remove other DMs (LightDM, GDM, etc.)
 
 # -----------------------------------------------------------------------------
 # 6. Main menu – component selection
