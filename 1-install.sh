@@ -210,6 +210,22 @@ reinstall_archcraft_desktops() {
     fi
 }
 
+# Move Archcraft fonts to user's local icons directory (as requested)
+# NOTE: Original instruction said "move /usr/share/fonts/archcraft to ~/.local/share/icons"
+# This is unusual (fonts to icons), but implemented exactly as requested.
+move_archcraft_fonts_to_icons() {
+    if is_archcraft; then
+        if [ -d /usr/share/fonts/archcraft ]; then
+            echo "Moving Archcraft fonts from /usr/share/fonts/archcraft to ~/.local/share/icons..."
+            mkdir -p "$HOME/.local/share/icons"
+            sudo -A mv /usr/share/fonts/archcraft "$HOME/.local/share/icons/"
+            echo "Fonts moved (to icons directory as instructed)."
+        else
+            echo "Archcraft fonts directory not found at /usr/share/fonts/archcraft."
+        fi
+    fi
+}
+
 # Main pre-install cleanup routine
 pre_install_cleanup() {
     echo "============================================================"
@@ -224,6 +240,7 @@ pre_install_cleanup() {
     # Also clean up ~/.config/hypr before dotfiles are linked
     remove_hypr_config
     reinstall_archcraft_desktops
+    move_archcraft_fonts_to_icons
     echo "Pre-install cleanup finished."
     echo "============================================================"
 }
