@@ -202,6 +202,14 @@ setup_sddm() {
     sudo -A systemctl enable sddm --force
 }
 
+# Reinstall bspwm and openbox on Archcraft (after cleanup)
+reinstall_archcraft_desktops() {
+    if is_archcraft; then
+        echo "Archcraft detected – reinstalling bspwm and openbox..."
+        run_pacman -S bspwm openbox
+    fi
+}
+
 # Main pre-install cleanup routine
 pre_install_cleanup() {
     echo "============================================================"
@@ -215,6 +223,7 @@ pre_install_cleanup() {
     setup_sddm
     # Also clean up ~/.config/hypr before dotfiles are linked
     remove_hypr_config
+    reinstall_archcraft_desktops
     echo "Pre-install cleanup finished."
     echo "============================================================"
 }
