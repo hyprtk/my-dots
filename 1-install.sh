@@ -288,7 +288,7 @@ install_yay() {
         return
     fi
     echo "Installing yay..."
-    run_pacman -S "base-devel wget"
+    run_pacman -S "base-devel" "wget"
     git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git
     pushd /tmp/yay-git >/dev/null
     
