@@ -105,7 +105,7 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Pre-install cleanup (KDE, SDDM themes, DM switching, etc.)
+# 2. Pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, etc.)
 # -----------------------------------------------------------------------------
 
 remove_kde_applications() {
@@ -127,17 +127,14 @@ remove_kde_applications() {
     sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
 }
 
-# Enhanced: remove all SDDM themes from both standard and local share
 remove_sddm_themes() {
     echo "Removing all installed SDDM themes..."
-    for theme_dir in /usr/share/sddm/themes /usr/local/share/sddm/themes; do
-        if [ -d "$theme_dir" ]; then
-            sudo -A rm -rf "$theme_dir"/*
-            echo "Removed themes from $theme_dir"
-        else
-            echo "No SDDM themes directory at $theme_dir"
-        fi
-    done
+    if [ -d /usr/share/sddm/themes ]; then
+        sudo -A rm -rf /usr/share/sddm/themes/*
+        echo "SDDM themes removed."
+    else
+        echo "No SDDM themes directory found."
+    fi
 }
 
 uninstall_sddm_git() {
@@ -150,15 +147,17 @@ uninstall_sddm_git() {
     fi
 }
 
-# NEW: Remove standard sddm package and its unneeded dependencies
-uninstall_sddm_standard() {
-    echo "Removing standard SDDM package (if installed)..."
+# NEW: Completely remove SDDM (non‑git) and its dependencies
+remove_sddm_and_deps() {
+    echo "Removing SDDM (non‑git) and its dependencies..."
     if pacman -Q sddm &>/dev/null; then
         sudo -A pacman -Rns --noconfirm sddm
-        echo "SDDM removed."
     else
-        echo "Standard SDDM not installed."
+        echo "sddm (standard) not installed."
     fi
+    # Remove orphaned dependencies that were pulled by sddm
+    echo "Removing orphaned packages (after sddm removal)..."
+    sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
 }
 
 disable_other_dms() {
@@ -185,14 +184,41 @@ setup_sddm() {
     sudo -A systemctl enable sddm --force
 }
 
+# NEW: Detect if running on Archcraft
+detect_archcraft() {
+    if [[ -f /etc/archcraft-release ]] || grep -qi "archcraft" /etc/os-release 2>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# NEW: Remove Archcraft‑specific SDDM theme and sddm‑git (if present)
+remove_archcraft_sddm_theme() {
+    if detect_archcraft; then
+        echo "Archcraft distribution detected. Removing archcraft-sddm-theme and sddm-git..."
+        if pacman -Q archcraft-sddm-theme &>/dev/null; then
+            sudo -A pacman -Rns --noconfirm archcraft-sddm-theme || true
+        else
+            echo "archcraft-sddm-theme not installed."
+        fi
+        # sddm-git is already handled by uninstall_sddm_git, but we call it again for safety
+        uninstall_sddm_git
+    else
+        echo "Not an Archcraft system, skipping Archcraft theme removal."
+    fi
+}
+
 pre_install_cleanup() {
     echo "============================================================"
-    echo "Starting pre-install cleanup (KDE, SDDM themes, DM switching)"
+    echo "Starting pre-install cleanup (KDE, SDDM, DM switching, Archcraft)"
     echo "============================================================"
     remove_kde_applications
-    remove_sddm_themes
+    # Remove any existing SDDM (both git and standard) before reinstalling
     uninstall_sddm_git
-    uninstall_sddm_standard      # <-- NEW: purge regular sddm as well
+    remove_sddm_and_deps
+    remove_sddm_themes
+    remove_archcraft_sddm_theme   # NEW: handles Archcraft-specific theme
     disable_other_dms
     setup_sddm
     # Also clean up ~/.config/hypr before dotfiles are linked
@@ -739,7 +765,7 @@ post_install_setup() {
 # 6. Main menu – component selection
 # -----------------------------------------------------------------------------
 
-# --- Run pre-install cleanup (KDE, SDDM themes, DM switching) ---
+# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft) ---
 pre_install_cleanup
 
 COMPONENTS=$(zenity --list --checklist \
