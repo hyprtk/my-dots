@@ -107,6 +107,7 @@ ask_root_password() {
 # -----------------------------------------------------------------------------
 # 2. Load library functions (modified for silent/fast operation)
 # -----------------------------------------------------------------------------
+# Source the library.sh but override the interactive symlink function
 LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
 if [[ ! -f "$LIBRARY_PATH" ]]; then
     LIBRARY_PATH=~/hyprtk/scripts/library.sh
@@ -163,69 +164,86 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 3. New cleanup / integration functions
+# 2b. New helper functions for removal and DM switching
 # -----------------------------------------------------------------------------
 
+# Remove KDE applications (Plasma and core KDE packages)
 remove_kde_apps() {
     echo "Checking for KDE applications..."
-    local kde_packages=(
-        plasma-meta plasma kde-applications-meta
-        dolphin konsole kate okular gwenview
-        ark kdenetwork-filesharing kdenlive
-        kmail kontact korganizer ktorrent
+    local kde_packages=()
+    # Common KDE/Plasma packages
+    local candidates=(
+        plasma-desktop plasma-meta kde-applications kde-applications-meta
+        dolphin konsole kate kwin kwrite okular gwenview ark
+        kdenetwork-filesharing kio-extras kio-gdrive
+        plasma-workspace plasma-pa plasma-nm plasma-desktop
+        systemsettings spectacle partitionmanager
     )
-    local to_remove=()
-    for pkg in "${kde_packages[@]}"; do
+    for pkg in "${candidates[@]}"; do
         if pacman -Q "$pkg" &>/dev/null; then
-            to_remove+=("$pkg")
+            kde_packages+=("$pkg")
         fi
     done
-    if [[ ${#to_remove[@]} -gt 0 ]]; then
-        echo "Removing KDE packages: ${to_remove[*]}"
-        sudo -A pacman -Rns --noconfirm "${to_remove[@]}" 2>/dev/null || true
+    if [[ ${#kde_packages[@]} -gt 0 ]]; then
+        echo "Found KDE packages: ${kde_packages[*]}"
+        echo "Removing KDE packages..."
+        sudo -A pacman -Rns --noconfirm "${kde_packages[@]}" 2>/dev/null || true
+        echo "KDE packages removed."
     else
-        echo "No KDE packages found."
+        echo "No KDE packages detected."
     fi
 }
 
-uninstall_sddm() {
-    if pacman -Q sddm &>/dev/null; then
-        echo "Removing existing SDDM installation..."
-        sudo -A systemctl disable sddm 2>/dev/null || true
-        sudo -A pacman -Rns --noconfirm sddm
-        yay -Rns --noconfirm sddm-git
-        echo "SDDM removed."
+# Uninstall sddm-git if present (AUR version)
+uninstall_sddm_git() {
+    if pacman -Q sddm-git &>/dev/null; then
+        echo "Removing sddm-git (AUR version)..."
+        sudo -A pacman -Rns --noconfirm sddm-git
+        echo "sddm-git removed."
     else
-        echo "SDDM not installed."
+        echo "sddm-git not installed."
     fi
 }
 
-disable_other_display_managers() {
-    echo "Disabling other display managers (LightDM, GDM, LXDM, SLiM, KDM, Ly)..."
-    for dm in lightdm gdm lxdm slim kdm ly; do
-        sudo -A systemctl disable "$dm" 2>/dev/null || true
-        sudo -A systemctl disable "$dm-plymouth" 2>/dev/null || true
-    done
-    echo "Other display managers disabled."
-}
-
-run_xdg_user_dirs() {
-    echo "Updating XDG user directories and Thunar bookmarks..."
+# Update XDG user directories and GTK bookmarks (populates Thunar)
+update_xdg_user_dirs() {
+    echo "Updating XDG user directories..."
     if command -v xdg-user-dirs-update &>/dev/null; then
         xdg-user-dirs-update
-    else
-        echo "xdg-user-dirs-update not found – skipping."
     fi
     if command -v xdg-user-dirs-gtk-update &>/dev/null; then
         xdg-user-dirs-gtk-update
-    else
-        echo "xdg-user-dirs-gtk-update not found – skipping."
     fi
-    echo "User directories updated."
+    echo "XDG user directories updated."
+}
+
+# Switch display manager to SDDM (disable all others, enable sddm)
+switch_display_manager() {
+    echo "Switching display manager to SDDM..."
+    local dms=(
+        lightdm lightdm-plymouth
+        gdm gdm-plymouth
+        lxdm lxdm-plymouth
+        slim slim-plymouth
+        kdm kdm-plymouth
+        ly ly-plymouth
+    )
+    for dm in "${dms[@]}"; do
+        if systemctl list-unit-files | grep -q "^$dm.service"; then
+            sudo -A systemctl disable "$dm" 2>/dev/null || true
+        fi
+    done
+    # Ensure SDDM is installed (it will be by install_system, but just in case)
+    if ! pacman -Q sddm &>/dev/null; then
+        echo "Installing SDDM (stable)..."
+        run_pacman -S sddm
+    fi
+    sudo -A systemctl enable sddm
+    echo "SDDM enabled, other display managers disabled."
 }
 
 # -----------------------------------------------------------------------------
-# 4. Component installation functions (derived from original scripts)
+# 3. Component installation functions (derived from original scripts)
 # -----------------------------------------------------------------------------
 
 install_yay() {
@@ -389,16 +407,16 @@ install_systemtools() {
 
 install_system() {
     echo "Installing system packages (SDDM, bluetooth, etc.)..."
+    # Install SDDM (stable) but do NOT enable it yet – will be done by switch_display_manager
     run_pacman -S sddm blueman pacman-contrib fzf font-manager awesome-terminal-fonts \
         ttf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd exa python-pip \
         python-psutil python-rich python-click xdg-desktop-portal-gtk xdg-user-dirs \
         xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp pcp-gui gtk4-layer-shell hyprpicker
     run_pacman -S $(pacman -Ssq 'pcp-pmda-*') 2>/dev/null || true
-    # Install pamac packages with existence check (already handled by _installPackagesYay)
     _installPackagesYay pamac-all libpamac-full pamac-cli
     run_yay -S bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
-    # Enable services
-    sudo -A systemctl enable bluetooth sddm
+    # Enable bluetooth only; SDDM will be handled later
+    sudo -A systemctl enable bluetooth
 }
 
 install_hyprviz() {
@@ -536,6 +554,7 @@ install_dotfiles() {
     mkdir -p ~/.config
     mkdir -p ~/.local/bin
 
+    
     _forceSymLink "alacritty" ~/.config/alacritty ~/hyprtk/alacritty ~/.config/alacritty
     _forceSymLink "ranger" ~/.config/ranger ~/hyprtk/ranger ~/.config/ranger
     _forceSymLink "vim" ~/.config/vim ~/hyprtk/vim ~/.config/vim
@@ -688,17 +707,8 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Main menu – component selection
+# 4. Main menu – component selection
 # -----------------------------------------------------------------------------
-
-# --- Pre-installation cleanup (run before menu) ---
-echo "Performing pre-installation cleanup..."
-remove_kde_apps
-uninstall_sddm
-disable_other_display_managers
-remove_hypr_config          # ensure ~/.config/hypr is gone early
-run_xdg_user_dirs           # populate user directories before installing apps
-
 COMPONENTS=$(zenity --list --checklist \
     --title="Arch Linux Setup – Hyprland & XFCE" \
     --text="Select the components you wish to install.\nPassword will be cached – you won't be prompted again." \
@@ -736,7 +746,14 @@ if [ -z "$COMPONENTS" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 6. Run selected components with live output display
+# 4b. Pre-installation cleanup (run before anything else)
+# -----------------------------------------------------------------------------
+echo "Performing pre-installation cleanup..."
+remove_kde_apps
+uninstall_sddm_git
+
+# -----------------------------------------------------------------------------
+# 5. Run selected components with live output display
 # -----------------------------------------------------------------------------
 LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
@@ -787,10 +804,15 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
         echo ""
     done
 
-    # Finalize – ensure SDDM is enabled and user dirs are up-to-date
-    echo "Finalizing setup..."
-    sudo -A systemctl enable sddm --force
-    run_xdg_user_dirs
+    # After system component (or at the end), perform DM switch and XDG updates
+    # We check if 'system' was selected; if not, still run DM switch to be safe
+    if [[ " ${SELECTED[*]} " =~ " system " ]]; then
+        echo "Performing display manager switch and XDG directory updates..."
+        switch_display_manager
+        update_xdg_user_dirs
+    else
+        echo "System component not selected – skipping DM switch and XDG updates (you may need to run them manually)."
+    fi
 
     echo "============================================================"
     echo " Hyprtk Installation completed at $(date)"
