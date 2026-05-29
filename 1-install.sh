@@ -32,7 +32,7 @@ run_dracut_rebuild() {
     fi
 }
 
-# Remove ~/.config/hypr symlink/directory forcefully (called early and before dotfiles)
+# Remove ~/.config/hypr symlink/directory forcefully
 remove_hypr_config() {
     echo "Removing ~/.config/hypr symlink/directory..."
     if [[ -L "$HOME/.config/hypr" ]] || [[ -e "$HOME/.config/hypr" ]]; then
@@ -127,22 +127,17 @@ remove_kde_applications() {
     sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
 }
 
+# Enhanced: remove all SDDM themes from both standard and local share
 remove_sddm_themes() {
-    echo "Removing all installed SDDM themes (system and user)..."
-    # System themes
-    if [ -d /usr/share/sddm/themes ]; then
-        sudo -A rm -rf /usr/share/sddm/themes/*
-        echo "System SDDM themes removed."
-    else
-        echo "No system SDDM themes directory found."
-    fi
-    # User-local themes
-    if [ -d "$HOME/.local/share/sddm/themes" ]; then
-        rm -rf "$HOME/.local/share/sddm/themes"/*
-        echo "User-local SDDM themes removed."
-    else
-        echo "No user-local SDDM themes directory found."
-    fi
+    echo "Removing all installed SDDM themes..."
+    for theme_dir in /usr/share/sddm/themes /usr/local/share/sddm/themes; do
+        if [ -d "$theme_dir" ]; then
+            sudo -A rm -rf "$theme_dir"/*
+            echo "Removed themes from $theme_dir"
+        else
+            echo "No SDDM themes directory at $theme_dir"
+        fi
+    done
 }
 
 uninstall_sddm_git() {
@@ -155,16 +150,25 @@ uninstall_sddm_git() {
     fi
 }
 
+# NEW: Remove standard sddm package and its unneeded dependencies
+uninstall_sddm_standard() {
+    echo "Removing standard SDDM package (if installed)..."
+    if pacman -Q sddm &>/dev/null; then
+        sudo -A pacman -Rns --noconfirm sddm
+        echo "SDDM removed."
+    else
+        echo "Standard SDDM not installed."
+    fi
+}
+
 disable_other_dms() {
-    echo "Disabling other display managers and their Plymouth variants..."
+    echo "Disabling other display managers (and their Plymouth variants)..."
     local dms=("lightdm" "gdm" "lxdm" "slim" "kdm" "ly")
     for dm in "${dms[@]}"; do
-        # Disable base service
         if systemctl list-unit-files | grep -q "^${dm}.service"; then
             echo "Disabling ${dm}..."
             sudo -A systemctl disable "${dm}" 2>/dev/null || true
         fi
-        # Disable Plymouth counterpart
         if systemctl list-unit-files | grep -q "^${dm}-plymouth.service"; then
             echo "Disabling ${dm}-plymouth..."
             sudo -A systemctl disable "${dm}-plymouth" 2>/dev/null || true
@@ -188,6 +192,7 @@ pre_install_cleanup() {
     remove_kde_applications
     remove_sddm_themes
     uninstall_sddm_git
+    uninstall_sddm_standard      # <-- NEW: purge regular sddm as well
     disable_other_dms
     setup_sddm
     # Also clean up ~/.config/hypr before dotfiles are linked
