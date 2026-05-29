@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# Unified Zenity GUI Installer for Hyprtk Arch Linux (Hyprland & XFCE)
+# Unified Zenity GUI Installer for Hyprtk (Hyprland & XFCE)
 # =============================================================================
 
 set -e  # Exit on error, but we'll catch errors gracefully
