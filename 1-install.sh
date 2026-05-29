@@ -570,11 +570,13 @@ install_fonts() {
 
 install_icons_root() {
     echo "Installing Papirus icons for root user..."
+    sudo -A rm -rf /root/.local/share/icons
     wget -qO- https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh | DESTDIR="/root/.local/share/icons" sh
 }
 
 install_icons_user() {
     echo "Installing Papirus icons for user..."
+    sudo -A rm -rf ~/.local/share/icons
     wget -qO- https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh | DESTDIR="~/.local/share/icons" sh
 }
 
