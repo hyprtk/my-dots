@@ -141,7 +141,7 @@ uninstall_sddm_git() {
     echo "Checking for sddm-git package..."
     if yay -Q sddm-git &>/dev/null; then
         echo "Uninstalling sddm-git..."
-        yay -Rns --noconfirm sddm-git
+        yay -Rcs --noconfirm sddm-git
     else
         echo "sddm-git not installed."
     fi
@@ -151,7 +151,7 @@ uninstall_sddm_git() {
 remove_sddm_and_deps() {
     echo "Removing SDDM (non‑git) and its dependencies..."
     if pacman -Q sddm &>/dev/null; then
-        sudo -A pacman -Rns --noconfirm sddm
+        sudo -A pacman -Rcs --noconfirm sddm
     else
         echo "sddm (standard) not installed."
     fi
