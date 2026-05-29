@@ -105,7 +105,68 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Load library functions (modified for silent/fast operation)
+# 2. Pre‑installation cleanup: remove KDE/GNOME packages & other DMs
+# -----------------------------------------------------------------------------
+
+remove_kde_gnome() {
+    echo "Checking for installed KDE and GNOME packages..."
+    
+    # Groups to remove entirely
+    local groups_to_remove=("plasma" "kde-applications" "gnome" "gnome-extra")
+    local pkgs_to_remove=()
+    
+    # Collect packages from groups
+    for grp in "${groups_to_remove[@]}"; do
+        if pacman -Qg "$grp" &>/dev/null; then
+            mapfile -t grp_pkgs < <(pacman -Qg "$grp" | cut -d' ' -f2)
+            pkgs_to_remove+=("${grp_pkgs[@]}")
+        fi
+    done
+    
+    # Also remove any package whose name contains 'kde' or 'gnome' (except sddm)
+    mapfile -t name_pkgs < <(pacman -Qq 2>/dev/null | grep -E '(kde|gnome)' | grep -v 'sddm' || true)
+    pkgs_to_remove+=("${name_pkgs[@]}")
+    
+    # Remove duplicates
+    if [[ ${#pkgs_to_remove[@]} -gt 0 ]]; then
+        local unique_pkgs=($(printf "%s\n" "${pkgs_to_remove[@]}" | sort -u))
+        echo "The following KDE/GNOME packages will be removed:"
+        printf '  %s\n' "${unique_pkgs[@]}"
+        
+        # Use pacman to remove them (--noconfirm, but we also need to handle deps)
+        # Convert to space-separated list
+        local pkg_list="${unique_pkgs[*]}"
+        if ! sudo -A pacman -Rns --noconfirm $pkg_list 2>/dev/null; then
+            echo "Warning: Some packages could not be removed (maybe dependencies)."
+        fi
+    else
+        echo "No KDE/GNOME packages found."
+    fi
+}
+
+disable_other_dms_and_enable_sddm() {
+    echo "Disabling other display managers (LightDM, GDM, LXDM, SLiM, KDM, Ly)..."
+    
+    # List of DMs and their Plymouth counterparts
+    local dms=("lightdm" "gdm" "lxdm" "slim" "kdm" "ly")
+    for dm in "${dms[@]}"; do
+        sudo -A systemctl disable "$dm" 2>/dev/null || true
+        sudo -A systemctl disable "${dm}-plymouth" 2>/dev/null || true
+    done
+    
+    echo "Ensuring SDDM is installed..."
+    if ! pacman -Qs sddm >/dev/null; then
+        run_pacman -S sddm
+    fi
+    
+    echo "Enabling SDDM as the default display manager..."
+    sudo -A systemctl enable sddm
+    sudo -A systemctl enable sddm --force   # Override any conflicts
+    echo "SDDM enabled."
+}
+
+# -----------------------------------------------------------------------------
+# 3. Load library functions (modified for silent/fast operation)
 # -----------------------------------------------------------------------------
 # Source the library.sh but override the interactive symlink function
 LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
@@ -164,7 +225,7 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 3. Component installation functions (derived from original scripts)
+# 4. Component installation functions (derived from original scripts)
 # -----------------------------------------------------------------------------
 
 install_yay() {
@@ -628,7 +689,14 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Main menu – component selection
+# 5. Pre‑installation cleanup (runs before component selection)
+# -----------------------------------------------------------------------------
+echo "Performing pre‑installation cleanup..."
+remove_kde_gnome
+disable_other_dms_and_enable_sddm
+
+# -----------------------------------------------------------------------------
+# 6. Main menu – component selection
 # -----------------------------------------------------------------------------
 COMPONENTS=$(zenity --list --checklist \
     --title="Arch Linux Setup – Hyprland & XFCE" \
@@ -667,7 +735,7 @@ if [ -z "$COMPONENTS" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Run selected components with live output display
+# 7. Run selected components with live output display
 # -----------------------------------------------------------------------------
 LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
