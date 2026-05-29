@@ -289,7 +289,6 @@ install_yay() {
     fi
     echo "Installing yay..."
     run_pacman -S "base-devel"
-    run_pacman -S "wget"
     git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git
     pushd /tmp/yay-git >/dev/null
     
@@ -382,7 +381,7 @@ install_graphics_card() {
 
 install_hyprland() {
     echo "Installing Hyprland and core components..."
-    run_pacman -S hyprland xdg-desktop-portal-wlr waybar swayidle swappy cliphist \
+    run_pacman -S hyprland xdg-desktop-portal-wlr waybar swayidle swappy cliphist wget \
         xorg-xhost nwg-look mission-center curl imagemagick jq bc brightnessctl \
         playerctl libadwaita gtk-layer-shell python python-pip python-virtualenv \
         python-gobject gtk4 wob
