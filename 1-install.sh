@@ -237,7 +237,6 @@ pre_install_cleanup() {
     clean_sddm_environment
     disable_other_dms
     setup_sddm
-    reinstall_archcraft_desktops
     move_archcraft_fonts_to_icons
     echo "Pre-install cleanup finished."
     echo "============================================================"
@@ -774,6 +773,7 @@ post_install_setup() {
     echo "Updating XDG user directories and GTK bookmarks..."
     xdg-user-dirs-update
     xdg-user-dirs-gtk-update
+    reinstall_archcraft_desktops
     echo "Thunar bookmarks should now be populated."
 }
 
