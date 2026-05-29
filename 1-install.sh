@@ -197,7 +197,7 @@ disable_other_dms() {
 # Fresh SDDM installation and forceful enabling
 setup_sddm() {
     echo "Installing fresh SDDM..."
-    run_pacman -S sddm
+    run_pacman -S sddm base-devel wget
     echo "Enabling SDDM (with --force)..."
     sudo -A systemctl enable sddm --force
 }
@@ -233,10 +233,10 @@ pre_install_cleanup() {
     echo "============================================================"
     remove_kde_applications
     remove_archcraft_sddm
+    setup_sddm
     uninstall_rofi_lbonn
     clean_sddm_environment
     disable_other_dms
-    setup_sddm
     move_archcraft_fonts_to_icons
     echo "Pre-install cleanup finished."
     echo "============================================================"
