@@ -105,7 +105,89 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Load library functions (modified for silent/fast operation)
+# 2. Pre-install cleanup (KDE, SDDM themes, DM switching, etc.)
+# -----------------------------------------------------------------------------
+
+remove_kde_applications() {
+    echo "Checking for KDE applications..."
+    KDE_PACKAGES=()
+    for group in plasma kde-applications kde-utilities kde-system kde-multimedia kde-network kde-graphics; do
+        if pacman -Qg "$group" &>/dev/null; then
+            KDE_PACKAGES+=($(pacman -Qgq "$group" 2>/dev/null))
+        fi
+    done
+    if [ ${#KDE_PACKAGES[@]} -gt 0 ]; then
+        echo "Removing KDE packages: ${KDE_PACKAGES[*]}"
+        sudo -A pacman -Rns --noconfirm "${KDE_PACKAGES[@]}" 2>/dev/null || true
+    else
+        echo "No KDE group packages found."
+    fi
+    # Also remove orphaned packages
+    echo "Removing orphaned packages (if any)..."
+    sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
+}
+
+remove_sddm_themes() {
+    echo "Removing all installed SDDM themes..."
+    if [ -d /usr/share/sddm/themes ]; then
+        sudo -A rm -rf /usr/share/sddm/themes/*
+        echo "SDDM themes removed."
+    else
+        echo "No SDDM themes directory found."
+    fi
+}
+
+uninstall_sddm_git() {
+    echo "Checking for sddm-git package..."
+    if yay -Q sddm-git &>/dev/null; then
+        echo "Uninstalling sddm-git..."
+        yay -Rns --noconfirm sddm-git
+    else
+        echo "sddm-git not installed."
+    fi
+}
+
+disable_other_dms() {
+    echo "Disabling other display managers (and their Plymouth variants)..."
+    local dms=("lightdm" "gdm" "lxdm" "slim" "kdm" "ly")
+    for dm in "${dms[@]}"; do
+        if systemctl list-unit-files | grep -q "^${dm}.service"; then
+            echo "Disabling ${dm}..."
+            sudo -A systemctl disable "${dm}" 2>/dev/null || true
+        fi
+        if systemctl list-unit-files | grep -q "^${dm}-plymouth.service"; then
+            echo "Disabling ${dm}-plymouth..."
+            sudo -A systemctl disable "${dm}-plymouth" 2>/dev/null || true
+        fi
+    done
+}
+
+setup_sddm() {
+    echo "Ensuring SDDM is installed..."
+    if ! pacman -Q sddm &>/dev/null; then
+        run_pacman -S sddm
+    fi
+    echo "Enabling SDDM (with --force)..."
+    sudo -A systemctl enable sddm --force
+}
+
+pre_install_cleanup() {
+    echo "============================================================"
+    echo "Starting pre-install cleanup (KDE, SDDM themes, DM switching)"
+    echo "============================================================"
+    remove_kde_applications
+    remove_sddm_themes
+    uninstall_sddm_git
+    disable_other_dms
+    setup_sddm
+    # Also clean up ~/.config/hypr before dotfiles are linked
+    remove_hypr_config
+    echo "Pre-install cleanup finished."
+    echo "============================================================"
+}
+
+# -----------------------------------------------------------------------------
+# 3. Load library functions (modified for silent/fast operation)
 # -----------------------------------------------------------------------------
 # Source the library.sh but override the interactive symlink function
 LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
@@ -164,86 +246,7 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 2b. New helper functions for removal and DM switching
-# -----------------------------------------------------------------------------
-
-# Remove KDE applications (Plasma and core KDE packages)
-remove_kde_apps() {
-    echo "Checking for KDE applications..."
-    local kde_packages=()
-    # Common KDE/Plasma packages
-    local candidates=(
-        plasma-desktop plasma-meta kde-applications kde-applications-meta
-        dolphin konsole kate kwin kwrite okular gwenview ark
-        kdenetwork-filesharing kio-extras kio-gdrive
-        plasma-workspace plasma-pa plasma-nm plasma-desktop
-        systemsettings spectacle partitionmanager
-    )
-    for pkg in "${candidates[@]}"; do
-        if pacman -Q "$pkg" &>/dev/null; then
-            kde_packages+=("$pkg")
-        fi
-    done
-    if [[ ${#kde_packages[@]} -gt 0 ]]; then
-        echo "Found KDE packages: ${kde_packages[*]}"
-        echo "Removing KDE packages..."
-        sudo -A pacman -Rns --noconfirm "${kde_packages[@]}" 2>/dev/null || true
-        echo "KDE packages removed."
-    else
-        echo "No KDE packages detected."
-    fi
-}
-
-# Uninstall sddm-git if present (AUR version)
-uninstall_sddm_git() {
-    if pacman -Q sddm-git &>/dev/null; then
-        echo "Removing sddm-git (AUR version)..."
-        sudo -A pacman -Rns --noconfirm sddm-git
-        echo "sddm-git removed."
-    else
-        echo "sddm-git not installed."
-    fi
-}
-
-# Update XDG user directories and GTK bookmarks (populates Thunar)
-update_xdg_user_dirs() {
-    echo "Updating XDG user directories..."
-    if command -v xdg-user-dirs-update &>/dev/null; then
-        xdg-user-dirs-update
-    fi
-    if command -v xdg-user-dirs-gtk-update &>/dev/null; then
-        xdg-user-dirs-gtk-update
-    fi
-    echo "XDG user directories updated."
-}
-
-# Switch display manager to SDDM (disable all others, enable sddm)
-switch_display_manager() {
-    echo "Switching display manager to SDDM..."
-    local dms=(
-        lightdm lightdm-plymouth
-        gdm gdm-plymouth
-        lxdm lxdm-plymouth
-        slim slim-plymouth
-        kdm kdm-plymouth
-        ly ly-plymouth
-    )
-    for dm in "${dms[@]}"; do
-        if systemctl list-unit-files | grep -q "^$dm.service"; then
-            sudo -A systemctl disable "$dm" 2>/dev/null || true
-        fi
-    done
-    # Ensure SDDM is installed (it will be by install_system, but just in case)
-    if ! pacman -Q sddm &>/dev/null; then
-        echo "Installing SDDM (stable)..."
-        run_pacman -S sddm
-    fi
-    sudo -A systemctl enable sddm
-    echo "SDDM enabled, other display managers disabled."
-}
-
-# -----------------------------------------------------------------------------
-# 3. Component installation functions (derived from original scripts)
+# 4. Component installation functions (derived from original scripts)
 # -----------------------------------------------------------------------------
 
 install_yay() {
@@ -407,15 +410,16 @@ install_systemtools() {
 
 install_system() {
     echo "Installing system packages (SDDM, bluetooth, etc.)..."
-    # Install SDDM (stable) but do NOT enable it yet – will be done by switch_display_manager
+    # SDDM is already installed and enabled by pre_install_cleanup, but we run pacman again (no-op if present)
     run_pacman -S sddm blueman pacman-contrib fzf font-manager awesome-terminal-fonts \
         ttf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd exa python-pip \
         python-psutil python-rich python-click xdg-desktop-portal-gtk xdg-user-dirs \
         xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp pcp-gui gtk4-layer-shell hyprpicker
     run_pacman -S $(pacman -Ssq 'pcp-pmda-*') 2>/dev/null || true
+    # Install pamac packages with existence check (already handled by _installPackagesYay)
     _installPackagesYay pamac-all libpamac-full pamac-cli
     run_yay -S bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
-    # Enable bluetooth only; SDDM will be handled later
+    # Enable services (bluetooth only, SDDM already enabled)
     sudo -A systemctl enable bluetooth
 }
 
@@ -707,8 +711,22 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Main menu – component selection
+# 5. Post-install setup (Thunar bookmarks)
 # -----------------------------------------------------------------------------
+post_install_setup() {
+    echo "Updating XDG user directories and GTK bookmarks..."
+    xdg-user-dirs-update
+    xdg-user-dirs-gtk-update
+    echo "Thunar bookmarks should now be populated."
+}
+
+# -----------------------------------------------------------------------------
+# 6. Main menu – component selection
+# -----------------------------------------------------------------------------
+
+# --- Run pre-install cleanup (KDE, SDDM themes, DM switching) ---
+pre_install_cleanup
+
 COMPONENTS=$(zenity --list --checklist \
     --title="Arch Linux Setup – Hyprland & XFCE" \
     --text="Select the components you wish to install.\nPassword will be cached – you won't be prompted again." \
@@ -746,14 +764,7 @@ if [ -z "$COMPONENTS" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 4b. Pre-installation cleanup (run before anything else)
-# -----------------------------------------------------------------------------
-echo "Performing pre-installation cleanup..."
-remove_kde_apps
-uninstall_sddm_git
-
-# -----------------------------------------------------------------------------
-# 5. Run selected components with live output display
+# 7. Run selected components with live output display
 # -----------------------------------------------------------------------------
 LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
@@ -804,16 +815,6 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
         echo ""
     done
 
-    # After system component (or at the end), perform DM switch and XDG updates
-    # We check if 'system' was selected; if not, still run DM switch to be safe
-    if [[ " ${SELECTED[*]} " =~ " system " ]]; then
-        echo "Performing display manager switch and XDG directory updates..."
-        switch_display_manager
-        update_xdg_user_dirs
-    else
-        echo "System component not selected – skipping DM switch and XDG updates (you may need to run them manually)."
-    fi
-
     echo "============================================================"
     echo " Hyprtk Installation completed at $(date)"
     echo " Log saved to: $LOG_FILE"
@@ -824,6 +825,9 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
     --auto-scroll \
     --font="Monospace 10" \
     --ok-label="Close"
+
+# --- Run post-install setup (Thunar bookmarks) ---
+post_install_setup
 
 # Final message
 zenity --info --title="Done" \
