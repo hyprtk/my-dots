@@ -233,7 +233,8 @@ install_virt_drivers() {
     # QEMU/KVM drivers and tools
     run_pacman -S --needed qemu-guest-agent spice-vdagent xf86-video-qxl mesa
     # VMware drivers and tools
-    run_pacman -S --needed open-vm-tools xf86-video-vmware mesa
+    run_pacman -S --needed open-vm-tools mesa
+    run_yay -S xf86-video-vmware
     
     # Enable services
     echo "Enabling QEMU guest agent..."
