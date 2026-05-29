@@ -193,6 +193,7 @@ uninstall_sddm() {
         echo "Removing existing SDDM installation..."
         sudo -A systemctl disable sddm 2>/dev/null || true
         sudo -A pacman -Rns --noconfirm sddm
+        yay -Rns --noconfirm sddm
         echo "SDDM removed."
     else
         echo "SDDM not installed."
