@@ -105,7 +105,7 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, etc.)
+# 2. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
 # -----------------------------------------------------------------------------
 
 remove_kde_applications() {
@@ -127,39 +127,58 @@ remove_kde_applications() {
     sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
 }
 
-remove_sddm_themes() {
-    echo "Removing all installed SDDM themes..."
+# Detect if running on Archcraft
+is_archcraft() {
+    [ -f /etc/os-release ] && grep -qi "archcraft" /etc/os-release
+}
+
+# Remove Archcraft‑specific SDDM theme and sddm-git if present
+remove_archcraft_sddm() {
+    if is_archcraft; then
+        echo "Archcraft detected. Removing archcraft-sddm-theme and sddm-git..."
+        if yay -Q archcraft-sddm-theme &>/dev/null; then
+            yay -Rcs --noconfirm archcraft-sddm-theme 2>/dev/null || true
+        fi
+        if yay -Q sddm-git &>/dev/null; then
+            yay -Rcs --noconfirm sddm-git 2>/dev/null || true
+        fi
+    fi
+}
+
+# Uninstall rofi-lbonn-wayland-git completely (cascade)
+uninstall_rofi_lbonn() {
+    if yay -Q rofi-lbonn-wayland-git &>/dev/null; then
+        echo "Removing rofi-lbonn-wayland-git with cascade..."
+        yay -Rcs --noconfirm rofi-lbonn-wayland-git 2>/dev/null || true
+    fi
+}
+
+# Completely remove SDDM and all its themes/dependencies
+clean_sddm_environment() {
+    echo "Cleaning SDDM environment (themes, sddm-git, sddm)..."
+    # Remove all installed SDDM themes
     if [ -d /usr/share/sddm/themes ]; then
         sudo -A rm -rf /usr/share/sddm/themes/*
         echo "SDDM themes removed."
-    else
-        echo "No SDDM themes directory found."
     fi
-}
-
-uninstall_sddm_git() {
-    echo "Checking for sddm-git package..."
+    # Remove sddm-git if present (cascade)
     if yay -Q sddm-git &>/dev/null; then
-        echo "Uninstalling sddm-git..."
-        yay -Rcs --noconfirm sddm-git
-    else
-        echo "sddm-git not installed."
+        yay -Rcs --noconfirm sddm-git 2>/dev/null || true
     fi
-}
-
-# NEW: Completely remove SDDM (non‑git) and its dependencies
-remove_sddm_and_deps() {
-    echo "Removing SDDM (non‑git) and its dependencies..."
+    # Remove any sddm theme packages
+    local sddm_themes=$(pacman -Q | grep 'sddm-theme' | cut -d' ' -f1)
+    if [ -n "$sddm_themes" ]; then
+        echo "Removing SDDM theme packages: $sddm_themes"
+        sudo -A pacman -Rns --noconfirm $sddm_themes 2>/dev/null || true
+    fi
+    # Remove sddm itself if installed
     if pacman -Q sddm &>/dev/null; then
-        sudo -A pacman -Rcs --noconfirm sddm
-    else
-        echo "sddm (standard) not installed."
+        echo "Removing sddm package..."
+        sudo -A pacman -Rns --noconfirm sddm 2>/dev/null || true
     fi
-    # Remove orphaned dependencies that were pulled by sddm
-    echo "Removing orphaned packages (after sddm removal)..."
-    sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
 }
 
+# Disable all other display managers (and their Plymouth variants)
 disable_other_dms() {
     echo "Disabling other display managers (and their Plymouth variants)..."
     local dms=("lightdm" "gdm" "lxdm" "slim" "kdm" "ly")
@@ -175,50 +194,23 @@ disable_other_dms() {
     done
 }
 
+# Fresh SDDM installation and forceful enabling
 setup_sddm() {
-    echo "Ensuring SDDM is installed..."
-    if ! pacman -Q sddm &>/dev/null; then
-        run_pacman -S sddm
-    fi
+    echo "Installing fresh SDDM..."
+    run_pacman -S sddm
     echo "Enabling SDDM (with --force)..."
     sudo -A systemctl enable sddm --force
 }
 
-# NEW: Detect if running on Archcraft
-detect_archcraft() {
-    if [[ -f /etc/archcraft-release ]] || grep -qi "archcraft" /etc/os-release 2>/dev/null; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-# NEW: Remove Archcraft‑specific SDDM theme and sddm‑git (if present)
-remove_archcraft_sddm_theme() {
-    if detect_archcraft; then
-        echo "Archcraft distribution detected. Removing archcraft-sddm-theme and sddm-git..."
-        if pacman -Q archcraft-sddm-theme &>/dev/null; then
-            sudo -A pacman -Rns --noconfirm archcraft-sddm-theme || true
-        else
-            echo "archcraft-sddm-theme not installed."
-        fi
-        # sddm-git is already handled by uninstall_sddm_git, but we call it again for safety
-        uninstall_sddm_git
-    else
-        echo "Not an Archcraft system, skipping Archcraft theme removal."
-    fi
-}
-
+# Main pre-install cleanup routine
 pre_install_cleanup() {
     echo "============================================================"
-    echo "Starting pre-install cleanup (KDE, SDDM, DM switching, Archcraft)"
+    echo "Starting pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi)"
     echo "============================================================"
     remove_kde_applications
-    # Remove any existing SDDM (both git and standard) before reinstalling
-    uninstall_sddm_git
-    remove_sddm_and_deps
-    remove_sddm_themes
-    remove_archcraft_sddm_theme   # NEW: handles Archcraft-specific theme
+    remove_archcraft_sddm
+    uninstall_rofi_lbonn
+    clean_sddm_environment
     disable_other_dms
     setup_sddm
     # Also clean up ~/.config/hypr before dotfiles are linked
@@ -765,7 +757,7 @@ post_install_setup() {
 # 6. Main menu – component selection
 # -----------------------------------------------------------------------------
 
-# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft) ---
+# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi) ---
 pre_install_cleanup
 
 COMPONENTS=$(zenity --list --checklist \
