@@ -893,7 +893,7 @@ backup_user_config
 pre_install_cleanup
 
 COMPONENTS=$(zenity --list --checklist \
-    --title="Arch Linux Setup – Hyprland & XFCE" \
+    --title="Hyprtk on Arch Linux Setup – Hyprland & XFCE" \
     --text="Select the components you wish to install.\nPassword will be cached – you won't be prompted again." \
     --column="Pick" --column="Component" --column="Description" \
     TRUE "yay" "Install yay AUR helper" \
