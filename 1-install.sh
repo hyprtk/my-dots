@@ -130,7 +130,7 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Distribution detection
+# 2. Distribution and filesystem detection
 # -----------------------------------------------------------------------------
 is_archcraft() {
     [ -f /etc/os-release ] && grep -qi "archcraft" /etc/os-release
@@ -138,6 +138,16 @@ is_archcraft() {
 
 is_cachyos() {
     [ -f /etc/os-release ] && grep -qi "cachyos" /etc/os-release
+}
+
+is_btrfs() {
+    local root_fs
+    root_fs=$(findmnt -no FSTYPE / 2>/dev/null)
+    if [[ "$root_fs" == "btrfs" ]]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # -----------------------------------------------------------------------------
@@ -520,7 +530,13 @@ install_terminaltools() {
 
 install_systemtools() {
     echo "Installing system tools..."
-    run_pacman -S timeshift file-roller gparted xfce4-power-manager rofi dunst cockpit
+    # Conditionally install timeshift only if root filesystem is NOT btrfs
+    if is_btrfs; then
+        echo "Btrfs filesystem detected. Skipping Timeshift (use Snapper instead)."
+        run_pacman -S file-roller gparted xfce4-power-manager rofi dunst cockpit
+    else
+        run_pacman -S timeshift file-roller gparted xfce4-power-manager rofi dunst cockpit
+    fi
     run_yay -S gnome-disk-utility
     sudo -A systemctl enable --now cockpit.socket
 }
