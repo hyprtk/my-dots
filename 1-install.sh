@@ -105,6 +105,38 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
+# 1b. Fastest mirror setup using reflector
+# -----------------------------------------------------------------------------
+run_reflector() {
+    echo "============================================================"
+    echo "Setting up fastest mirrors using reflector..."
+    echo "============================================================"
+
+    # Install reflector and rsync if not already present
+    if ! command -v reflector &>/dev/null; then
+        echo "Installing reflector and rsync..."
+        run_pacman -S reflector rsync
+    fi
+
+    # Backup existing mirrorlist with timestamp
+    local backup_file="/etc/pacman.d/mirrorlist.backup.$(date +%Y%m%d-%H%M%S)"
+    echo "Backing up current mirrorlist to $backup_file"
+    sudo -A cp /etc/pacman.d/mirrorlist "$backup_file"
+
+    # Run reflector to fetch the fastest HTTPS mirrors
+    echo "Running reflector (this may take a moment)..."
+    if sudo -A reflector --verbose --latest 20 --sort rate --protocol https --save /etc/pacman.d/mirrorlist; then
+        echo "Mirrorlist updated successfully."
+    else
+        echo "Warning: reflector failed to update mirrorlist. Using existing mirrorlist."
+    fi
+
+    # Enable reflector timer for automatic future updates
+    sudo -A systemctl enable --now reflector.timer 2>/dev/null || true
+    echo "============================================================"
+}
+
+# -----------------------------------------------------------------------------
 # 2. Archcraft‑specific backup/restore and font‑to‑icons move
 # -----------------------------------------------------------------------------
 ARCHCRAFT_BACKUP_DONE=false
@@ -798,6 +830,9 @@ post_install_setup() {
 # -----------------------------------------------------------------------------
 # 7. Main menu – component selection
 # -----------------------------------------------------------------------------
+
+# --- Update fastest mirrors before doing anything else ---
+run_reflector
 
 # --- Backup Archcraft /usr/share/archcraft if present (before any changes) ---
 backup_archcraft_dir
