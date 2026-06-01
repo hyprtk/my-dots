@@ -105,7 +105,40 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
+# 2. Archcraft‑specific backup/restore and font‑to‑icons move
+# -----------------------------------------------------------------------------
+ARCHCRAFT_BACKUP_DONE=false
+
+backup_archcraft_dir() {
+    if is_archcraft && [[ -d /usr/share/archcraft ]]; then
+        echo "Archcraft detected. Backing up /usr/share/archcraft to /tmp/archcraft_backup"
+        sudo -A cp -r /usr/share/archcraft /tmp/archcraft_backup
+        ARCHCRAFT_BACKUP_DONE=true
+    fi
+}
+
+restore_archcraft_dir() {
+    if [[ "$ARCHCRAFT_BACKUP_DONE" == true ]]; then
+        echo "Restoring /usr/share/archcraft from backup..."
+        sudo -A rm -rf /usr/share/archcraft
+        sudo -A cp -r /tmp/archcraft_backup /usr/share/archcraft
+        sudo -A rm -rf /tmp/archcraft_backup
+        echo "Restore completed."
+    fi
+}
+
+move_archcraft_fonts_to_icons() {
+    if is_archcraft && [[ -d /usr/share/fonts/archcraft ]]; then
+        echo "Moving /usr/share/fonts/archcraft to ~/.local/share/icons/archcraft"
+        mkdir -p "$HOME/.local/share/icons"
+        sudo -A mv /usr/share/fonts/archcraft "$HOME/.local/share/icons/archcraft"
+        sudo -A chown -R "$USER:$USER" "$HOME/.local/share/icons/archcraft"
+        echo "Moved archcraft fonts to icons directory."
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# 3. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
 # -----------------------------------------------------------------------------
 
 remove_kde_applications() {
@@ -197,7 +230,7 @@ disable_other_dms() {
 # Fresh SDDM installation and forceful enabling
 setup_sddm() {
     echo "Installing fresh SDDM..."
-    run_pacman -S sddm base-devel wget
+    run_pacman -S sddm
     echo "Enabling SDDM (with --force)..."
     sudo -A systemctl enable sddm --force
 }
@@ -210,22 +243,6 @@ reinstall_archcraft_desktops() {
     fi
 }
 
-# Move Archcraft fonts to user's local icons directory (as requested)
-# NOTE: Original instruction said "move /usr/share/fonts/archcraft to ~/.local/share/icons"
-# This is unusual (fonts to icons), but implemented exactly as requested.
-move_archcraft_fonts_to_icons() {
-    if is_archcraft; then
-        if [ -d /usr/share/fonts/archcraft ]; then
-            echo "Moving Archcraft fonts from /usr/share/fonts/archcraft to ~/.local/share/icons..."
-            mkdir -p "$HOME/.local/share/icons"
-            sudo -A mv /usr/share/fonts/archcraft "$HOME/.local/share/icons/"
-            echo "Fonts moved (to icons directory as instructed)."
-        else
-            echo "Archcraft fonts directory not found at /usr/share/fonts/archcraft."
-        fi
-    fi
-}
-
 # Main pre-install cleanup routine
 pre_install_cleanup() {
     echo "============================================================"
@@ -233,17 +250,19 @@ pre_install_cleanup() {
     echo "============================================================"
     remove_kde_applications
     remove_archcraft_sddm
-    setup_sddm
     uninstall_rofi_lbonn
     clean_sddm_environment
     disable_other_dms
-    move_archcraft_fonts_to_icons
+    setup_sddm
+    # Also clean up ~/.config/hypr before dotfiles are linked
+    remove_hypr_config
+    reinstall_archcraft_desktops
     echo "Pre-install cleanup finished."
     echo "============================================================"
 }
 
 # -----------------------------------------------------------------------------
-# 3. Load library functions (modified for silent/fast operation)
+# 4. Load library functions (modified for silent/fast operation)
 # -----------------------------------------------------------------------------
 # Source the library.sh but override the interactive symlink function
 LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
@@ -302,7 +321,7 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Component installation functions (derived from original scripts)
+# 5. Component installation functions (derived from original scripts)
 # -----------------------------------------------------------------------------
 
 install_yay() {
@@ -570,13 +589,11 @@ install_fonts() {
 
 install_icons_root() {
     echo "Installing Papirus icons for root user..."
-    sudo -A rm -rf /root/.local/share/icons
     wget -qO- https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh | DESTDIR="/root/.local/share/icons" sh
 }
 
 install_icons_user() {
     echo "Installing Papirus icons for user..."
-    sudo -A rm -rf ~/.local/share/icons
     wget -qO- https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh | DESTDIR="~/.local/share/icons" sh
 }
 
@@ -769,19 +786,21 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Post-install setup (Thunar bookmarks)
+# 6. Post-install setup (Thunar bookmarks)
 # -----------------------------------------------------------------------------
 post_install_setup() {
     echo "Updating XDG user directories and GTK bookmarks..."
     xdg-user-dirs-update
     xdg-user-dirs-gtk-update
-    reinstall_archcraft_desktops
     echo "Thunar bookmarks should now be populated."
 }
 
 # -----------------------------------------------------------------------------
-# 6. Main menu – component selection
+# 7. Main menu – component selection
 # -----------------------------------------------------------------------------
+
+# --- Backup Archcraft /usr/share/archcraft if present (before any changes) ---
+backup_archcraft_dir
 
 # --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi) ---
 pre_install_cleanup
@@ -823,7 +842,7 @@ if [ -z "$COMPONENTS" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Run selected components with live output display
+# 8. Run selected components with live output display
 # -----------------------------------------------------------------------------
 LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
@@ -887,6 +906,12 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
 # --- Run post-install setup (Thunar bookmarks) ---
 post_install_setup
+
+# --- Move Archcraft fonts to icons (if Archcraft) ---
+move_archcraft_fonts_to_icons
+
+# --- Restore original /usr/share/archcraft if we backed it up ---
+restore_archcraft_dir
 
 # Final message
 zenity --info --title="Done" \
