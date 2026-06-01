@@ -141,12 +141,14 @@ is_cachyos() {
 }
 
 is_bluestar() {
-    # Check /etc/lsb-release for BlueStar Linux or bslx
+    # Check /etc/lsb-release and /etc/os-release for BlueStar / bslx
     if [ -f /etc/lsb-release ]; then
-        grep -qiE "bluestar|bslx" /etc/lsb-release
-    else
-        return 1
+        grep -qiE "bluestar|bluestar linux|bslx" /etc/lsb-release && return 0
     fi
+    if [ -f /etc/os-release ]; then
+        grep -qiE "bluestar|bluestar linux|bslx" /etc/os-release && return 0
+    fi
+    return 1
 }
 
 is_btrfs() {
@@ -168,7 +170,7 @@ backup_archcraft_dir() {
     if is_archcraft && [[ -d /usr/share/archcraft ]]; then
         echo "Archcraft detected. Backing up /usr/share/archcraft to /tmp/archcraft_backup"
         sudo -A cp -r /usr/share/archcraft /tmp/archcraft_backup
-        sudo -A rm -R /usr/share/fonts/archcraft   # Remove Archcraft fonts
+        sudo -A rm -R /usr/share/fonts/archcraft
         ARCHCRAFT_BACKUP_DONE=true
     fi
 }
@@ -428,7 +430,7 @@ install_graphics_card() {
     local choice
     local initramfs_builder=$(detect_initramfs_builder)
     
-    # Build the Zenity list conditionally – omit virtualization on BlueStar
+    # Build the list dynamically – exclude virtualization option on BlueStar
     if is_bluestar; then
         choice=$(zenity --list --radiolist --title="Graphics Card Driver" \
             --column="Pick" --column="GPU Type" \
@@ -870,6 +872,21 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
+# 7b. BlueStar-specific: copy custom os-release file
+# -----------------------------------------------------------------------------
+install_bluestar_osrelease() {
+    if is_bluestar; then
+        if [[ -f ~/hyprtk/os-release/os-release ]]; then
+            echo "BlueStar Linux detected – copying custom os-release to /usr/lib/"
+            sudo -A cp ~/hyprtk/os-release/os-release /usr/lib/os-release
+            echo "Done."
+        else
+            echo "Warning: ~/hyprtk/os-release/os-release not found. Skipping os-release replacement."
+        fi
+    fi
+}
+
+# -----------------------------------------------------------------------------
 # 8. Post-install setup (Thunar bookmarks)
 # -----------------------------------------------------------------------------
 post_install_setup() {
@@ -893,7 +910,7 @@ backup_user_config
 pre_install_cleanup
 
 COMPONENTS=$(zenity --list --checklist \
-    --title="Hyprtk on Arch Linux Setup – Hyprland & XFCE" \
+    --title="Arch Linux Setup – Hyprland & XFCE" \
     --text="Select the components you wish to install.\nPassword will be cached – you won't be prompted again." \
     --column="Pick" --column="Component" --column="Description" \
     TRUE "yay" "Install yay AUR helper" \
@@ -993,6 +1010,9 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
 # --- Run post-install setup (Thunar bookmarks) ---
 post_install_setup
+
+# --- BlueStar: copy custom os-release if needed ---
+install_bluestar_osrelease
 
 # --- Restore original /usr/share/archcraft if we backed it up ---
 restore_archcraft_dir
