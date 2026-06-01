@@ -43,6 +43,31 @@ remove_hypr_config() {
     fi
 }
 
+# Backup user's .config directory
+backup_user_config() {
+    if [[ -d "$HOME/.config" ]]; then
+        echo "Backing up ~/.config to /tmp/user_config_backup"
+        rm -rf /tmp/user_config_backup
+        cp -r "$HOME/.config" /tmp/user_config_backup
+        USER_CONFIG_BACKUP_DONE=true
+    else
+        echo "~/.config does not exist, nothing to back up."
+        USER_CONFIG_BACKUP_DONE=false
+    fi
+}
+
+# Restore user's .config directory (called before dotfiles symlinking)
+restore_user_config() {
+    if [[ "$USER_CONFIG_BACKUP_DONE" == true ]] && [[ -d /tmp/user_config_backup ]]; then
+        echo "Restoring ~/.config from backup..."
+        rm -rf "$HOME/.config"
+        cp -r /tmp/user_config_backup "$HOME/.config"
+        echo "Restore completed."
+    else
+        echo "No backup found, skipping restore."
+    fi
+}
+
 # Cleanup on exit
 cleanup() {
     rm -f "$ASKPASS_SCRIPT"
@@ -50,11 +75,13 @@ cleanup() {
 trap cleanup EXIT
 
 # Ensure required commands exist
-for cmd in zenity pacman git; do
+for cmd in zenity pacman yay git; do
     if ! command -v "$cmd" &>/dev/null; then
         if [[ "$cmd" == "zenity" ]]; then
             echo "Zenity not found. Installing via pacman (requires sudo) ..."
             sudo pacman -S --noconfirm zenity base-devel
+        elif [[ "$cmd" == "yay" ]]; then
+            echo "yay not found. Will be installed later."
         else
             echo "Required command '$cmd' not found. Please install it first."
             exit 1
@@ -103,35 +130,7 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Install yay early (needed for cleanup of AUR packages)
-# -----------------------------------------------------------------------------
-install_yay_early() {
-    if command -v yay &>/dev/null; then
-        echo "yay already installed."
-        return
-    fi
-
-    echo "yay not found. Installing yay now (required for pre-install cleanup)..."
-    run_pacman -S --needed base-devel
-
-    git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git
-    pushd /tmp/yay-git >/dev/null
-
-    # Use the existing SUDO_ASKPASS for makepkg (which calls sudo for pacman -U)
-    makepkg -si --noconfirm
-
-    popd >/dev/null
-    rm -rf /tmp/yay-git
-
-    if ! command -v yay &>/dev/null; then
-        zenity --error --text="Failed to install yay. Exiting."
-        exit 1
-    fi
-    echo "yay installed successfully."
-}
-
-# -----------------------------------------------------------------------------
-# 3. Archcraft‑specific backup/restore and fonts move
+# 2. Archcraft‑specific backup/restore and font‑to‑icons move
 # -----------------------------------------------------------------------------
 ARCHCRAFT_BACKUP_DONE=false
 
@@ -164,7 +163,7 @@ move_archcraft_fonts() {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
+# 3. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
 # -----------------------------------------------------------------------------
 
 remove_kde_applications() {
@@ -237,17 +236,24 @@ clean_sddm_environment() {
     fi
 }
 
-# Disable all other display managers (and their Plymouth variants) – integration of rm-dm-manager.sh
-disable_other_dms() {
-    echo "Disabling other display managers (and their Plymouth variants)..."
+# Disable and remove other display managers (integration of rm-dm-manager.sh)
+remove_other_dms() {
+    echo "Removing other display managers and their dependencies..."
     local dms=("lightdm" "gdm" "lxdm" "slim" "kdm" "ly")
     for dm in "${dms[@]}"; do
+        if pacman -Q "$dm" &>/dev/null; then
+            echo "Removing $dm..."
+            sudo -A pacman -Rns --noconfirm "$dm" 2>/dev/null || true
+        fi
+        # Also remove Plymouth variants if they exist as separate packages
+        if pacman -Q "${dm}-plymouth" &>/dev/null; then
+            sudo -A pacman -Rns --noconfirm "${dm}-plymouth" 2>/dev/null || true
+        fi
+        # Disable services (in case they are still enabled)
         if systemctl list-unit-files | grep -q "^${dm}.service"; then
-            echo "Disabling ${dm}..."
             sudo -A systemctl disable "${dm}" 2>/dev/null || true
         fi
         if systemctl list-unit-files | grep -q "^${dm}-plymouth.service"; then
-            echo "Disabling ${dm}-plymouth..."
             sudo -A systemctl disable "${dm}-plymouth" 2>/dev/null || true
         fi
     done
@@ -278,7 +284,7 @@ pre_install_cleanup() {
     remove_archcraft_sddm
     uninstall_rofi_lbonn
     clean_sddm_environment
-    disable_other_dms
+    remove_other_dms          # Integration of rm-dm-manager.sh
     setup_sddm
     reinstall_archcraft_desktops
     echo "Pre-install cleanup finished."
@@ -286,7 +292,7 @@ pre_install_cleanup() {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Load library functions (modified for silent/fast operation)
+# 4. Load library functions (modified for silent/fast operation)
 # -----------------------------------------------------------------------------
 # Source the library.sh but override the interactive symlink function
 LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
@@ -345,11 +351,10 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 6. Component installation functions (derived from original scripts)
+# 5. Component installation functions (derived from original scripts)
 # -----------------------------------------------------------------------------
 
 install_yay() {
-    # Already installed early, but if called again just skip
     if command -v yay &>/dev/null; then
         echo "yay already installed."
         return
@@ -358,7 +363,23 @@ install_yay() {
     run_pacman -S "base-devel"
     git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git
     pushd /tmp/yay-git >/dev/null
+    
+    # Ask for root password to install via makepkg -si (which calls pacman -U)
+    ROOT_PASSWORD=$(ask_root_password "yay installation requires root privileges to install the package.\nPlease enter your root password:")
+    if [[ -z "$ROOT_PASSWORD" ]]; then
+        echo "Root password not provided. Skipping yay installation."
+        popd >/dev/null
+        return 1
+    fi
+    ROOT_ASKPASS=$(mktemp /tmp/root_askpass.XXXXXX.sh)
+    echo '#!/bin/bash' > "$ROOT_ASKPASS"
+    echo "echo '$ROOT_PASSWORD'" >> "$ROOT_ASKPASS"
+    chmod +x "$ROOT_ASKPASS"
+    export SUDO_ASKPASS="$ROOT_ASKPASS"
     makepkg -si --noconfirm
+    rm -f "$ROOT_ASKPASS"
+    export SUDO_ASKPASS="$ASKPASS_SCRIPT"  # Restore original
+    
     popd >/dev/null
     rm -rf /tmp/yay-git
 }
@@ -494,49 +515,69 @@ install_systemtools() {
 
 install_system() {
     echo "Installing system packages (SDDM, bluetooth, etc.)..."
+    # SDDM is already installed and enabled by pre_install_cleanup, but we run pacman again (no-op if present)
     run_pacman -S sddm blueman pacman-contrib fzf font-manager awesome-terminal-fonts \
         ttf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd exa python-pip \
         python-psutil python-rich python-click xdg-desktop-portal-gtk xdg-user-dirs \
         xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp pcp-gui gtk4-layer-shell hyprpicker
     run_pacman -S $(pacman -Ssq 'pcp-pmda-*') 2>/dev/null || true
+    # Install pamac packages with existence check (already handled by _installPackagesYay)
     _installPackagesYay pamac-all libpamac-full pamac-cli
     run_yay -S bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
+    # Enable services (bluetooth only, SDDM already enabled)
     sudo -A systemctl enable bluetooth
 }
 
 install_hyprviz() {
     echo "Installing HyprViz (Hyprland configuration tool)..."
+    
+    # Clean previous builds
     rm -rf /tmp/hyprviz-bin
     git clone https://aur.archlinux.org/hyprviz-bin.git /tmp/hyprviz-bin
     pushd /tmp/hyprviz-bin >/dev/null
+    
+    # Build as normal user (no sudo)
+    echo "Building HyprViz as user..."
     makepkg -s --noconfirm
+    
+    # Find the generated package file
     PKG_FILE=$(ls *.pkg.tar.zst 2>/dev/null | head -n1)
     if [[ -z "$PKG_FILE" ]]; then
         echo "Error: Failed to build HyprViz package."
         popd >/dev/null
         return 1
     fi
+    
+    # Ask for root password to install the package
     ROOT_PASSWORD=$(ask_root_password "Installing HyprViz requires root privileges.\nPlease enter your root password:")
     if [[ -z "$ROOT_PASSWORD" ]]; then
         echo "Root password not provided. Skipping HyprViz installation."
         popd >/dev/null
         return 1
     fi
+    
+    # Create temporary askpass for root
     ROOT_ASKPASS=$(mktemp /tmp/root_askpass.XXXXXX.sh)
     echo '#!/bin/bash' > "$ROOT_ASKPASS"
     echo "echo '$ROOT_PASSWORD'" >> "$ROOT_ASKPASS"
     chmod +x "$ROOT_ASKPASS"
+    
     export SUDO_ASKPASS="$ROOT_ASKPASS"
     sudo -A pacman -U --noconfirm "$PKG_FILE"
+    
+    # Cleanup
     rm -f "$ROOT_ASKPASS"
-    export SUDO_ASKPASS="$ASKPASS_SCRIPT"
+    export SUDO_ASKPASS="$ASKPASS_SCRIPT"  # Restore original
+    
     popd >/dev/null
     rm -rf /tmp/hyprviz-bin
+    
     echo "HyprViz installed successfully."
 }
 
 install_matuwall() {
     echo "Installing Matuwall wallpaper picker..."
+    # Check if directory exists and delete it for fresh install
     if [[ -d ~/.local/share/Matuwall ]]; then
         echo "Existing Matuwall installation found. Removing it for fresh install..."
         rm -rf ~/.local/share/Matuwall
@@ -618,6 +659,11 @@ install_sddm_grub() {
 
 install_dotfiles() {
     echo "Creating symbolic links for dotfiles (force mode)..."
+
+    # Restore original ~/.config from backup before symlinking
+    restore_user_config
+
+    # Ensure .config exists
     mkdir -p ~/.config
     mkdir -p ~/.local/bin
 
@@ -637,6 +683,7 @@ install_dotfiles() {
     _forceSymLink "xfce4" ~/.config/xfce4 ~/hyprtk/xfce4 ~/.config/xfce4
     _forceSymLink "Thunar" ~/.config/Thunar ~/hyprtk/Thunar ~/.config/Thunar
     _forceSymLink "Mousepad" ~/.config/Mousepad ~/hyprtk/Mousepad ~/.config/Mousepad  
+    # Remove existing ~/.config/hypr before symlinking
     remove_hypr_config
     _forceSymLink "hypr" ~/.config/hypr ~/hyprtk/hypr ~/.config/hypr
     _forceSymLink "fastfetch" ~/.config/fastfetch ~/hyprtk/fastfetch ~/.config/fastfetch
@@ -654,29 +701,39 @@ install_dotfiles() {
 
 install_zsh() {
     echo "Installing ZSH..."
+    
+    # ----- Install zsh using a dedicated root password popup -----
     ROOT_PASSWORD=$(ask_root_password "Installing ZSH requires root privileges.\nPlease enter your root password:")
     if [[ -z "$ROOT_PASSWORD" ]]; then
         echo "Root password not provided. Skipping ZSH installation."
         return 1
     fi
+    
+    # Create temporary askpass for root
     ROOT_ASKPASS=$(mktemp /tmp/root_askpass.XXXXXX.sh)
     echo '#!/bin/bash' > "$ROOT_ASKPASS"
     echo "echo '$ROOT_PASSWORD'" >> "$ROOT_ASKPASS"
     chmod +x "$ROOT_ASKPASS"
+    
     export SUDO_ASKPASS="$ROOT_ASKPASS"
     sudo -A pacman -S --noconfirm zsh
+    
+    # Cleanup temporary askpass
     rm -f "$ROOT_ASKPASS"
-    export SUDO_ASKPASS="$ASKPASS_SCRIPT"
-
+    export SUDO_ASKPASS="$ASKPASS_SCRIPT"  # Restore original
+    
+    # ----- Install Oh-My-Zsh (no root needed) -----
     echo "Installing Oh-My-Zsh..."
     rm -rf ~/.oh-my-zsh
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
     git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
     git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
     git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
-
+    
+    # ----- Link .zshrc from dotfiles -----
     _forceSymLink ".zshrc" ~/.zshrc ~/hyprtk/.zshrc ~/.zshrc
 
+    # ----- Configure custom zcompdump location in .zshrc -----
     ZSHRC_FILE=~/.zshrc
     if ! grep -q "ZSH_COMPDUMP=\"\$HOME/.cache/zsh/.zcompdump" "$ZSHRC_FILE" 2>/dev/null; then
         echo "Adding custom zcompdump configuration to .zshrc..."
@@ -690,17 +747,21 @@ compinit -d "$ZSH_COMPDUMP"
 EOF
     fi
 
+    # ----- Set default shell for user and root (using a fresh root password) -----
     ROOT_PASSWORD2=$(ask_root_password "To set ZSH as the default shell for your user and root,\nplease enter the root password:")
     if [[ -n "$ROOT_PASSWORD2" ]]; then
         ROOT_ASKPASS2=$(mktemp /tmp/root_askpass.XXXXXX.sh)
         echo '#!/bin/bash' > "$ROOT_ASKPASS2"
         echo "echo '$ROOT_PASSWORD2'" >> "$ROOT_ASKPASS2"
         chmod +x "$ROOT_ASKPASS2"
+        
         export SUDO_ASKPASS="$ROOT_ASKPASS2"
         sudo -A chsh -s /bin/zsh "$USER"
         sudo -A chsh -s /bin/zsh root
+        
         rm -f "$ROOT_ASKPASS2"
         export SUDO_ASKPASS="$ASKPASS_SCRIPT"
+        
         echo "Default shell changed to zsh for user '$USER' and root."
     else
         echo "Root password not provided. Skipping shell change."
@@ -709,32 +770,46 @@ EOF
 
 install_ohmyposh() {
     echo "Installing Oh-my-posh..."
+    
+    # Clone AUR package (oh-my-posh-bin – binary version, fast)
     rm -rf /tmp/oh-my-posh-bin
     git clone https://aur.archlinux.org/oh-my-posh-bin.git /tmp/oh-my-posh-bin
     pushd /tmp/oh-my-posh-bin >/dev/null
+    
+    # Build as normal user
+    echo "Building Oh-my-posh as user..."
     makepkg -s --noconfirm
+    
+    # Find the generated package file
     PKG_FILE=$(ls *.pkg.tar.zst 2>/dev/null | head -n1)
     if [[ -z "$PKG_FILE" ]]; then
         echo "Error: Failed to build Oh-my-posh package."
         popd >/dev/null
         return 1
     fi
+    
+    # Ask for root password to install
     ROOT_PASSWORD=$(ask_root_password "Installing Oh-my-posh requires root privileges.\nPlease enter your root password:")
     if [[ -z "$ROOT_PASSWORD" ]]; then
         echo "Root password not provided. Skipping Oh-my-posh installation."
         popd >/dev/null
         return 1
     fi
+    
     ROOT_ASKPASS=$(mktemp /tmp/root_askpass.XXXXXX.sh)
     echo '#!/bin/bash' > "$ROOT_ASKPASS"
     echo "echo '$ROOT_PASSWORD'" >> "$ROOT_ASKPASS"
     chmod +x "$ROOT_ASKPASS"
+    
     export SUDO_ASKPASS="$ROOT_ASKPASS"
     sudo -A pacman -U --noconfirm "$PKG_FILE"
+    
     rm -f "$ROOT_ASKPASS"
     export SUDO_ASKPASS="$ASKPASS_SCRIPT"
+    
     popd >/dev/null
     rm -rf /tmp/oh-my-posh-bin
+    
     echo "Oh-my-posh installed successfully."
 }
 
@@ -744,7 +819,7 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 7. Post-install setup (Thunar bookmarks)
+# 6. Post-install setup (Thunar bookmarks)
 # -----------------------------------------------------------------------------
 post_install_setup() {
     echo "Updating XDG user directories and GTK bookmarks..."
@@ -754,14 +829,14 @@ post_install_setup() {
 }
 
 # -----------------------------------------------------------------------------
-# 8. Main menu – component selection
+# 7. Main menu – component selection
 # -----------------------------------------------------------------------------
-
-# --- EARLY: Install yay if missing (required for cleanup of AUR packages) ---
-install_yay_early
 
 # --- Backup Archcraft /usr/share/archcraft if present (before any changes) ---
 backup_archcraft_dir
+
+# --- Backup user's .config directory ---
+backup_user_config
 
 # --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi) ---
 pre_install_cleanup
@@ -803,7 +878,7 @@ if [ -z "$COMPONENTS" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 9. Run selected components with live output display
+# 8. Run selected components with live output display
 # -----------------------------------------------------------------------------
 LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
@@ -814,6 +889,7 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
     echo "============================================================"
     echo ""
     
+    # Detect and display initramfs builder
     INITRAMFS_BUILDER=$(detect_initramfs_builder)
     echo "Detected initramfs builder: $INITRAMFS_BUILDER"
     echo ""
