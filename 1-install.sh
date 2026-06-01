@@ -43,28 +43,38 @@ remove_hypr_config() {
     fi
 }
 
-# Backup user's .config directory
+# Backup user's .config directory (only if Archcraft)
 backup_user_config() {
-    if [[ -d "$HOME/.config" ]]; then
-        echo "Backing up ~/.config to /tmp/user_config_backup"
+    if is_archcraft && [[ -d "$HOME/.config" ]]; then
+        echo "Archcraft detected – backing up ~/.config to /tmp/user_config_backup"
         rm -rf /tmp/user_config_backup
         cp -r "$HOME/.config" /tmp/user_config_backup
         USER_CONFIG_BACKUP_DONE=true
     else
-        echo "~/.config does not exist, nothing to back up."
+        echo "Not Archcraft or ~/.config does not exist – no backup needed."
         USER_CONFIG_BACKUP_DONE=false
     fi
 }
 
-# Restore user's .config directory (called before dotfiles symlinking)
+# Restore user's .config directory (called before dotfiles symlinking, only if Archcraft)
 restore_user_config() {
-    if [[ "$USER_CONFIG_BACKUP_DONE" == true ]] && [[ -d /tmp/user_config_backup ]]; then
-        echo "Restoring ~/.config from backup..."
+    if is_archcraft && [[ "$USER_CONFIG_BACKUP_DONE" == true ]] && [[ -d /tmp/user_config_backup ]]; then
+        echo "Archcraft – restoring ~/.config from backup..."
         rm -rf "$HOME/.config"
         cp -r /tmp/user_config_backup "$HOME/.config"
         echo "Restore completed."
     else
-        echo "No backup found, skipping restore."
+        echo "Not Archcraft or no backup found – skipping restore."
+    fi
+}
+
+# Uninstall python-pywal if present (to avoid conflicts with pywal16)
+uninstall_python_pywal() {
+    if pacman -Q python-pywal &>/dev/null; then
+        echo "Removing python-pywal (conflicts with pywal16)..."
+        sudo -A pacman -Rns --noconfirm python-pywal 2>/dev/null || true
+    else
+        echo "python-pywal not installed."
     fi
 }
 
@@ -154,7 +164,7 @@ restore_archcraft_dir() {
 }
 
 # -----------------------------------------------------------------------------
-# 3. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
+# 3. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, python-pywal, etc.)
 # -----------------------------------------------------------------------------
 
 remove_kde_applications() {
@@ -269,7 +279,7 @@ reinstall_archcraft_desktops() {
 # Main pre-install cleanup routine
 pre_install_cleanup() {
     echo "============================================================"
-    echo "Starting pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi)"
+    echo "Starting pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, python-pywal)"
     echo "============================================================"
     remove_kde_applications
     remove_archcraft_sddm
@@ -278,6 +288,7 @@ pre_install_cleanup() {
     remove_other_dms          # Integration of rm-dm-manager.sh
     setup_sddm
     reinstall_archcraft_desktops
+    uninstall_python_pywal     # Remove conflicting pywal
     echo "Pre-install cleanup finished."
     echo "============================================================"
 }
@@ -651,7 +662,7 @@ install_sddm_grub() {
 install_dotfiles() {
     echo "Creating symbolic links for dotfiles (force mode)..."
 
-    # Restore original ~/.config from backup before symlinking
+    # Restore original ~/.config from backup only if Archcraft
     restore_user_config
 
     # Ensure .config exists
@@ -826,10 +837,10 @@ post_install_setup() {
 # --- Backup Archcraft /usr/share/archcraft if present (before any changes) ---
 backup_archcraft_dir
 
-# --- Backup user's .config directory ---
+# --- Backup user's .config directory only if Archcraft ---
 backup_user_config
 
-# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi) ---
+# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi, python-pywal) ---
 pre_install_cleanup
 
 COMPONENTS=$(zenity --list --checklist \
