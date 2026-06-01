@@ -141,7 +141,12 @@ is_cachyos() {
 }
 
 is_bluestar() {
-    [ -f /etc/os-release ] && (grep -qi "bluestar" /etc/os-release || grep -qi "bslx" /etc/os-release)
+    # Check /etc/lsb-release for BlueStar Linux or bslx
+    if [ -f /etc/lsb-release ]; then
+        grep -qiE "bluestar|bslx" /etc/lsb-release
+    else
+        return 1
+    fi
 }
 
 is_btrfs() {
@@ -163,8 +168,7 @@ backup_archcraft_dir() {
     if is_archcraft && [[ -d /usr/share/archcraft ]]; then
         echo "Archcraft detected. Backing up /usr/share/archcraft to /tmp/archcraft_backup"
         sudo -A cp -r /usr/share/archcraft /tmp/archcraft_backup
-        # Remove archcraft fonts as requested
-        sudo -A rm -rf /usr/share/fonts/archcraft 2>/dev/null || true
+        sudo -A rm -R /usr/share/fonts/archcraft   # Remove Archcraft fonts
         ARCHCRAFT_BACKUP_DONE=true
     fi
 }
@@ -424,7 +428,7 @@ install_graphics_card() {
     local choice
     local initramfs_builder=$(detect_initramfs_builder)
     
-    # Build zenity list dynamically: exclude virtualization option on Bluestar
+    # Build the Zenity list conditionally – omit virtualization on BlueStar
     if is_bluestar; then
         choice=$(zenity --list --radiolist --title="Graphics Card Driver" \
             --column="Pick" --column="GPU Type" \
