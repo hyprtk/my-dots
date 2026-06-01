@@ -54,7 +54,7 @@ for cmd in zenity pacman yay git; do
     if ! command -v "$cmd" &>/dev/null; then
         if [[ "$cmd" == "zenity" ]]; then
             echo "Zenity not found. Installing via pacman (requires sudo) ..."
-            sudo pacman -S --noconfirm zenity
+            sudo pacman -S --noconfirm zenity base-devel
         elif [[ "$cmd" == "yay" ]]; then
             echo "yay not found. Will be installed later."
         else
