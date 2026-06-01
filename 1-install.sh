@@ -140,6 +140,10 @@ is_cachyos() {
     [ -f /etc/os-release ] && grep -qi "cachyos" /etc/os-release
 }
 
+is_bluestar() {
+    [ -f /etc/os-release ] && (grep -qi "bluestar" /etc/os-release || grep -qi "bslx" /etc/os-release)
+}
+
 is_btrfs() {
     local root_fs
     root_fs=$(findmnt -no FSTYPE / 2>/dev/null)
@@ -159,7 +163,8 @@ backup_archcraft_dir() {
     if is_archcraft && [[ -d /usr/share/archcraft ]]; then
         echo "Archcraft detected. Backing up /usr/share/archcraft to /tmp/archcraft_backup"
         sudo -A cp -r /usr/share/archcraft /tmp/archcraft_backup
-        sudo -A rm -R /usr/share/fonts/archcraft
+        # Remove archcraft fonts as requested
+        sudo -A rm -rf /usr/share/fonts/archcraft 2>/dev/null || true
         ARCHCRAFT_BACKUP_DONE=true
     fi
 }
@@ -419,10 +424,18 @@ install_graphics_card() {
     local choice
     local initramfs_builder=$(detect_initramfs_builder)
     
-    choice=$(zenity --list --radiolist --title="Graphics Card Driver" \
-        --column="Pick" --column="GPU Type" \
-        FALSE "Intel" TRUE "AMD (Default)" FALSE "Nvidia" FALSE "Virtualization (QEMU/virt & VMware)" \
-        --width=400 --height=300)
+    # Build zenity list dynamically: exclude virtualization option on Bluestar
+    if is_bluestar; then
+        choice=$(zenity --list --radiolist --title="Graphics Card Driver" \
+            --column="Pick" --column="GPU Type" \
+            FALSE "Intel" TRUE "AMD (Default)" FALSE "Nvidia" \
+            --width=400 --height=300)
+    else
+        choice=$(zenity --list --radiolist --title="Graphics Card Driver" \
+            --column="Pick" --column="GPU Type" \
+            FALSE "Intel" TRUE "AMD (Default)" FALSE "Nvidia" FALSE "Virtualization (QEMU/virt & VMware)" \
+            --width=400 --height=300)
+    fi
     
     case "$choice" in
         Intel)
