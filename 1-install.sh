@@ -280,8 +280,6 @@ pre_install_cleanup() {
     clean_sddm_environment
     disable_other_dms
     setup_sddm
-    # Also clean up ~/.config/hypr before dotfiles are linked
-    remove_hypr_config
     reinstall_archcraft_desktops
     echo "Pre-install cleanup finished."
     echo "============================================================"
