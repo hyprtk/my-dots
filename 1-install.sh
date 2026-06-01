@@ -131,7 +131,7 @@ install_yay_early() {
 }
 
 # -----------------------------------------------------------------------------
-# 3. Archcraft‑specific backup/restore and font‑to‑icons move
+# 3. Archcraft‑specific backup/restore and fonts move
 # -----------------------------------------------------------------------------
 ARCHCRAFT_BACKUP_DONE=false
 
