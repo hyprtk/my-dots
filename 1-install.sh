@@ -43,38 +43,28 @@ remove_hypr_config() {
     fi
 }
 
-# Backup user's .config directory (only if Archcraft)
+# Backup user's .config directory (only on Archcraft)
 backup_user_config() {
     if is_archcraft && [[ -d "$HOME/.config" ]]; then
-        echo "Archcraft detected – backing up ~/.config to /tmp/user_config_backup"
+        echo "Archcraft detected: backing up ~/.config to /tmp/user_config_backup"
         rm -rf /tmp/user_config_backup
         cp -r "$HOME/.config" /tmp/user_config_backup
         USER_CONFIG_BACKUP_DONE=true
     else
-        echo "Not Archcraft or ~/.config does not exist – no backup needed."
+        echo "Not on Archcraft or ~/.config missing – skipping backup."
         USER_CONFIG_BACKUP_DONE=false
     fi
 }
 
-# Restore user's .config directory (called before dotfiles symlinking, only if Archcraft)
+# Restore user's .config directory (only on Archcraft, called before dotfiles symlinking)
 restore_user_config() {
     if is_archcraft && [[ "$USER_CONFIG_BACKUP_DONE" == true ]] && [[ -d /tmp/user_config_backup ]]; then
-        echo "Archcraft – restoring ~/.config from backup..."
+        echo "Restoring ~/.config from backup..."
         rm -rf "$HOME/.config"
         cp -r /tmp/user_config_backup "$HOME/.config"
         echo "Restore completed."
     else
-        echo "Not Archcraft or no backup found – skipping restore."
-    fi
-}
-
-# Uninstall python-pywal if present (to avoid conflicts with pywal16)
-uninstall_python_pywal() {
-    if pacman -Q python-pywal &>/dev/null; then
-        echo "Removing python-pywal (conflicts with pywal16)..."
-        sudo -A pacman -Rns --noconfirm python-pywal 2>/dev/null || true
-    else
-        echo "python-pywal not installed."
+        echo "No backup found or not Archcraft – skipping restore."
     fi
 }
 
@@ -140,7 +130,18 @@ ask_root_password() {
 }
 
 # -----------------------------------------------------------------------------
-# 2. Archcraft‑specific backup/restore and font‑to‑icons move
+# 2. Distribution detection
+# -----------------------------------------------------------------------------
+is_archcraft() {
+    [ -f /etc/os-release ] && grep -qi "archcraft" /etc/os-release
+}
+
+is_cachyos() {
+    [ -f /etc/os-release ] && grep -qi "cachyos" /etc/os-release
+}
+
+# -----------------------------------------------------------------------------
+# 3. Archcraft‑specific backup/restore and font‑to‑icons move
 # -----------------------------------------------------------------------------
 ARCHCRAFT_BACKUP_DONE=false
 
@@ -164,7 +165,7 @@ restore_archcraft_dir() {
 }
 
 # -----------------------------------------------------------------------------
-# 3. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, python-pywal, etc.)
+# 4. Pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, etc.)
 # -----------------------------------------------------------------------------
 
 remove_kde_applications() {
@@ -184,11 +185,6 @@ remove_kde_applications() {
     # Also remove orphaned packages
     echo "Removing orphaned packages (if any)..."
     sudo -A pacman -Rns --noconfirm $(pacman -Qtdq 2>/dev/null) 2>/dev/null || true
-}
-
-# Detect if running on Archcraft
-is_archcraft() {
-    [ -f /etc/os-release ] && grep -qi "archcraft" /etc/os-release
 }
 
 # Remove Archcraft‑specific SDDM theme and sddm-git if present
@@ -279,7 +275,7 @@ reinstall_archcraft_desktops() {
 # Main pre-install cleanup routine
 pre_install_cleanup() {
     echo "============================================================"
-    echo "Starting pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi, python-pywal)"
+    echo "Starting pre-install cleanup (KDE, SDDM, DMs, Archcraft, rofi)"
     echo "============================================================"
     remove_kde_applications
     remove_archcraft_sddm
@@ -288,13 +284,27 @@ pre_install_cleanup() {
     remove_other_dms          # Integration of rm-dm-manager.sh
     setup_sddm
     reinstall_archcraft_desktops
-    uninstall_python_pywal     # Remove conflicting pywal
     echo "Pre-install cleanup finished."
     echo "============================================================"
 }
 
 # -----------------------------------------------------------------------------
-# 4. Load library functions (modified for silent/fast operation)
+# 5. Remove existing python-pywal (if any)
+# -----------------------------------------------------------------------------
+remove_python_pywal() {
+    echo "Checking for existing python-pywal installations..."
+    if pacman -Q python-pywal &>/dev/null; then
+        echo "Removing python-pywal via pacman..."
+        sudo -A pacman -Rns --noconfirm python-pywal 2>/dev/null || true
+    fi
+    if yay -Q python-pywal-git &>/dev/null; then
+        echo "Removing python-pywal-git via yay..."
+        yay -Rns --noconfirm python-pywal-git 2>/dev/null || true
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# 6. Load library functions (modified for silent/fast operation)
 # -----------------------------------------------------------------------------
 # Source the library.sh but override the interactive symlink function
 LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
@@ -353,7 +363,7 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 5. Component installation functions (derived from original scripts)
+# 7. Component installation functions (derived from original scripts)
 # -----------------------------------------------------------------------------
 
 install_yay() {
@@ -523,8 +533,12 @@ install_system() {
         python-psutil python-rich python-click xdg-desktop-portal-gtk xdg-user-dirs \
         xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp pcp-gui gtk4-layer-shell hyprpicker
     run_pacman -S $(pacman -Ssq 'pcp-pmda-*') 2>/dev/null || true
-    # Install pamac packages with existence check (already handled by _installPackagesYay)
-    _installPackagesYay pamac-all libpamac-full pamac-cli
+    # Install pamac packages only if not on CachyOS
+    if ! is_cachyos; then
+        _installPackagesYay pamac-all libpamac-full pamac-cli
+    else
+        echo "CachyOS detected – skipping pamac packages."
+    fi
     run_yay -S bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
     # Enable services (bluetooth only, SDDM already enabled)
     sudo -A systemctl enable bluetooth
@@ -630,6 +644,8 @@ install_icons_user() {
 }
 
 install_pywal16() {
+    echo "Removing any existing python-pywal before installing pywal16..."
+    remove_python_pywal
     echo "Installing pywal16..."
     if [[ ! -f /usr/bin/wal ]]; then
         run_yay -S python-pywal16-git
@@ -662,7 +678,7 @@ install_sddm_grub() {
 install_dotfiles() {
     echo "Creating symbolic links for dotfiles (force mode)..."
 
-    # Restore original ~/.config from backup only if Archcraft
+    # Restore original ~/.config from backup before symlinking (only on Archcraft)
     restore_user_config
 
     # Ensure .config exists
@@ -821,7 +837,7 @@ install_3dprinting() {
 }
 
 # -----------------------------------------------------------------------------
-# 6. Post-install setup (Thunar bookmarks)
+# 8. Post-install setup (Thunar bookmarks)
 # -----------------------------------------------------------------------------
 post_install_setup() {
     echo "Updating XDG user directories and GTK bookmarks..."
@@ -831,16 +847,16 @@ post_install_setup() {
 }
 
 # -----------------------------------------------------------------------------
-# 7. Main menu – component selection
+# 9. Main menu – component selection
 # -----------------------------------------------------------------------------
 
 # --- Backup Archcraft /usr/share/archcraft if present (before any changes) ---
 backup_archcraft_dir
 
-# --- Backup user's .config directory only if Archcraft ---
+# --- Backup user's .config directory (only on Archcraft) ---
 backup_user_config
 
-# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi, python-pywal) ---
+# --- Run pre-install cleanup (KDE, SDDM themes, DM switching, Archcraft, rofi) ---
 pre_install_cleanup
 
 COMPONENTS=$(zenity --list --checklist \
@@ -880,7 +896,7 @@ if [ -z "$COMPONENTS" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 8. Run selected components with live output display
+# 10. Run selected components with live output display
 # -----------------------------------------------------------------------------
 LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 
