@@ -153,13 +153,13 @@ restore_archcraft_dir() {
     fi
 }
 
-move_archcraft_fonts_to_icons() {
+move_archcraft_fonts() {
     if is_archcraft && [[ -d /usr/share/fonts/archcraft ]]; then
-        echo "Moving /usr/share/fonts/archcraft to ~/.local/share/icons/archcraft"
-        mkdir -p "$HOME/.local/share/icons"
-        sudo -A mv /usr/share/fonts/archcraft "$HOME/.local/share/icons/archcraft"
-        sudo -A chown -R "$USER:$USER" "$HOME/.local/share/icons/archcraft"
-        echo "Moved archcraft fonts to icons directory."
+        echo "Moving /usr/share/fonts/archcraft to ~/.local/share/fonts/archcraft"
+        mkdir -p "$HOME/.local/share/fonts"
+        sudo -A mv /usr/share/fonts/archcraft "$HOME/.local/share/fonts/archcraft"
+        sudo -A chown -R "$USER:$USER" "$HOME/.local/share/fonts/archcraft"
+        echo "Moved archcraft fonts directory."
     fi
 }
 
@@ -870,7 +870,7 @@ LOG_FILE="$HOME/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 post_install_setup
 
 # --- Move Archcraft fonts to icons (if Archcraft) ---
-move_archcraft_fonts_to_icons
+move_archcraft_fonts
 
 # --- Restore original /usr/share/archcraft if we backed it up ---
 restore_archcraft_dir
