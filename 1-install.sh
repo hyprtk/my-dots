@@ -1,7 +1,19 @@
 #!/bin/bash
 
 # =============================================================================
-# Unified Zenity GUI Installer for Hyprtk (Hyprland & XFCE)
+# Unified Installer for Hyprland & XFCE (based on hyprtk)
+# Merged from 1-install.sh and unified-installer.sh
+#
+# Features:
+#   - Full GUI component selection (zenity checklist)
+#   - Live installation progress with auto-scroll and log file
+#   - Cache cleanup (pacman + yay) at start to always fetch latest packages
+#   - Archcraft-specific backup/restore
+#   - Pre-install cleanup (KDE, SDDM, other DMs, rofi-lbonn)
+#   - Graphics card selection (Intel/AMD/Nvidia/Virtualization)
+#   - Btrfs detection (skip Timeshift)
+#   - Chaotic AUR support (optional)
+#   - pywal16, HyprViz, Matuwall, ZSH, Oh-my-posh, etc.
 # =============================================================================
 
 set -e  # Exit on error, but we'll catch errors gracefully
@@ -90,7 +102,7 @@ for cmd in zenity pacman yay git; do
 done
 
 # -----------------------------------------------------------------------------
-# 1. Password handling (askpass)
+# 1. Password handling (askpass) and cache cleanup
 # -----------------------------------------------------------------------------
 PASSWORD=$(zenity --password --title="Authentication Required" --text="Enter your sudo password to begin installation:" --width=400)
 
@@ -111,6 +123,13 @@ export NEED_SUDO=1
 if ! sudo -A true 2>/dev/null; then
     zenity --error --text="Incorrect password. Exiting."
     exit 1
+fi
+
+# --- Cache cleanup (always fetch latest packages) ---
+zenity --info --title="Cache Cleanup" --text="Clearing pacman and yay caches to ensure latest packages are downloaded..." --width=400
+sudo -A pacman -Scc --noconfirm 2>/dev/null || true
+if command -v yay &>/dev/null; then
+    yay -Scc --noconfirm 2>/dev/null || true
 fi
 
 # Wrapper for pacman (requires sudo -A)
@@ -325,46 +344,36 @@ remove_python_pywal() {
 }
 
 # -----------------------------------------------------------------------------
-# 6. Load library functions (modified for silent/fast operation)
+# 6. Library functions (package checks & forced symlinking)
 # -----------------------------------------------------------------------------
-# Source the library.sh but override the interactive symlink function
-LIBRARY_PATH="$(dirname "$0")/scripts/library.sh"
-if [[ ! -f "$LIBRARY_PATH" ]]; then
-    LIBRARY_PATH=~/hyprtk/scripts/library.sh
-fi
-if [[ -f "$LIBRARY_PATH" ]]; then
-    source "$LIBRARY_PATH"
-else
-    # Define minimal required functions if library not found
-    _isInstalledPacman() {
-        pacman -Qs "$1" | grep -q "local.*$1"
-    }
-    _isInstalledYay() {
-        yay -Qs "$1" | grep -q "local.*$1"
-    }
-    _installPackagesPacman() {
-        local toInstall=()
-        for pkg in "$@"; do
-            if ! _isInstalledPacman "$pkg"; then
-                toInstall+=("$pkg")
-            fi
-        done
-        if [[ ${#toInstall[@]} -gt 0 ]]; then
-            run_pacman -S "${toInstall[@]}"
+_isInstalledPacman() {
+    pacman -Qs "$1" | grep -q "local.*$1"
+}
+_isInstalledYay() {
+    yay -Qs "$1" | grep -q "local.*$1"
+}
+_installPackagesPacman() {
+    local toInstall=()
+    for pkg in "$@"; do
+        if ! _isInstalledPacman "$pkg"; then
+            toInstall+=("$pkg")
         fi
-    }
-    _installPackagesYay() {
-        local toInstall=()
-        for pkg in "$@"; do
-            if ! _isInstalledYay "$pkg"; then
-                toInstall+=("$pkg")
-            fi
-        done
-        if [[ ${#toInstall[@]} -gt 0 ]]; then
-            run_yay -S "${toInstall[@]}"
+    done
+    if [[ ${#toInstall[@]} -gt 0 ]]; then
+        run_pacman -S "${toInstall[@]}"
+    fi
+}
+_installPackagesYay() {
+    local toInstall=()
+    for pkg in "$@"; do
+        if ! _isInstalledYay "$pkg"; then
+            toInstall+=("$pkg")
         fi
-    }
-fi
+    done
+    if [[ ${#toInstall[@]} -gt 0 ]]; then
+        run_yay -S "${toInstall[@]}"
+    fi
+}
 
 # Force symlink creation without user prompt
 _forceSymLink() {
@@ -384,7 +393,7 @@ _forceSymLink() {
 }
 
 # -----------------------------------------------------------------------------
-# 7. Component installation functions (derived from original scripts)
+# 7. Component installation functions
 # -----------------------------------------------------------------------------
 
 install_yay() {
