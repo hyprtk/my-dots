@@ -87,7 +87,7 @@ run_cmd() {
             amixer set Master mute
             systemctl suspend
         elif [[ $1 == '--logout' ]]; then
-            hyprctl dispatch exit
+            hyprctl dispatch 'hl.dsp.exit()'   
         elif [[ $1 == '--hibernate' ]]; then
             systemctl hibernate
         elif [[ $1 == '--lock' ]]; then
