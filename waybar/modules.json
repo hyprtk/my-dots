@@ -12,10 +12,10 @@
 //
 {
   // Workspaces
-  "hyprland/workspaces": {
-    "on-scroll-up": "hyprctl dispatch workspace r-1",
-    "on-scroll-down": "hyprctl dispatch workspace r+1",
-    "on-click": "activate",
+   "hyprland/workspaces": {
+    "on-scroll-down": "hyprctl dispatch \"hl.dsp.focus({workspace = 'r+1'})\"",
+    "on-scroll-up":   "hyprctl dispatch \"hl.dsp.focus({workspace = 'r-1'})\"",
+    "on-click": "hyprctl dispatch 'hl.dsp.focus({ workspace = <id> })'",   
     "active-only": false,
     "all-outputs": true,
     "format": "{}",
