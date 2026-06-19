@@ -13,9 +13,7 @@
 -- ----------------------------------------------------- 
 -- Autostart & Environment
 -- ----------------------------------------------------- 
--- Source: ~/hyprtk/hypr/conf/environment.conf — convert this file to Lua and ensure it is on Lua's package.path.
 require("environment")
--- Source: ~/hyprtk/hypr/conf/autostart.conf — convert this file to Lua and ensure it is on Lua's package.path.
 require("autostart")
 
 -- ----------------------------------------------------- 
@@ -34,5 +32,5 @@ require("nvidia")
 -- ----------------------------------------------------- 
 -- Animation
 -- ----------------------------------------------------- 
-require("animations-low")
--- require("animations-high")
+-- require("animations-low")
+require("animations-high")

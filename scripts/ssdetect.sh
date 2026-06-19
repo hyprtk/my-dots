@@ -34,4 +34,6 @@ else
         echo "Error: CPU script '$AMDINTEL_SCRIPT' not found or not executable."
         exit 1
     fi
-fi   
+fi
+
+hyprctl dispatch 'hl.dsp.submap("reset")'

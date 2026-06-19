@@ -34,7 +34,8 @@ local colors = load_colors_from_file(colors_path)
 -- These names must exist in the colors file; no fallback is provided.
 local active_color1 = colors.color11
 local active_color2 = colors.color4
-local inactive_color = colors.color8
+local inactive_color1 = colors.color7
+local inactive_color2 = colors.color1
 
 hl.config({
     general = {
@@ -46,7 +47,10 @@ hl.config({
                 colors = { active_color1, active_color2 },
                 angle  = 45
             },
-            inactive_border = inactive_color,
+            inactive_border = {
+                colors = { inactive_color1, inactive_color2 },
+                angle  = 45
+            },
         },
         resize_on_border = true,
         allow_tearing = false,

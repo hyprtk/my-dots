@@ -38,10 +38,10 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("hyprpicker"))
 --##            added script to reset hyprland with hyprctl                ###
 --##      after taking screenshot where the keybindings stop working       ###
 
-hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("~/hyprtk/scripts/ssdetect.sh && hyprctl dispatch submap reset"))
+hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("~/hyprtk/scripts/ssdetect.sh"))
 
 -- for users who have mini keyboards with no PrintScr
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("~/hyprtk/scripts/ssdetect.sh && hyprctl dispatch submap reset"))
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("~/hyprtk/scripts/ssdetect.sh"))
 
 --##                                                                       ###
 
