@@ -131,7 +131,7 @@
 
     // Filemanager Launcher
     "custom/filemanager": {
-        "format": "🗁",
+        "format": "",
         "on-click": "~/hyprtk/scripts/filemanager.sh",
         "tooltip": true,
         "tooltip-format": "File Manager"
