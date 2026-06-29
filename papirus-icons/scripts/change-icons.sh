@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+# Configuration
 INPUT_FILE="$HOME/.cache/wal/colors"
 OUTPUT_FILE="$HOME/hyprtk/papirus-icons/scripts/folder-color.txt"
-LINE_NUMBER=5 # wal colors start with a color of zero, so if i want to use color11 i must enter the value of 12 because of the row zero
+LINE_NUMBER=5               # pywal line index (0‑based, so 5 → color4)
+DEFAULT_COLOR="mocha-blue"  # safe fallback from the palette below
+
+# wal colors start with a color of zero, so if i want to use color11 i must enter the value of 12 because of the row zero
 
 # Example
 
@@ -52,97 +56,135 @@ LINE_NUMBER=5 # wal colors start with a color of zero, so if i want to use color
 #  [hyprtk-yaru]="#676767 #973552 #e4e4e4 #ff7446"
 #  [hyprtk-yellow]="#f9bd30 #e19d00 #594411 #e4e4e4"
 #  [hyprtk-nordic]="#81a1c1 #5e81ac #3b4253 #eceff4"
-  
-sed -n "${LINE_NUMBER}p" "$INPUT_FILE" > "$OUTPUT_FILE"
 
-# color palette (color name → hex code)
-declare -A colors=(
-  [frappe-blue]="#8caaee #7b89ba #313c53 #e4e4e4"
-  [frappe-flamingo]="#eebebe #ea7c9e #534343 #e4e4e4"
-  [frappe-green]="#a6d189 #76ac74 #3a4930 #e4e4e4"
-  [frappe-lavender]="#babbf1 #7f8de3 #414154 #e4e4e4"
-  [frappe-maroon]="#ea999c #c58b8e #523637 #e4e4e4"
-  [frappe-mauve]="#ca9ee6 #b27cbd #473751 #e4e4e4"
-  [frappe-peach]="#ef9f76 #dd815f #543829 #e4e4e4"
-  [frappe-pink]="#f4b8e4 #ef78be #554050 #e4e4e4"
-  [frappe-red]="#e78284 #c37678 #512e2e #e4e4e4"
-  [frappe-rosewater]="#f2d5cf #cba69a #554b48 #e4e4e4"
-  [frappe-sapphire]="#85c1dc #749bac #2f444d #e4e4e4"
-  [frappe-sky]="#99d1db #7aa7ae #36494d #e4e4e4"
-  [frappe-teal]="#81c8be #69a097 #2d4643 #e4e4e4"
-  [frappe-yellow]="#e5c890 #cea600 #504632 #e4e4e4"
-  [latte-blue]="#1e66f5 #1a52bf #0b2456 #e4e4e4"
-  [latte-flamingo]="#dd7878 #d94e64 #4d2a2a #e4e4e4"
-  [latte-green]="#40a02b #2d8324 #16380f #e4e4e4"
-  [latte-lavender]="#7287fd #4e66ee #282f59 #e4e4e4"
-  [latte-maroon]="#e64553 #c23f4b #51181d #e4e4e4"
-  [latte-mauve]="#8839ef #772cc5 #301454 #e4e4e4"
-  [latte-peach]="#fe640b #eb5108 #592304 #e4e4e4"
-  [latte-pink]="#ea76cb #e64da9 #522947 #e4e4e4"
-  [latte-red]="#d20f39 #b10d34 #4a0514 #e4e4e4"
-  [latte-rosewater]="#dc8a78 #b86b59 #4d302a #e4e4e4"
-  [latte-sapphire]="#209fb5 #1c7f8d #0b383f #e4e4e4"
-  [latte-sky]="#04a5e5 #0384b6 #013a50 #e4e4e4"
-  [latte-teal]="#179299 #127479 #083336 #e4e4e4"
-  [latte-yellow]="#df8e1d #c97500 #4e320a #e4e4e4"
-  [macchiato-blue]="#8aadf4 #798bbf #303d55 #e4e4e4"
-  [macchiato-flamingo]="#f0c6c6 #eb81a5 #544545 #e4e4e4"
-  [macchiato-green]="#a6da95 #76b37f #3a4c34 #e4e4e4"
-  [macchiato-lavender]="#b7bdf8 #7d8fe9 #404257 #e4e4e4"
-  [macchiato-maroon]="#ee99a0 #c98b92 #533638 #e4e4e4"
-  [macchiato-mauve]="#c6a0f6 #ae7dcb #453856 #e4e4e4"
-  [macchiato-peach]="#f5a97f #e38966 #563b2c #e4e4e4"
-  [macchiato-pink]="#f5bde6 #f07bc0 #564251 #e4e4e4"
-  [macchiato-red]="#ed8796 #c87b89 #532f35 #e4e4e4"
-  [macchiato-rosewater]="#f4dbd6 #ccaba0 #554d4b #e4e4e4"
-  [macchiato-sapphire]="#7dc4e4 #6d9db2 #2c4550 #e4e4e4"
-  [macchiato-sky]="#91d7e3 #74acb5 #334b4f #e4e4e4"
-  [macchiato-teal]="#8bd5ca #71aaa0 #314b47 #e4e4e4"
-  [macchiato-yellow]="#eed49f #d6af00 #534a38 #e4e4e4"
-  [mocha-blue]="#89b4fa #7890c3 #303f58 #e4e4e4"
-  [mocha-flamingo]="#f2cdcd #ed85ab #554848 #e4e4e4"
-  [mocha-green]="#a6e3a1 #76bb89 #3a4f38 #e4e4e4"
-  [mocha-lavender]="#b4befe #7b8fef #3f4359 #e4e4e4"
-  [mocha-maroon]="#eba0ac #c6929d #52383c #e4e4e4"
-  [mocha-mauve]="#cba6f7 #b282cb #473a56 #e4e4e4"
-  [mocha-peach]="#fab387 #e8916d #583f2f #e4e4e4"
-  [mocha-pink]="#f5c2e7 #f07ec0 #564451 #e4e4e4"
-  [mocha-red]="#f38ba8 #cd7f99 #55313b #e4e4e4"
-  [mocha-rosewater]="#f5e0dc #cdafa4 #564e4d #e4e4e4"
-  [mocha-sapphire]="#74c7ec #65a0b8 #294653 #e4e4e4"
-  [mocha-sky]="#89dceb #6db0bb #304d52 #e4e4e4"
-  [mocha-teal]="#94e2d5 #79b4a9 #344f4b #e4e4e4"
-  [mocha-yellow]="#f9e2af #e0bb00 #574f3d #e4e4e4"
-)
 
-# Read hex code from plaintext file
-hex=$(<~/hyprtk/papirus-icons/scripts/folder-color.txt)
+# Extract the selected color from pywal cache
+if [[ ! -f "$INPUT_FILE" ]]; then
+    echo "ERROR: $INPUT_FILE not found." >&2
+    closest_color="$DEFAULT_COLOR"
+else
+    # Read the specific line and trim whitespace
+    hex=$(sed -n "${LINE_NUMBER}p" "$INPUT_FILE" | tr -d '[:space:]')
+    if [[ -z "$hex" ]]; then
+        echo "WARNING: No color found at line $LINE_NUMBER, using fallback." >&2
+        closest_color="$DEFAULT_COLOR"
+    else
+        # Save the hex for later reference (optional)
+        echo "$hex" > "$OUTPUT_FILE"
+    fi
+fi
 
-# Function to convert HEX to RGB
-hex_to_rgb() {
-  local hex=$1
-  local r=$((16#${hex:1:2}))
-  local g=$((16#${hex:3:2}))
-  local b=$((16#${hex:5:2}))
-  echo "$r $g $b"
-}
+# If we already have a fallback, skip the matching step
+if [[ -z "$closest_color" ]]; then
+    # Define the color palette (name → list of hex codes; we use only the first)
+    declare -A colors=(
+        [frappe-blue]="#8caaee #7b89ba #313c53 #e4e4e4"
+        [frappe-flamingo]="#eebebe #ea7c9e #534343 #e4e4e4"
+        [frappe-green]="#a6d189 #76ac74 #3a4930 #e4e4e4"
+        [frappe-lavender]="#babbf1 #7f8de3 #414154 #e4e4e4"
+        [frappe-maroon]="#ea999c #c58b8e #523637 #e4e4e4"
+        [frappe-mauve]="#ca9ee6 #b27cbd #473751 #e4e4e4"
+        [frappe-peach]="#ef9f76 #dd815f #543829 #e4e4e4"
+        [frappe-pink]="#f4b8e4 #ef78be #554050 #e4e4e4"
+        [frappe-red]="#e78284 #c37678 #512e2e #e4e4e4"
+        [frappe-rosewater]="#f2d5cf #cba69a #554b48 #e4e4e4"
+        [frappe-sapphire]="#85c1dc #749bac #2f444d #e4e4e4"
+        [frappe-sky]="#99d1db #7aa7ae #36494d #e4e4e4"
+        [frappe-teal]="#81c8be #69a097 #2d4643 #e4e4e4"
+        [frappe-yellow]="#e5c890 #cea600 #504632 #e4e4e4"
+        [latte-blue]="#1e66f5 #1a52bf #0b2456 #e4e4e4"
+        [latte-flamingo]="#dd7878 #d94e64 #4d2a2a #e4e4e4"
+        [latte-green]="#40a02b #2d8324 #16380f #e4e4e4"
+        [latte-lavender]="#7287fd #4e66ee #282f59 #e4e4e4"
+        [latte-maroon]="#e64553 #c23f4b #51181d #e4e4e4"
+        [latte-mauve]="#8839ef #772cc5 #301454 #e4e4e4"
+        [latte-peach]="#fe640b #eb5108 #592304 #e4e4e4"
+        [latte-pink]="#ea76cb #e64da9 #522947 #e4e4e4"
+        [latte-red]="#d20f39 #b10d34 #4a0514 #e4e4e4"
+        [latte-rosewater]="#dc8a78 #b86b59 #4d302a #e4e4e4"
+        [latte-sapphire]="#209fb5 #1c7f8d #0b383f #e4e4e4"
+        [latte-sky]="#04a5e5 #0384b6 #013a50 #e4e4e4"
+        [latte-teal]="#179299 #127479 #083336 #e4e4e4"
+        [latte-yellow]="#df8e1d #c97500 #4e320a #e4e4e4"
+        [macchiato-blue]="#8aadf4 #798bbf #303d55 #e4e4e4"
+        [macchiato-flamingo]="#f0c6c6 #eb81a5 #544545 #e4e4e4"
+        [macchiato-green]="#a6da95 #76b37f #3a4c34 #e4e4e4"
+        [macchiato-lavender]="#b7bdf8 #7d8fe9 #404257 #e4e4e4"
+        [macchiato-maroon]="#ee99a0 #c98b92 #533638 #e4e4e4"
+        [macchiato-mauve]="#c6a0f6 #ae7dcb #453856 #e4e4e4"
+        [macchiato-peach]="#f5a97f #e38966 #563b2c #e4e4e4"
+        [macchiato-pink]="#f5bde6 #f07bc0 #564251 #e4e4e4"
+        [macchiato-red]="#ed8796 #c87b89 #532f35 #e4e4e4"
+        [macchiato-rosewater]="#f4dbd6 #ccaba0 #554d4b #e4e4e4"
+        [macchiato-sapphire]="#7dc4e4 #6d9db2 #2c4550 #e4e4e4"
+        [macchiato-sky]="#91d7e3 #74acb5 #334b4f #e4e4e4"
+        [macchiato-teal]="#8bd5ca #71aaa0 #314b47 #e4e4e4"
+        [macchiato-yellow]="#eed49f #d6af00 #534a38 #e4e4e4"
+        [mocha-blue]="#89b4fa #7890c3 #303f58 #e4e4e4"
+        [mocha-flamingo]="#f2cdcd #ed85ab #554848 #e4e4e4"
+        [mocha-green]="#a6e3a1 #76bb89 #3a4f38 #e4e4e4"
+        [mocha-lavender]="#b4befe #7b8fef #3f4359 #e4e4e4"
+        [mocha-maroon]="#eba0ac #c6929d #52383c #e4e4e4"
+        [mocha-mauve]="#cba6f7 #b282cb #473a56 #e4e4e4"
+        [mocha-peach]="#fab387 #e8916d #583f2f #e4e4e4"
+        [mocha-pink]="#f5c2e7 #f07ec0 #564451 #e4e4e4"
+        [mocha-red]="#f38ba8 #cd7f99 #55313b #e4e4e4"
+        [mocha-rosewater]="#f5e0dc #cdafa4 #564e4d #e4e4e4"
+        [mocha-sapphire]="#74c7ec #65a0b8 #294653 #e4e4e4"
+        [mocha-sky]="#89dceb #6db0bb #304d52 #e4e4e4"
+        [mocha-teal]="#94e2d5 #79b4a9 #344f4b #e4e4e4"
+        [mocha-yellow]="#f9e2af #e0bb00 #574f3d #e4e4e4"
+    )
 
-read r1 g1 b1 <<< "$(hex_to_rgb "$hex")"
+    # Convert a hex color (e.g., "#aabbcc") to R G B integers
+    hex_to_rgb() {
+        local h="$1"
+        # Remove leading '#' if present
+        h="${h#\#}"
+        # Ensure it's exactly 6 characters
+        if [[ ${#h} -ne 6 ]]; then
+            echo "0 0 0"
+            return 1
+        fi
+        local r=$((16#${h:0:2}))
+        local g=$((16#${h:2:2}))
+        local b=$((16#${h:4:2}))
+        echo "$r $g $b"
+    }
 
-# Find the closest color
-min_distance=1000000
-closest_color=""
+    # Compute RGB of the input color
+    read r1 g1 b1 <<< "$(hex_to_rgb "$hex")" || {
+        echo "ERROR: Invalid hex '$hex', using fallback." >&2
+        closest_color="$DEFAULT_COLOR"
+    }
 
-for name in "${!colors[@]}"; do
-  read r2 g2 b2 <<< "$(hex_to_rgb "${colors[$name]}")"
-  distance=$(( (r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2) ))
-  if (( distance < min_distance )); then
-    min_distance=$distance
-    closest_color=$name
-  fi
-done
+    # Only proceed if we have a valid input color
+    if [[ -z "$closest_color" ]]; then
+        # Find the closest palette color by Euclidean distance (RGB)
+        min_distance=1000000
+        closest_color=""
+        for name in "${!colors[@]}"; do
+            # Extract the first hex from the palette entry
+            read -ra color_parts <<< "${colors[$name]}"
+            first_hex="${color_parts[0]}"
+            read r2 g2 b2 <<< "$(hex_to_rgb "$first_hex")" || continue
+            # Compute squared distance
+            distance=$(( (r1 - r2) * (r1 - r2) + (g1 - g2) * (g1 - g2) + (b1 - b2) * (b1 - b2) ))
+            if (( distance < min_distance )); then
+                min_distance=$distance
+                closest_color="$name"
+            fi
+        done
+    fi
 
+    # If for any reason we still have no match, fall back to default
+    if [[ -z "$closest_color" ]]; then
+        closest_color="$DEFAULT_COLOR"
+    fi
+fi
+
+# Apply the chosen color to Papirus folders
 echo "Closest color to $hex is: $closest_color"
-~/.local/share/icons/papirus-folders.sh -C $closest_color -t ~/.local/share/icons/Papirus-Dark
+~/.local/share/icons/papirus-folders.sh -C "$closest_color" -t ~/.local/share/icons/Papirus-Dark
 
 notify-send "Icon Colors updated" "with $closest_color"
