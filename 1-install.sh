@@ -445,8 +445,8 @@ case $GRAPHICSCARD in
     ;;
 4)
     echo "Installing virtualization guest drivers (QEMU/virt & VMware)..." >/dev/null
-    _installPackagesPacman qemu-guest-agent spice-vdagent xf86-video-qxl mesa open-vm-tools
-    _installPackagesAUR xf86-video-vmware
+    _installPackagesPacman qemu-guest-agent spice-vdagent xf86-video-qxl mesa
+    _installPackagesAUR xf86-video-vmware open-vm-tools
     sudo systemctl enable --now qemu-guest-agent 2>/dev/null || true
     sudo systemctl enable --now spice-vdagentd 2>/dev/null || true
     sudo systemctl enable --now vmtoolsd 2>/dev/null || true
