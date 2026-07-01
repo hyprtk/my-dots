@@ -62,7 +62,7 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 #Please note that every Arch Linux system is different and I cannot guarantee that everything works fine on your system.
 ## Screenshots & Video
 
-Arch Linux
+My Dots
 ![MODEL](https://github.com/hyprtk/dotfiles/blob/main/screenshots/mydots1.png)
 ![Model](https://github.com/hyprtk/dotfiles/blob/main/screenshots/mydots2.png)
 ![Model](https://github.com/hyprtk/dotfiles/blob/main/screenshots/mydots3.png)
