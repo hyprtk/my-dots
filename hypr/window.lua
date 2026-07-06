@@ -40,8 +40,8 @@ local inactive_color2 = colors.color1
 hl.config({
     general = {
         gaps_in  = 3,
-        gaps_out = 10,
-        border_size = 3,
+        gaps_out = 5,
+        border_size = 2,
         col = {
             active_border   = {
                 colors = { active_color1, active_color2 },

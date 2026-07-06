@@ -32,5 +32,5 @@ require("nvidia")
 -- ----------------------------------------------------- 
 -- Animation
 -- ----------------------------------------------------- 
--- require("animations-low")
-require("animations-high")
+require("animations-low")
+-- require("animations-high")
