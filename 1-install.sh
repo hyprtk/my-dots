@@ -835,6 +835,8 @@ print_header "Initiating Pywal16"
 wal -i ~/hyprtk/Wallpapers/default.png >/dev/null
 cp ~/hyprtk/Wallpapers/default.png ~/.cache/current-wallpaper.png
 sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png
+xdg-user-dirs-update --force
+xdg-user-dirs-gtk-update --force   
 
 case $DISTRO_ID in
     archbang|bslx)
