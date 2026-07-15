@@ -55,7 +55,7 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 
 # Make sure that you're in your home directory
 
-	git clone https://github.com/hyprtk/arch-dots.git ~/hyprtk
+	git clone https://github.com/hyprtk/my-dots.git ~/hyprtk
 	cd ~/hyprtk
 	sh ./1-install.sh
 
@@ -63,6 +63,6 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 ## Screenshots & Video
 
 Arch Linux
-![MODEL](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch1.png)
-![Model](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch2.png)
-![Model](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch3.png)
+![MODEL](https://github.com/hyprtk/dotfiles/blob/main/screenshots/mydots1.png)
+![Model](https://github.com/hyprtk/dotfiles/blob/main/screenshots/mydots2.png)
+![Model](https://github.com/hyprtk/dotfiles/blob/main/screenshots/mydots3.png)
