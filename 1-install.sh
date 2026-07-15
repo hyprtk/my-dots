@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 INSTALL_LOG="/tmp/hyprtk-install.log"
-exec 2>"$INSTALL_LOG"
 echo "[$(date)] Hyprtk-On-Arch installer started" | tee -a "$INSTALL_LOG"
+
+# Safe clear — avoids exit if TERM is unset or clear missing
+_clr() { clear 2>/dev/null || true; }
 
 echo ""
 echo " Welcome to Hyprtk-On-Arch — Unified Hyprland & XFCE Installer "
@@ -12,6 +14,30 @@ echo ""
 echo " You will now be asked to enter your Root password"
 echo ""
 sleep 2
+
+# ------------------------------------------------------
+# Professional header/footer helpers
+# ------------------------------------------------------
+_header() {
+    local title="$1"
+    local len="${#title}"
+    local total=70
+    local pad=$(( (total - len) / 2 ))
+    printf '\n  ┌'
+    printf '─%.0s' $(seq 1 $total)
+    printf '┐\n'
+    printf '  │%*s%s%*s│\n' $pad '' "$title" $(( total - len - pad )) ''
+    printf '  └'
+    printf '─%.0s' $(seq 1 $total)
+    printf '┘\n\n'
+}
+
+_footer() {
+    local msg="$1"
+    printf '\n  ──────────────────────────────────────────────────────\n'
+    printf '  %s\n' "$msg"
+    printf '  ──────────────────────────────────────────────────────\n\n'
+}
 
 # ------------------------------------------------------
 # Distribution selection
@@ -81,30 +107,6 @@ else
 fi
 echo "[$(date)] Initramfs tool selected: $INIT_TOOL" | tee -a "$INSTALL_LOG"
 sleep 2
-
-# ------------------------------------------------------
-# Professional header/footer helpers
-# ------------------------------------------------------
-_header() {
-    local title="$1"
-    local len="${#title}"
-    local total=70
-    local pad=$(( (total - len) / 2 ))
-    printf '\n  ┌'
-    printf '─%.0s' $(seq 1 $total)
-    printf '┐\n'
-    printf '  │%*s%s%*s│\n' $pad '' "$title" $(( total - len - pad )) ''
-    printf '  └'
-    printf '─%.0s' $(seq 1 $total)
-    printf '┘\n\n'
-}
-
-_footer() {
-    local msg="$1"
-    printf '\n  ──────────────────────────────────────────────────────\n'
-    printf '  %s\n' "$msg"
-    printf '  ──────────────────────────────────────────────────────\n\n'
-}
 
 # ------------------------------------------------------
 # Helper: rebuild initramfs
@@ -243,7 +245,7 @@ else
     cd ~/Downloads/yay-git
     makepkg -si
     cd ~/hyprtk/
-    clear
+    _clr
 fi
 _footer "Yay is installed"
 sleep 2
@@ -258,12 +260,12 @@ while true; do
 done
 
 sleep 2
-clear
+_clr
 # Source graphics-card.sh so it has access to $INIT_TOOL and library functions
 source ~/hyprtk/hypr/packages/graphics-card.sh
 sleep 2
 
-clear
+_clr
 while true; do
     read -p "DO YOU WANT TO INSTALL THE CORE APPS NOW? (Yy/Nn): " yn
     case $yn in
@@ -499,7 +501,7 @@ case $DISTRO in
 esac
 echo "Pywal16 templates initiated!"
 
-clear
+_clr
 echo "-------------------------------------"
 echo "-> Install GTK hyprtk"
 echo "-------------------------------------"
@@ -509,7 +511,7 @@ _installSymLink gtk-4.0 ~/.config/gtk-4.0 ~/hyprtk/gtk/gtk-4.0/ ~/.config/
 _installSymLink themes ~/.local/share/themes ~/hyprtk/themes ~/.local/share/
 _installSymLink icons ~/.local/share/icons ~/hyprtk/papirus-icons/icons ~/.local/share/
 
-clear
+_clr
 echo "-------------------------------------"
 echo "-> Install Xfce hyprtk"
 echo "-------------------------------------"
@@ -518,7 +520,7 @@ _installSymLink xfce4 ~/.config/xfce4 ~/hyprtk/xfce4 ~/.config/
 _installSymLink Thunar ~/.config/Thunar ~/hyprtk/Thunar ~/.config/
 _installSymLink Mousepad ~/.config/Mousepad ~/hyprtk/Mousepad ~/.config/
 
-clear
+_clr
 echo "-------------------------------------"
 echo "-> Install Hyprland hyprtk"
 echo "-------------------------------------"
@@ -552,7 +554,7 @@ _installSymLink matuwall ~/.config/matuwall ~/hyprtk/matuwall/ ~/.config
 _installSymLink wob ~/.config/wob ~/hyprtk/wob/ ~/.config
 mkdir -p ~/.local/bin
 
-clear
+_clr
 echo ""
 echo "-------------------------------------"
 echo "-> Install ZSH"
