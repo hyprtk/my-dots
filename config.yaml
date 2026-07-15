@@ -1,0 +1,217 @@
+# =============================================================================
+# Arch Linux dotfiles provisioner config
+# =============================================================================
+# Edit this file to customize your installation, then run:
+#   ./install.sh
+#
+# To preview changes:
+#   ./install.sh --dry-run
+#
+# To run only specific sections:
+#   ./install.sh --only packages,symlinks
+#
+# Sections: detect, packages, symlinks, services, theming, shell
+# =============================================================================
+
+# Distro override (leave as "auto" for automatic detection)
+distro: auto
+
+# ---------------------------------------------------------------------------
+# Packages
+# ---------------------------------------------------------------------------
+packages:
+  pacman:
+    add:
+      - hyprland
+      - xdg-desktop-portal-wlr
+      - swayidle
+      - swappy
+      - cliphist
+      - xorg-xhost
+      - nwg-look
+      - mission-center
+      - curl
+      - imagemagick
+      - jq
+      - bc
+      - brightnessctl
+      - playerctl
+      - libadwaita
+      - gtk-layer-shell
+      - python
+      - python-pip
+      - python-virtualenv
+      - python-gobject
+      - gtk4
+      - wob
+      - xfce4
+      - xfce4-goodies
+      - parole
+      - thunar
+      - mousepad
+      - chromium
+      - cups
+      - cups-pdf
+      - cups-filters
+      - nss-mdns
+      - system-config-printer
+      - cups-browsed
+      - libusb
+      - ipp-usb
+      - xdg-utils
+      - colord
+      - logrotate
+      - networkmanager
+      - network-manager-applet
+      - git
+      - freerdp
+      - gvfs
+      - ntfs-3g
+      - samba
+      - xclip
+      - pamixer
+      - wf-recorder
+      - pavucontrol
+      - tumbler
+      - vlc
+      - mpv
+      - ffmpeg
+      - eza
+      - micro
+      - xfce4-terminal
+      - btop
+      - alacritty
+      - kitty
+      - starship
+      - ranger
+      - nano
+      - figlet
+      - neovim
+      - timeshift
+      - file-roller
+      - gparted
+      - xfce4-power-manager
+      - rofi
+      - dunst
+      - cockpit
+      - sddm
+      - blueman
+      - pacman-contrib
+      - fzf
+      - font-manager
+      - awesome-terminal-fonts
+      - ttf-font-awesome
+      - ttf-fira-sans
+      - ttf-fira-code
+      - ttf-firacode-nerd
+      - python-psutil
+      - python-rich
+      - python-click
+      - xdg-desktop-portal-gtk
+      - xdg-user-dirs
+      - xdg-user-dirs-gtk
+      - os-prober
+      - polkit-gnome
+      - gnome-keyring
+      - pcp
+      - pcp-gui
+      - gtk4-layer-shell
+      - hyprpicker
+      - zsh
+    remove:
+      - plasma-meta
+      - kde-applications-meta
+
+  aur:
+    - awww
+    - swaylock-effects
+    - 7zip
+    - unzip
+    - unrar
+    - waybar-git
+    - tumbler-extra-thumbnailers
+    - thunar-shares-plugin
+    - brave-bin
+    - github-desktop-bin
+    - fastfetch
+    - gnome-disk-utility
+    - bibata-cursor-theme
+    - trizen
+    - sublime-text-4
+    - sddm-theme-sugar-candy-git
+    - pacseek
+    - python-pywal16-git
+    - hyprquickframe-git
+    - hyprviz-bin
+
+# ---------------------------------------------------------------------------
+# Symlinks
+# ---------------------------------------------------------------------------
+# Format: "target: source"  (relative to the script directory)
+symlinks:
+  - "~/.config/alacritty: alacritty/"
+  - "~/.config/ranger: ranger/"
+  - "~/.config/vim: vim/"
+  - "~/.config/nvim: nvim/"
+  - "~/.config/starship.toml: starship/starship.toml"
+  - "~/.config/rofi: rofi/"
+  - "~/.config/dunst: dunst/"
+  - "~/.config/wal: wal/"
+  - "~/.config/btop: btop/"
+  - "~/.config/gtk-3.0: gtk/gtk-3.0/"
+  - "~/.config/gtk-4.0: gtk/gtk-4.0/"
+  - "~/.local/share/themes: themes"
+  - "~/.local/share/icons: papirus-icons/icons"
+  - "~/.config/xfce4: xfce4"
+  - "~/.config/Thunar: Thunar"
+  - "~/.config/Mousepad: Mousepad"
+  - "~/.config/hypr: hypr/"
+  - "~/.config/fastfetch: fastfetch/"
+  - "~/.config/waybar: waybar/"
+  - "~/.config/swaylock: swaylock/"
+  - "~/.config/swappy: swappy/"
+  - "~/.config/hyprlogout: hyprlogout/"
+  - "~/.config/waypaper: waypaper/"
+  - "~/.config/zshrc: zshrc/"
+  - "~/.config/ohmyposh: ohmyposh/"
+  - "~/.config/matuwall: matuwall/"
+  - "~/.config/wob: wob/"
+  - "~/.local/bin: standalone/"
+  - "~/.zshrc: .zshrc"
+
+# ---------------------------------------------------------------------------
+# System services
+# ---------------------------------------------------------------------------
+services:
+  enable:
+    - bluetooth
+    - cockpit
+    - smb
+    - nmb
+    - sddm
+    - NetworkManager
+  disable: []
+
+# ---------------------------------------------------------------------------
+# Theming
+# ---------------------------------------------------------------------------
+theming:
+  display-manager: sddm
+  color-scheme:
+    backend: pywal16
+    source: ./Wallpapers/default.png
+  fonts:
+    - JetBrainsMono Nerd Font
+    - Noto Sans
+    - Iosevka Nerd Font
+  icons: Papirus-Dark
+
+# ---------------------------------------------------------------------------
+# Shell
+# ---------------------------------------------------------------------------
+shell:
+  default: zsh
+  plugins:
+    - zsh-autosuggestions
+    - zsh-syntax-highlighting
+    - fast-syntax-highlighting

@@ -32,3 +32,12 @@ done
 # Load single customization file (if exists)
 # -----------------------------------------------------
 
+if [ -f ~/.zshrc_custom ]; then
+    source ~/.zshrc_custom
+fi
+export PATH=$PATH:/var/lib/snapd/snap/bin
+export PATH="$HOME/.local/bin:$PATH"
+(cat ~/.cache/wal/sequences &)
+
+
+export PATH="$HOME/.opencode/bin:$PATH"
