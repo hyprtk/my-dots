@@ -1,5 +1,4 @@
 #!/bin/bash
-figlet -f 3d "Sys Theming"
 echo ""
 echo " Configure sddm theme "
 echo ""

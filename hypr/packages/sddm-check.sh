@@ -1,5 +1,5 @@
 #/bin/bash
-figlet -f 3d "sddm check"
+echo ""
 sh ~/hyprtk/scripts/rm-dm-managers.sh
 echo ""
 if [ ! -d /etc/sddm.conf.d/ ]; then

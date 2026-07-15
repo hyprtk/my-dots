@@ -1,68 +1,60 @@
-# Hyprland Dots
+# Hyprtk-On-Arch
 
-This is the configuration for Arch Linux, Arcolinux, Garuda, Manjaro based installations of Hyprland (Wayland) and/or XFCE (Xorg).
+Unified Hyprland & XFCE installer for 11 Arch-based distributions.
 
-This will work on most flavours of Arch.
+## Supported Distributions
 
+- Arch Linux
+- ArchBang
+- ArchCraft
+- ArchMan
+- BSLx
+- CachyOS
+- EndeavourOS
+- Garuda Linux
+- Kiro
+- Manjaro
+- RebornOS
+
+## Features
+
+- **Auto-detection** of distribution and initramfs tool (dracut / mkinitcpio)
+- **Interactive graphics driver selection**: Intel, AMD, Nvidia, or Virtualization
+- **Professional ASCII headers** throughout
+- **Install log** at `~/hyprtk-install-YYYYMMDD-HHMMSS.log` for debugging
+- All package scripts inlined into a single `1-install.sh`
 
 ## Common Packages
 
-- Terminal: alacritty
-- Editor: nvim/ nano
-- Prompt: starship
-- Icons: Font Awesome
+- Terminal: alacritty / kitty / xfce4-terminal
+- Editor: nvim / nano / micro
+- Prompt: starship / ohmyposh
+- Icons: Font Awesome / Papirus
 - Menus: Rofi
 - Colorscheme: pywal16 (dynamic)
-- Browsers: chromium (brave optional)
+- Browsers: chromium / brave
 - Filemanager: Thunar
 - Cursor: Bibata Modern Ice
-- Icons: Papirus-Icon-Theme
-- Virtual Machine: qemu/kvm, vmware workstation, winboat
+- Virtual Machine: qemu/kvm, vmware workstation
 
-## Hyprland
+## Getting Started
 
-- Status Bar: waybar
-- Screenshots: grim & slurp
-- Clipboard Manager: cliphist
-- Logout: hyprlogout
-- Screenlock: swaylock-effects
-- Screen Capture: wf-recorder
+PLEASE BACKUP YOUR EXISTING ~/.config BEFORE STARTING.
 
-## Templating
+```bash
+git clone https://github.com/hyprtk/Hyprtk-On-Arch.git ~/hyprtk
+cd ~/hyprtk
+chmod +x 1-install.sh
+./1-install.sh
+```
 
-Hyprland: Included is a pywal16 configuration that changes the color scheme based on a randomly selected wallpaper. 
+## Installation Log
 
-	Keybinding SuperKey + Shift + w you can change the wallpaper.
+An install log is automatically created at `~/hyprtk-install-YYYYMMDD-HHMMSS.log`
+to assist with debugging should any issues arise.
 
-	Keybinding SuperKey + Ctrl + w opens rofi with a list of installed wallpapers.
+## Distro-Specific Files
 
-	Keybinding SuperKey + w opens matuwall to display all wallpapers on a film roll (Editable)
-
-See also the .zshrc and the key bindings on Hyprland and XFCE for more alias definitions.
-
-Hyprland: In addition, you can switch the Waybar Template
-
-	Keybinding SUPER + CTRL + T or by pressing the _ icon under the picture icon in waybar.
-
-The templates are available in ~/dotfiles/waybar/themes. You can add your own personal themes into this folder. The script will read in the folder structure.
-
-## Getting started
-
-To make it easy for you to get started with my garuda-dots, here's a list of recommended next steps.
-
-PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIPTS.
-
-
-# Make sure that you're in your home directory
-
-	git clone https://github.com/hyprtk/arch-dots.git ~/hyprtk
-	cd ~/hyprtk
-	sh ./1-install.sh
-
-#Please note that every Arch Linux system is different and I cannot guarantee that everything works fine on your system.
-## Screenshots & Video
-
-Arch Linux
-![MODEL](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch1.png)
-![Model](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch2.png)
-![Model](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch3.png)
+Distribution-specific files (os-release, branding, splash, dracut/nvidia configs,
+grub configs, scripts) are preserved in the `distro/` directory for reference
+and installation use.

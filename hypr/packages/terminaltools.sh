@@ -1,7 +1,6 @@
 #/bin/bash
-figlet -f 3d "Term Tools"
 echo " Terminal Tools"
-sudo pacman -S eza micro xfce4-terminal btop alacritty kitty starship ranger nano figlet neovim --noconfirm
+sudo pacman -S eza micro xfce4-terminal btop alacritty kitty starship ranger nano neovim --noconfirm
 echo ""
 yay -S fastfetch --noconfirm
 echo ""

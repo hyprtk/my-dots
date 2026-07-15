@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Hyprtk-Plymouth
+Description=Plymouth theme for Hyprtk on Arch
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/Hyprtk-Plymouth
+ScriptFile=/usr/share/plymouth/themes/Hyprtk-Plymouth/theme.script

@@ -1,5 +1,4 @@
 #!/bin/bash
-figlet -f 3d "HyprViz"
 echo ""
 echo " Hyprland Configuration Tool "
 echo ""

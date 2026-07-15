@@ -1,5 +1,4 @@
 #/bin/bash
-figlet -f 3d "Hyprland"
 echo " Hyprland "
 sudo pacman -S hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xorg-xhost nwg-look mission-center curl imagemagick jq bc brightnessctl playerctl libadwaita gtk-layer-shell python python-pip python-virtualenv python-gobject gtk4 wob --noconfirm
 

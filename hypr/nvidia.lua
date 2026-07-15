@@ -5,20 +5,17 @@
 --
 -- Additionally libva-nvidia-driver-git (AUR) to fix crashes in some Electron-based applications, such as Unity Hub.
 --
--- Install the nvidia-open-dkms driver and add it to your initramfs & kernel parameters.
+-- Install the nvidia-dkms driver and add it to your initramfs & kernel parameters.
 --
 -- For people using systemd-boot you can do this adding nvidia_drm.modeset=1 to the end of /boot/loader/entries/arch.conf.
 --
 -- For people using grub you can do this by adding nvidia_drm.modeset=1 to the end of GRUB_CMDLINE_LINUX_DEFAULT= in /etc/default/grub,
 --
--- then run # grub-mkconfig -o /boot/grub/grub.cfg
+-- then run # grub-mkconfig -o /boot/grub/grub.cfg For others check out kernel parameters and how to add nvidia_drm.modeset=1 to your specific bootloader.
 --
--- Initramfs setup (pick one based on your tool):
---   mkinitcpio: in /etc/mkinitcpio.conf add nvidia nvidia_modeset nvidia_uvm nvidia_drm to MODULES
---               then run # mkinitcpio -P
---   dracut:     create /etc/dracut.conf.d/nvidia.conf with:
---                 force_drivers+=" nvidia nvidia_modeset nvidia_uvm nvidia_drm "
---               then run # dracut --force --regenerate-all
+-- in /etc/mkinitcpio.conf add nvidia nvidia_modeset nvidia_uvm nvidia_drm to your MODULES
+--
+-- run # mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img or mkinitcpio -P (make sure you have the linux-headers package installed first)
 --
 -- add a new line to /etc/modprobe.d/nvidia.conf (make it if it does not exist) and add the line options nvidia-drm modeset=1
 --
@@ -32,3 +29,4 @@ hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 hl.env("__VK_LAYER_NV_optimus", "NVIDIA_only")
 hl.env("LIBVA_DRIVER_NAME", "nvidia")
 hl.env("GBM_BACKEND", "nvidia-drm")
+
