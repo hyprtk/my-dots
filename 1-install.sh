@@ -37,37 +37,21 @@ handle_error() {
 
 trap 'handle_error $LINENO' ERR
 
-# ---- Pre-flight Checks ----
-preflight() {
-    echo ""
-    echo "========================================================="
-    echo "               Hyprtk-On-Arch Installer"
-    echo "========================================================="
-    echo ""
+# ---- Utility: gum style header ----
+header_step() {
+    log "Step: $1"
+    gum style --border rounded --padding "1 2" --margin "1 0" --foreground 212 "$1"
+}
 
-    if [ "$(id -u)" -eq 0 ]; then
-        err "Do not run as root. Run as a regular user with sudo access."
-        exit 1
+# ---- Gum Check ----
+check_gum() {
+    if ! command -v gum &>/dev/null; then
+        gum style --border rounded --padding "1 2" --margin 1 --foreground 212 \
+            "Hyprtk-On-Arch Installer"
+        echo ""
+        log "gum not found. Installing..."
+        sudo pacman -S --noconfirm gum
     fi
-
-    if ! command -v sudo &>/dev/null; then
-        err "sudo is required but not installed."
-        exit 1
-    fi
-
-    if ! sudo -v; then
-        err "User does not have sudo access."
-        exit 1
-    fi
-
-    # Install fzf if missing
-    if ! command -v fzf &>/dev/null; then
-        log "fzf not found. Installing..."
-        sudo pacman -S --noconfirm fzf
-    fi
-
-    # Detect distro
-    detect_distro
 }
 
 # ---- Distro Detection ----
@@ -92,25 +76,66 @@ detect_distro() {
         esac
     fi
 
-    echo ""
-    echo "Select your distribution:"
-    echo "--------------------------"
-    local distros=("arch" "archbang" "archcraft" "archman" "bslx" "cachy" "endeavour" "garuda" "kiro" "manjaro" "reborn")
     if [ -n "$detected" ]; then
-        echo "Detected: $detected"
         echo ""
-        read -p "Use detected distro '$detected'? (Yy/Nn): " yn
-        case $yn in
-            [Yy]* ) DISTRO="$detected"; return ;;
-        esac
+        DISTRO="$detected"
+        gum style --foreground 99 "Detected distribution: $(gum style --bold --foreground 212 "$detected")"
+        echo ""
+        if gum confirm "Use detected distro?" --default=true; then
+            log "Selected distro: $DISTRO"
+            return
+        fi
     fi
 
-    DISTRO=$(printf '%s\n' "${distros[@]}" | fzf --prompt="Select your distribution: " --height=15 --header="Detected: ${detected:-none}" || echo "")
+    local distros=("arch" "archbang" "archcraft" "archman" "bslx" "cachy" "endeavour" "garuda" "kiro" "manjaro" "reborn")
+    echo ""
+    DISTRO=$(gum filter --header "Select your distribution:" "${distros[@]}" || echo "")
     if [ -z "$DISTRO" ]; then
         err "No distribution selected. Exiting."
         exit 1
     fi
     log "Selected distro: $DISTRO"
+}
+
+# ---- Pre-flight Checks ----
+preflight() {
+    gum style --border double --padding "1 3" --margin 1 --foreground 212 \
+        "Hyprtk-On-Arch Installer" "" \
+        "Unified Desktop Environment for Arch Linux & derivatives"
+
+    if [ "$(id -u)" -eq 0 ]; then
+        err "Do not run as root. Run as a regular user with sudo access."
+        exit 1
+    fi
+
+    if ! command -v sudo &>/dev/null; then
+        err "sudo is required but not installed."
+        exit 1
+    fi
+
+    if ! sudo -v; then
+        err "User does not have sudo access."
+        exit 1
+    fi
+
+    check_gum
+    detect_distro
+}
+
+# ---- Intro ----
+show_intro() {
+    gum style --border double --padding "1 2" --margin 1 --foreground 212 \
+        "Installation Overview" "" \
+        "$(gum style --bold "Distribution:") $(gum style --foreground 99 "$DISTRO")" \
+        "" \
+        "You will now be guided through these steps:" \
+        "  1. Graphics Card" \
+        "  2. Package Groups" \
+        "  3. Dotfiles" \
+        "  4. Services" \
+        "" \
+        "All items are pre-selected. Just uncheck what you don't want."
+    echo ""
 }
 
 # ---- Helper: install packages from file ----
@@ -126,68 +151,18 @@ install_from_list() {
     }
 }
 
-# ---- Main Menu ----
-main_menu() {
-    echo ""
-    echo "========================================================="
-    echo "              Hyprtk-On-Arch Main Menu"
-    echo "========================================================="
-    echo ""
-
-    local options=(
-        "Select Graphics Card"
-        "Select Package Groups"
-        "Select Dotfiles"
-        "Select Services"
-        "Review & Install"
-        "Exit"
-    )
-
-    local choice
-    choice=$(printf '%s\n' "${options[@]}" | fzf --prompt="Choose an option: " \
-        --height=15 \
-        --header="Distro: $DISTRO" \
-        || echo "Exit")
-
-    case "$choice" in
-        "Select Graphics Card") select_graphics ;;
-        "Select Package Groups") select_package_groups ;;
-        "Select Dotfiles") select_dotfiles ;;
-        "Select Services") select_services ;;
-        "Review & Install") review_install ;;
-        "Exit") echo "Exiting."; exit 0 ;;
-        *) main_menu ;;
-    esac
-}
-
 # ---- Graphics Card Selection ----
 GRAPHICS="intel"
 
 select_graphics() {
-    echo ""
-    echo "========================================================="
-    echo "              Select Graphics Card"
-    echo "========================================================="
-    echo ""
-
-    local options=(
-        "Intel (i915 driver)"
-        "AMD (amdgpu driver)"
-        "Nvidia (nvidia-open driver)"
-        "Virtual Machine (virtio/vmwgfx)"
-    )
-
-    local preview_cmd="echo 'Driver: '; case {} in
-        'Intel (i915 driver)') echo 'xf86-video-intel + mesa' ;;
-        'AMD (amdgpu driver)') echo 'xf86-video-amdgpu + mesa' ;;
-        'Nvidia (nvidia-open driver)') echo 'nvidia-open-dkms + nvidia-utils + nvidia-settings' ;;
-        'Virtual Machine (virtio/vmwgfx)') echo 'mesa + xf86-video-vmware (for VMs)' ;;
-    esac"
+    header_step "Graphics Card"
 
     local choice
-    choice=$(printf '%s\n' "${options[@]}" | fzf --prompt="Select graphics card: " \
-        --height=10 \
-        --preview="$preview_cmd" \
+    choice=$(gum choose --header "Select your graphics card:" \
+        "Intel (i915 driver)" \
+        "AMD (amdgpu driver)" \
+        "Nvidia (nvidia-open driver)" \
+        "Virtual Machine (virtio/vmwgfx)" \
         || echo "Intel (i915 driver)")
 
     case "$choice" in
@@ -198,18 +173,14 @@ select_graphics() {
     esac
 
     log "Selected graphics: $GRAPHICS"
-    main_menu
+    echo ""
 }
 
 # ---- Package Groups Selection ----
 PACKAGE_GROUPS=()
 
 select_package_groups() {
-    echo ""
-    echo "========================================================="
-    echo "           Select Package Groups (SPACE to select)"
-    echo "========================================================="
-    echo ""
+    header_step "Package Groups"
 
     local groups=(
         "Hyprland:Core Hyprland compositor + essential tools"
@@ -236,34 +207,17 @@ select_package_groups() {
         "Pywal16:python-pywal16-git for color generation"
     )
 
+    local args=()
+    for g in "${groups[@]}"; do
+        args+=("--selected" "$g")
+    done
+
     local choices
-    choices=$(printf '%s\n' "${groups[@]}" | fzf --multi \
-        --prompt="Select package groups (TAB/SPACE to select): " \
-        --height=20 \
-        --preview="echo 'Packages:'; case {} in
-            Hyprland:*) echo 'hyprland hyprpaper hyprlock hypridle hyprpicker waybar wofi cliphist grim slurp wf-recorder brightnessctl pavucontrol polkit-kde-agent qt5-wayland qt6-wayland' ;;
-            XFCE4:*) echo 'xfce4 xfce4-goodies thunar catfish thunar-shares-plugin mousepad' ;;
-            File\ Tools:*) echo 'thunar thunar-archive-plugin thunar-volman ranger gvfs gvfs-mtp file-roller gzip bzip2 p7zip unzip unrar' ;;
-            Web\ Tools:*) echo 'firefox chromium qutebrowser' ;;
-            Printers:*) echo 'hplip cups cups-pdf system-config-printer' ;;
-            Network:*) echo 'networkmanager network-manager-applet openvpn networkmanager-openvpn' ;;
-            Media:*) echo 'mpv vlc audacity obs-studio spotify-launcher' ;;
-            Terminal\ Tools:*) echo 'kitty tmux htop btop lazygit' ;;
-            System\ Tools:*) echo 'pavucontrol virt-manager timeshift' ;;
-            System:*) echo 'grub-customizer gparted gsmartcontrol' ;;
-            HyprViz:*) echo 'hyprsunset hyprshot wlogout wlay wdisplays kanshi matugen' ;;
-            SDDM\ Check:*) echo 'sddm' ;;
-            SDDM\ Grub:*) echo 'sddm grub-theme' ;;
-            Matuwall:*) echo 'matuwall' ;;
-            Fonts:*) echo 'ttf-nerd-fonts-symbols ttf-jetbrains-mono-nerd noto-fonts noto-fonts-emoji ttf-dejavu' ;;
-            Bluetooth:*) echo 'bluez bluez-utils blueman' ;;
-            Cockpit:*) echo 'cockpit cockpit-machines cockpit-podman' ;;
-            Samba:*) echo 'samba smbclient cifs-utils' ;;
-            3D\ Printing:*) echo 'prusa-slicer cura openscad' ;;
-        esac" \
-        --bind 'tab:toggle+down' \
-        --bind 'enter:accept' \
-        || echo "")
+    choices=$(gum choose --no-limit \
+        --header "Package groups (SPACE to toggle, ENTER to confirm):" \
+        --height=15 \
+        "${args[@]}" \
+        -- "${groups[@]}" 2>/dev/null || true)
 
     PACKAGE_GROUPS=()
     while IFS= read -r line; do
@@ -274,18 +228,14 @@ select_package_groups() {
     done <<< "$choices"
 
     log "Selected package groups: ${PACKAGE_GROUPS[*]}"
-    main_menu
+    echo ""
 }
 
 # ---- Dotfiles Selection ----
 DOTFILES=()
 
 select_dotfiles() {
-    echo ""
-    echo "========================================================="
-    echo "            Select Dotfiles (SPACE to select)"
-    echo "========================================================="
-    echo ""
+    header_step "Dotfiles"
 
     local items=(
         "General:alacritty"
@@ -317,14 +267,17 @@ select_dotfiles() {
         "Hyprland:wob"
     )
 
+    local args=()
+    for item in "${items[@]}"; do
+        args+=("--selected" "$item")
+    done
+
     local choices
-    choices=$(printf '%s\n' "${items[@]}" | fzf --multi \
-        --prompt="Select dotfiles to install (TAB/SPACE): " \
+    choices=$(gum choose --no-limit \
+        --header "Dotfiles (SPACE to toggle, ENTER to confirm):" \
         --height=20 \
-        --preview="echo 'Category: {}'" \
-        --bind 'tab:toggle+down' \
-        --bind 'enter:accept' \
-        || echo "")
+        "${args[@]}" \
+        -- "${items[@]}" 2>/dev/null || true)
 
     DOTFILES=()
     while IFS= read -r line; do
@@ -335,18 +288,14 @@ select_dotfiles() {
     done <<< "$choices"
 
     log "Selected dotfiles: ${DOTFILES[*]}"
-    main_menu
+    echo ""
 }
 
 # ---- Services Selection ----
 SERVICES=()
 
 select_services() {
-    echo ""
-    echo "========================================================="
-    echo "            Select Services (SPACE to select)"
-    echo "========================================================="
-    echo ""
+    header_step "Services"
 
     local items=(
         "Bluetooth:bluez, blueman - wireless audio/devices"
@@ -354,14 +303,17 @@ select_services() {
         "Samba:File/print sharing (SMB/CIFS protocol)"
     )
 
+    local args=()
+    for item in "${items[@]}"; do
+        args+=("--selected" "$item")
+    done
+
     local choices
-    choices=$(printf '%s\n' "${items[@]}" | fzf --multi \
-        --prompt="Select services to enable (TAB/SPACE): " \
+    choices=$(gum choose --no-limit \
+        --header "Services (SPACE to toggle, ENTER to confirm):" \
         --height=10 \
-        --preview="echo '{}'" \
-        --bind 'tab:toggle+down' \
-        --bind 'enter:accept' \
-        || echo "")
+        "${args[@]}" \
+        -- "${items[@]}" 2>/dev/null || true)
 
     SERVICES=()
     while IFS= read -r line; do
@@ -372,31 +324,31 @@ select_services() {
     done <<< "$choices"
 
     log "Selected services: ${SERVICES[*]}"
-    main_menu
+    echo ""
 }
 
 # ---- Review & Install ----
 review_install() {
-    echo ""
-    echo "========================================================="
-    echo "                 Review & Installation"
-    echo "========================================================="
-    echo ""
-    echo "Distribution : $DISTRO"
-    echo "Graphics     : $GRAPHICS"
-    echo "Package Groups: ${PACKAGE_GROUPS[*]:-none}"
-    echo "Dotfiles     : ${DOTFILES[*]:-none}"
-    echo "Services     : ${SERVICES[*]:-none}"
-    echo ""
-    echo "Log file     : $LOG_FILE"
-    echo ""
+    header_step "Review & Install"
 
-    read -p "Proceed with installation? (Yy/Nn): " yn
-    case $yn in
-        [Yy]* ) run_installation ;;
-        [Nn]* ) main_menu ;;
-        * ) review_install ;;
-    esac
+    gum style --border rounded --padding "1 2" --margin "0 0 1 0" \
+        "$(gum style --bold "Distribution:")  $(gum style --foreground 99 "$DISTRO")" \
+        "$(gum style --bold "Graphics:")      $(gum style --foreground 99 "$GRAPHICS")" \
+        "$(gum style --bold "Package Groups:") $(gum style --foreground 99 "${PACKAGE_GROUPS[*]:-none}")" \
+        "$(gum style --bold "Dotfiles:")       $(gum style --foreground 99 "${DOTFILES[*]:-none}")" \
+        "$(gum style --bold "Services:")       $(gum style --foreground 99 "${SERVICES[*]:-none}")" \
+        "" \
+        "$(gum style --dim "Log: $LOG_FILE")"
+
+    echo ""
+    if gum confirm "Proceed with installation?" --default=true; then
+        run_installation
+    else
+        echo ""
+        gum style --foreground 99 "Installation cancelled."
+        echo ""
+        exit 0
+    fi
 }
 
 # ============================================================
@@ -409,15 +361,17 @@ run_installation() {
 
     # Step 1: Install figlet
     header_step "Installing Figlet"
-    sudo pacman -S --noconfirm figlet
+    gum spin --spinner dot --title "Installing figlet..." -- sudo pacman -S --noconfirm figlet || true
     sudo cp "$SCRIPT_DIR/common/figlet/fonts/"* /usr/share/figlet/fonts/ 2>/dev/null || true
     figlet -f 3d "Install"
     echo ""
 
     # Step 2: Remove leftover packages
     header_step "Removing Leftover Packages"
-    sudo pacman -Rns plasma-meta kde-applications-meta --noconfirm 2>/dev/null || true
-    sudo pacman -Rns plasma kde-applications --noconfirm 2>/dev/null || true
+    gum spin --spinner dot --title "Removing leftover packages..." -- bash -c '
+        sudo pacman -Rns plasma-meta kde-applications-meta --noconfirm 2>/dev/null || true
+        sudo pacman -Rns plasma kde-applications --noconfirm 2>/dev/null || true
+    ' || true
 
     # ArchBang: remove swaylock
     if [ "$DISTRO" = "archbang" ]; then
@@ -450,10 +404,11 @@ run_installation() {
     if sudo pacman -Qs yay &>/dev/null; then
         log "yay is already installed."
     else
-        log "Installing yay..."
-        _installPackagesPacman "base-devel"
-        git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git 2>/dev/null || true
-        (cd ~/Downloads/yay-git && makepkg -si --noconfirm) || true
+        gum spin --spinner dot --title "Installing yay AUR helper..." -- bash -c '
+            _installPackagesPacman "base-devel"
+            git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git 2>/dev/null || true
+            (cd ~/Downloads/yay-git && makepkg -si --noconfirm) || true
+        ' || true
     fi
     log "yay installed."
 
@@ -465,7 +420,8 @@ run_installation() {
 
     # Step 6: Install graphics card driver
     header_step "Installing Graphics Drivers"
-    bash "$SCRIPT_DIR/hypr/packages/graphics-card.sh" "$GRAPHICS"
+    gum spin --spinner dot --title "Installing $GRAPHICS drivers..." -- \
+        bash "$SCRIPT_DIR/hypr/packages/graphics-card.sh" "$GRAPHICS" || true
 
     # Step 7: Install package groups
     header_step "Installing Package Groups"
@@ -474,26 +430,26 @@ run_installation() {
 
     for group in "${PACKAGE_GROUPS[@]}"; do
         case "$group" in
-            "Hyprland") bash "$SCRIPT_DIR/hypr/packages/hyprland.sh" ;;
-            "XFCE4") bash "$SCRIPT_DIR/hypr/packages/xfce4.sh" ;;
-            "File Tools") bash "$SCRIPT_DIR/hypr/packages/filetools.sh" ;;
-            "Web Tools") bash "$SCRIPT_DIR/hypr/packages/webtools.sh" ;;
-            "Printers") bash "$SCRIPT_DIR/hypr/packages/printers.sh" ;;
-            "Network") bash "$SCRIPT_DIR/hypr/packages/network.sh" ;;
-            "Media") bash "$SCRIPT_DIR/hypr/packages/media.sh" ;;
-            "Terminal Tools") bash "$SCRIPT_DIR/hypr/packages/terminaltools.sh" ;;
-            "System Tools") bash "$SCRIPT_DIR/hypr/packages/systemtools.sh" ;;
-            "System") bash "$SCRIPT_DIR/hypr/packages/system.sh" ;;
-            "HyprViz") bash "$SCRIPT_DIR/hypr/packages/hyprviz.sh" ;;
-            "SDDM Check") bash "$SCRIPT_DIR/hypr/packages/sddm-check.sh" ;;
-            "SDDM Grub") bash "$SCRIPT_DIR/hypr/packages/sddmgrub.sh" ;;
-            "Matuwall") bash "$SCRIPT_DIR/hypr/packages/matuwall.sh" ;;
-            "Fonts") bash "$SCRIPT_DIR/hypr/packages/fonts.sh" ;;
-            "Wallpapers") bash "$SCRIPT_DIR/hypr/packages/wallpapers.sh" ;;
-            "3D Printing") bash "$SCRIPT_DIR/hypr/packages/3dprinting.sh" ;;
-            "Bluetooth") bash "$SCRIPT_DIR/hypr/packages/bluetooth.sh" ;;
-            "Cockpit") bash "$SCRIPT_DIR/hypr/packages/cockpit.sh" ;;
-            "Samba") bash "$SCRIPT_DIR/hypr/packages/samba.sh" ;;
+            "Hyprland") gum spin --spinner dot --title "Hyprland..." -- bash "$SCRIPT_DIR/hypr/packages/hyprland.sh" || true ;;
+            "XFCE4") gum spin --spinner dot --title "XFCE4..." -- bash "$SCRIPT_DIR/hypr/packages/xfce4.sh" || true ;;
+            "File Tools") gum spin --spinner dot --title "File Tools..." -- bash "$SCRIPT_DIR/hypr/packages/filetools.sh" || true ;;
+            "Web Tools") gum spin --spinner dot --title "Web Tools..." -- bash "$SCRIPT_DIR/hypr/packages/webtools.sh" || true ;;
+            "Printers") gum spin --spinner dot --title "Printers..." -- bash "$SCRIPT_DIR/hypr/packages/printers.sh" || true ;;
+            "Network") gum spin --spinner dot --title "Network..." -- bash "$SCRIPT_DIR/hypr/packages/network.sh" || true ;;
+            "Media") gum spin --spinner dot --title "Media..." -- bash "$SCRIPT_DIR/hypr/packages/media.sh" || true ;;
+            "Terminal Tools") gum spin --spinner dot --title "Terminal Tools..." -- bash "$SCRIPT_DIR/hypr/packages/terminaltools.sh" || true ;;
+            "System Tools") gum spin --spinner dot --title "System Tools..." -- bash "$SCRIPT_DIR/hypr/packages/systemtools.sh" || true ;;
+            "System") gum spin --spinner dot --title "System..." -- bash "$SCRIPT_DIR/hypr/packages/system.sh" || true ;;
+            "HyprViz") gum spin --spinner dot --title "HyprViz..." -- bash "$SCRIPT_DIR/hypr/packages/hyprviz.sh" || true ;;
+            "SDDM Check") gum spin --spinner dot --title "SDDM Check..." -- bash "$SCRIPT_DIR/hypr/packages/sddm-check.sh" || true ;;
+            "SDDM Grub") gum spin --spinner dot --title "SDDM Grub..." -- bash "$SCRIPT_DIR/hypr/packages/sddmgrub.sh" || true ;;
+            "Matuwall") gum spin --spinner dot --title "Matuwall..." -- bash "$SCRIPT_DIR/hypr/packages/matuwall.sh" || true ;;
+            "Fonts") gum spin --spinner dot --title "Fonts..." -- bash "$SCRIPT_DIR/hypr/packages/fonts.sh" || true ;;
+            "Wallpapers") gum spin --spinner dot --title "Wallpapers..." -- bash "$SCRIPT_DIR/hypr/packages/wallpapers.sh" || true ;;
+            "3D Printing") gum spin --spinner dot --title "3D Printing..." -- bash "$SCRIPT_DIR/hypr/packages/3dprinting.sh" || true ;;
+            "Bluetooth") gum spin --spinner dot --title "Bluetooth..." -- bash "$SCRIPT_DIR/hypr/packages/bluetooth.sh" || true ;;
+            "Cockpit") gum spin --spinner dot --title "Cockpit..." -- bash "$SCRIPT_DIR/hypr/packages/cockpit.sh" || true ;;
+            "Samba") gum spin --spinner dot --title "Samba..." -- bash "$SCRIPT_DIR/hypr/packages/samba.sh" || true ;;
             "AUR Helper") log "AUR Helper already installed via Step 5" ;;
             "Pywal16") log "Pywal16 already installed via Step 8" ;;
         esac
@@ -731,27 +687,15 @@ run_installation() {
 
     # Done
     echo ""
-    echo "========================================================="
-    echo "         Installation Complete!"
-    echo "========================================================="
+    gum style --border double --padding "1 3" --margin 1 --foreground 212 \
+        "Installation Complete!" "" \
+        "$(gum style --dim "Log file: $LOG_FILE")" \
+        "" \
+        "$(gum style --bold "NEXT:") Update the keyboard layout and screen resolution in" \
+        "      ~/.config/hypr/hyprland.conf" \
+        "" \
+        "Now reboot your system and enjoy!"
     echo ""
-    echo "Log file: $LOG_FILE"
-    echo ""
-    echo "NEXT: Update the keyboard layout and screen resolution in"
-    echo "      ~/.config/hypr/hyprland.conf"
-    echo ""
-    echo "Now reboot your system and enjoy!"
-    echo ""
-}
-
-# ---- Utility: header ----
-header_step() {
-    echo ""
-    echo "========================================================="
-    echo "    $1"
-    echo "========================================================="
-    echo ""
-    log "Step: $1"
 }
 
 # ============================================================
@@ -759,4 +703,9 @@ header_step() {
 # ============================================================
 
 preflight
-main_menu
+show_intro
+select_graphics
+select_package_groups
+select_dotfiles
+select_services
+review_install
