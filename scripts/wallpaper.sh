@@ -1,11 +1,19 @@
 #!/bin/bash
 #
-# Wallpaper Selector
+# ██       ██            ██  ██
+#░██      ░██           ░██ ░██ ██████            ██████
+#░██   █  ░██  ██████   ░██ ░██░██░░░██  ██████  ░██░░░██  █████  ██████
+#░██  ███ ░██ ░░░░░░██  ░██ ░██░██  ░██ ░░░░░░██ ░██  ░██ ██░░░██░░██░░█
+#░██ ██░██░██  ███████  ░██ ░██░██████   ███████ ░██████ ░███████ ░██ ░
+#░████ ░░████ ██░░░░██  ░██ ░██░██░░░   ██░░░░██ ░██░░░  ░██░░░░  ░██
+#░██░   ░░░██░░████████ ███ ███░██     ░░████████░██     ░░██████░███
+#░░       ░░  ░░░░░░░░ ░░░ ░░░ ░░       ░░░░░░░░ ░░       ░░░░░░ ░░░ 
+#
 # by hyprtk (Kori Tk) (2026)
 # ----------------------------------------------------- 
 
 # Select wallpaper
-selected=$(ls -1 ~/Pictures/Wallpapers | grep "png" | rofi -dmenu -config ~/hyprtk/rofi/config-wallpaper.rasi -p "Wallpapers")
+selected=$(ls -1 ~/Pictures/Wallpapers | grep "png" | rofi -dmenu -config ~/hyprtk/common/rofi/config-wallpaper.rasi -p "Wallpapers")
 
 if [ "$selected" ]; then
 
@@ -26,7 +34,7 @@ if [ "$selected" ]; then
     # ----------------------------------------------------- 
     cp $wallpaper ~/.cache/current-wallpaper.png
 
-    ~/hyprtk/papirus-icons/scripts/change-icons.sh
+    ~/hyprtk/common/papirus-icons/scripts/change-icons.sh
 
     # Send notification
     notify-send "Colors and Wallpaper updated" "with image $newwall"

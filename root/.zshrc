@@ -1,1 +1,0 @@
-/home/hyprtk/arch-dots/.zshrc

@@ -1,8 +1,8 @@
-#/bin/bash
+#!/bin/bash
 #
 #
 echo ""
-echo " AppImage Launcher Setup "
+figlet -f 3d " AppImage Launcher Setup "
 sudo pacman -S fuse
 sudo modprobe fuse
 echo ""

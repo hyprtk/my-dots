@@ -1,24 +1,28 @@
 #!/bin/bash
 #
-# Hyprtk-On-Arch - Generate ASCII Header
-# by hyprtk (Kori Tk) (2026)
+#  ████████ ██          ██           ██   
+# ░██░░░░░ ░░   █████  ░██          ░██   
+# ░██       ██ ██░░░██ ░██  █████  ██████ 
+# ░███████ ░██░██  ░██ ░██ ██░░░██░░░██░  
+# ░██░░░░  ░██░░██████ ░██░███████  ░██   
+# ░██      ░██ ░░░░░██ ░██░██░░░░   ░██   
+# ░██      ░██  █████  ███░░██████  ░░██  
+# ░░       ░░  ░░░░░  ░░░  ░░░░░░    ░░   
+#  
+# by hyprtk (Kori Tk) (2026) 
+# ------------------------------------------------------------------- 
+# Script to create ascii font based header on user input
+# and copy the result to the clipboard
 # -------------------------------------------------------------------
-# Generates a professional ASCII header and copies it to clipboard.
-# -------------------------------------------------------------------
 
-read -p "Enter the header text: " mytext
+read -p "Enter the text for ascii encoding: " mytext
+figlet -f 3d "$mytext" > ~/figlet.txt
+echo "" >> ~/figlet.txt
+echo "by hyprtk (Kori Tk) (2023)" >> ~/figlet.txt
+echo "-------------------------------------------------------------------" >> ~/figlet.txt
+sed -i 's/^/# /; s/$/ /' ~/figlet.txt
+lines=$( cat ~/figlet.txt )
+wl-copy "$lines"
+xclip -sel clip ~/figlet.txt
 
-cat > ~/header.txt << HEADEREOF
-#########################################################
-#                                                       #
-#                 ${mytext}                               #
-#                                                       #
-#########################################################
-HEADEREOF
-
-sed -i 's/^/# /' ~/header.txt
-lines=$(cat ~/header.txt)
-wl-copy "$lines" 2>/dev/null
-xclip -sel clip ~/header.txt 2>/dev/null
-
-echo "Professional header copied to clipboard!"
+echo "Text copied to clipboard!"

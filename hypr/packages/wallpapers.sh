@@ -1,4 +1,5 @@
-#/bin/bash
+#!/bin/bash
+figlet -f 3d "Wallpapers"
 echo ""
 echo ""
 echo "-> Install wallapers"
@@ -20,7 +21,7 @@ while true; do
             else
                 mkdir ~/Pictures/Wallpapers
             fi
-            cp ~/hyprtk/Wallpapers/* ~/Pictures/Wallpapers
+            cp ~/hyprtk/common/Wallpapers/* ~/Pictures/Wallpapers
             echo "Default wallpapers installed."
         break;;
         * ) echo "Please answer yes or no.";;
