@@ -1,7 +1,7 @@
 #!/bin/bash
-figlet -f 3d "Sys Theming"
-echo ""
-echo " Configure sddm theme "
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "Sys Theming"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 echo ""
 if [ ! -d /etc/sddm.conf.d/ ]; then
     sudo mkdir /etc/sddm.conf.d

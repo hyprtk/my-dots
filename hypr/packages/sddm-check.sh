@@ -1,5 +1,7 @@
 #!/bin/bash
-figlet -f 3d "sddm check"
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "sddm check"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 sh ~/hyprtk/scripts/rm-dm-managers.sh
 echo ""
 if [ ! -d /etc/sddm.conf.d/ ]; then

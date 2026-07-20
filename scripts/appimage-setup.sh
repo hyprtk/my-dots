@@ -1,8 +1,9 @@
 #!/bin/bash
 #
 #
-echo ""
-figlet -f 3d " AppImage Launcher Setup "
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "AppImage Launcher Setup"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 sudo pacman -S fuse
 sudo modprobe fuse
 echo ""

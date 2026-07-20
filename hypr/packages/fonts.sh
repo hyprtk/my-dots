@@ -1,8 +1,7 @@
 #!/bin/bash
-figlet -f 3d "Fonts"
-echo ""
-echo ""
-echo "-> Install fonts"
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "Fonts"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 while true; do
     read -p "Do you want to clone the fonts? ~/fonts (Yy/Nn): " yn
     case $yn in

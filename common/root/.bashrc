@@ -1,10 +1,6 @@
-#    _               _              
-#   | |__   __ _ ___| |__  _ __ ___ 
-#   | '_ \ / _` / __| '_ \| '__/ __|
-#  _| |_) | (_| \__ \ | | | | | (__ 
-# (_)_.__/ \__,_|___/_| |_|_|  \___|
-# 
-# Forked by Corrie Tilcock (2024)
+# ===================================================================
+# Shell Configuration — User environment setup
+# ===================================================================
 # -----------------------------------------------------
 # ~/.bashrc
 # -----------------------------------------------------
@@ -58,7 +54,7 @@ alias wallp='~/hyprtk/scripts/updatewal.sh'
 alias gr='python ~/hyprtk/scripts/growthrate.py'
 alias ChatGPT='python ~/mychatgpt/mychatgpt.py'
 alias chat='python ~/mychatgpt/mychatgpt.py'
-alias ascii='~/hyprtk/scripts/figlet.sh'
+
 
 # -----------------------------------------------------
 # VIRTUAL MACHINE

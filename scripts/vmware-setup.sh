@@ -1,5 +1,7 @@
 #!/bin/bash
-figlet -f 3d "VMWare Setup"
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "VMWare Setup"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 echo ""
 echo " Check If Virtualisation is enabled "
 lscpu | grep Virtualization

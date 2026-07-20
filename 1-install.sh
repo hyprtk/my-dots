@@ -521,11 +521,7 @@ run_installation() {
 
     sudo -v
 
-    # Step 1: Install figlet
     header_step "Installing Figlet"
-    gum spin --spinner dot --title "Installing figlet..." -- sudo pacman -S --noconfirm figlet || true
-    sudo cp "$SCRIPT_DIR/common/figlet/fonts/"* /usr/share/figlet/fonts/ 2>/dev/null || true
-    figlet -f 3d "Install"
     echo ""
 
     # Step 2: Remove leftover packages
@@ -588,8 +584,9 @@ run_installation() {
 
     # Step 7: Install package groups
     header_step "Installing Package Groups"
-    figlet -f 3d "Core Apps"
-    echo ""
+    printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+    printf "\e[35m  %s\e[0m\n" "Core Apps"
+    printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 
     for group in "${PACKAGE_GROUPS[@]}"; do
         case "$group" in

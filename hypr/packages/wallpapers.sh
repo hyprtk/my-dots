@@ -1,8 +1,7 @@
 #!/bin/bash
-figlet -f 3d "Wallpapers"
-echo ""
-echo ""
-echo "-> Install wallapers"
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "Wallpapers"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 while true; do
     read -p "Do you want to clone the wallpapers? If not, the script will install 3 default wallpapers to ~/Pictures/Wallpapers/ (Yy/Nn): " yn
     case $yn in

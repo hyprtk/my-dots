@@ -1,7 +1,7 @@
 #!/bin/bash
-figlet -f 3d "HyprViz"
-echo ""
-echo " Hyprland Configuration Tool "
+printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
+printf "\e[35m  %s\e[0m\n" "HyprViz"
+printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
 echo ""
 tmpdir=$(mktemp -d)
 cd "$tmpdir"
