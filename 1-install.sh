@@ -17,8 +17,30 @@ DISTRO=""
 
 GUM="$SCRIPT_DIR/common/standalone/gum"
 
+PROGRESS_TOTAL=1
+PROGRESS_CURRENT=0
+
 gum() {
-    "$GUM" "$@"
+    if [[ "$1" == "spin" ]]; then
+        local args=()
+        local in_title=0
+        for arg in "$@"; do
+            if [[ "$arg" == "--title" ]]; then
+                args+=("$arg")
+                in_title=1
+            elif (( in_title )); then
+                PROGRESS_CURRENT=$((PROGRESS_CURRENT + 1))
+                local pct=$(( PROGRESS_CURRENT * 100 / PROGRESS_TOTAL ))
+                args+=("[${pct}%] $arg")
+                in_title=0
+            else
+                args+=("$arg")
+            fi
+        done
+        "$GUM" "${args[@]}"
+    else
+        "$GUM" "$@"
+    fi
 }
 
 # ---- Logging ----
@@ -57,8 +79,13 @@ trap 'handle_error $LINENO' ERR
 
 # ---- Utility: gum style header ----
 header_step() {
+    PROGRESS_CURRENT=$((PROGRESS_CURRENT + 1))
+    local pct=""
+    if (( PROGRESS_TOTAL > 0 )); then
+        pct="${MAGENTA}[$(( PROGRESS_CURRENT * 100 / PROGRESS_TOTAL ))%]${NC} "
+    fi
     log "Step: $1"
-    gum style --border double --align center --padding "1 3" --margin "1 0" --border-foreground 5 "$1"
+    gum style --border double --align center --padding "1 3" --margin "1 0" --border-foreground 5 "${pct}$1"
 }
 
 # ---- Gum Check ----
@@ -489,6 +516,8 @@ review_install() {
 run_installation() {
     log "=== Starting Installation ==="
     export HYPRTK_AUTO=1
+    PROGRESS_TOTAL=$(( 26 + ${#PACKAGE_GROUPS[@]} + ${#SERVICES[@]} ))
+    PROGRESS_CURRENT=0
 
     # Step 1: Install figlet
     header_step "Installing Figlet"
@@ -572,7 +601,12 @@ run_installation() {
             "Terminal Tools") gum spin --spinner dot --title "Terminal Tools..." -- bash "$SCRIPT_DIR/hypr/packages/terminaltools.sh" || true ;;
             "System Tools") gum spin --spinner dot --title "System Tools..." -- bash "$SCRIPT_DIR/hypr/packages/systemtools.sh" || true ;;
             "System") gum spin --spinner dot --title "System..." -- bash "$SCRIPT_DIR/hypr/packages/system.sh" || true ;;
-            "HyprViz") gum spin --spinner dot --title "HyprViz..." -- bash "$SCRIPT_DIR/hypr/packages/hyprviz.sh" || true ;;
+            "HyprViz")
+                gum spin --spinner dot --title "Downloading HyprViz..." -- \
+                    bash -c 'git clone https://aur.archlinux.org/hyprviz-bin.git /tmp/hyprviz 2>/dev/null || true'
+                echo -e "${CYAN}Building HyprViz (sudo may prompt for password)...${NC}"
+                (cd /tmp/hyprviz && makepkg -si) || true
+                ;;
             "SDDM Check") gum spin --spinner dot --title "SDDM Check..." -- bash "$SCRIPT_DIR/hypr/packages/sddm-check.sh" || true ;;
             "SDDM Grub") gum spin --spinner dot --title "SDDM Grub..." -- bash "$SCRIPT_DIR/hypr/packages/sddmgrub.sh" || true ;;
             "Matuwall") gum spin --spinner dot --title "Matuwall..." -- bash "$SCRIPT_DIR/hypr/packages/matuwall.sh" || true ;;
