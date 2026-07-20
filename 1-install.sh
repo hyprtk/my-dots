@@ -5,11 +5,11 @@
 #           EndeavourOS, Garuda, Kiro, Manjaro, RebornOS
 # by hyprtk (Kori Tk) (2026)
 
-MAGENTA='\033[35m'
-CYAN='\033[0;36m'
-WHITE='\033[0;37m'
-RED='\033[1;31m'
-NC='\033[0m'
+MAGENTA=$'\033[35m'
+CYAN=$'\033[0;36m'
+WHITE=$'\033[0;37m'
+RED=$'\033[1;31m'
+NC=$'\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/install.log"
@@ -429,19 +429,47 @@ select_services() {
 review_install() {
     header_step "Review & Install"
 
+    local rl=()
+    rl+=("$(printf "${MAGENTA}Distribution:${NC}  ${CYAN}${DISTRO}${NC}")")
+    rl+=("$(printf "${MAGENTA}Graphics:${NC}      ${CYAN}${GRAPHICS}${NC}")")
+
+    if [[ ${#PACKAGE_GROUPS[@]} -gt 0 ]]; then
+        rl+=("$(printf "${MAGENTA}Package Groups:${NC}")")
+        for item in "${PACKAGE_GROUPS[@]}"; do
+            rl+=("  ${CYAN}• ${item}${NC}")
+        done
+    else
+        rl+=("$(printf "${MAGENTA}Package Groups:${NC} none")")
+    fi
+
+    if [[ ${#DOTFILES[@]} -gt 0 ]]; then
+        rl+=("$(printf "${MAGENTA}Dotfiles:${NC}")")
+        for item in "${DOTFILES[@]}"; do
+            rl+=("  ${CYAN}• ${item}${NC}")
+        done
+    else
+        rl+=("$(printf "${MAGENTA}Dotfiles:${NC} none")")
+    fi
+
+    if [[ ${#SERVICES[@]} -gt 0 ]]; then
+        rl+=("$(printf "${MAGENTA}Services:${NC}")")
+        for item in "${SERVICES[@]}"; do
+            rl+=("  ${CYAN}• ${item}${NC}")
+        done
+    else
+        rl+=("$(printf "${MAGENTA}Services:${NC} none")")
+    fi
+
+    rl+=("")
+    rl+=("$(printf "${WHITE}Log: ${LOG_FILE}${NC}")")
+
     gum style \
         --border-foreground 5 \
         --border double \
-        --align center \
+        --align left \
         --padding "1 3" \
         --margin "1 0" \
-        "$(printf "${MAGENTA}Distribution:${NC}  ${CYAN}${DISTRO}${NC}")" \
-        "$(printf "${MAGENTA}Graphics:${NC}      ${CYAN}${GRAPHICS}${NC}")" \
-        "$(printf "${MAGENTA}Package Groups:${NC} ${CYAN}${PACKAGE_GROUPS[*]:-none}${NC}")" \
-        "$(printf "${MAGENTA}Dotfiles:${NC}       ${CYAN}${DOTFILES[*]:-none}${NC}")" \
-        "$(printf "${MAGENTA}Services:${NC}       ${CYAN}${SERVICES[*]:-none}${NC}")" \
-        "" \
-        "$(printf "${WHITE}Log: ${LOG_FILE}${NC}")"
+        "${rl[@]}"
 
     echo ""
     if gum confirm --prompt.foreground=5 "Proceed with installation?" --default=true; then
@@ -507,11 +535,12 @@ run_installation() {
     if sudo pacman -Qs yay &>/dev/null; then
         log "yay is already installed."
     else
-        gum spin --spinner dot --title "Installing yay AUR helper..." -- bash -c '
-            _installPackagesPacman "base-devel"
-            git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git 2>/dev/null || true
-            (cd ~/Downloads/yay-git && makepkg -si --noconfirm) || true
-        ' || true
+        sudo -v
+        _installPackagesPacman "base-devel"
+        gum spin --spinner dot --title "Downloading yay AUR helper..." -- \
+            bash -c 'git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git 2>/dev/null || true'
+        echo -e "${CYAN}Building and installing yay (sudo may prompt for password)...${NC}"
+        (cd ~/Downloads/yay-git && makepkg -si --noconfirm) || true
     fi
     log "yay installed."
 

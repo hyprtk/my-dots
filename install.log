@@ -34,3 +34,23 @@
 [2026-07-20 09:51:23] Step: Services
 [2026-07-20 09:51:27] Selected services: Cockpit Samba
 [2026-07-20 09:51:27] Step: Review & Install
+[2026-07-20 09:56:15] Selected distro: arch
+[2026-07-20 09:56:15] Step: Graphics Card
+[2026-07-20 09:56:16] Selected graphics: amd
+[2026-07-20 09:56:16] Step: Package Groups
+[2026-07-20 09:56:27] Selected package groups: Hyprland XFCE4 File Tools Web Tools Printers Network Media Terminal Tools System Tools System HyprViz SDDM Check SDDM Grub Matuwall Fonts Wallpapers Bluetooth Cockpit Samba Pywal16
+[2026-07-20 09:56:27] Step: Dotfiles
+[2026-07-20 09:56:29] Selected dotfiles: alacritty btop dunst ranger rofi starship vim nvim wal gtk-3.0 gtk-4.0 themes icons xfce4 Thunar Mousepad hypr fastfetch waybar swaylock swappy hyprlogout waypaper zshrc ohmyposh matuwall wob
+[2026-07-20 09:56:29] Step: Services
+[2026-07-20 09:56:31] Selected services: Cockpit Samba
+[2026-07-20 09:56:31] Step: Review & Install
+[2026-07-20 09:59:04] Selected distro: arch
+[2026-07-20 09:59:05] Step: Graphics Card
+[2026-07-20 09:59:06] Selected graphics: amd
+[2026-07-20 09:59:06] Step: Package Groups
+[2026-07-20 09:59:16] Selected package groups: Hyprland XFCE4 File Tools Web Tools Printers Network Media Terminal Tools System Tools System HyprViz SDDM Check SDDM Grub Matuwall Fonts Wallpapers Bluetooth Cockpit Samba Pywal16
+[2026-07-20 09:59:16] Step: Dotfiles
+[2026-07-20 09:59:17] Selected dotfiles: alacritty btop dunst ranger rofi starship vim nvim wal gtk-3.0 gtk-4.0 themes icons xfce4 Thunar Mousepad hypr fastfetch waybar swaylock swappy hyprlogout waypaper zshrc ohmyposh matuwall wob
+[2026-07-20 09:59:17] Step: Services
+[2026-07-20 09:59:18] Selected services: Cockpit Samba
+[2026-07-20 09:59:18] Step: Review & Install
