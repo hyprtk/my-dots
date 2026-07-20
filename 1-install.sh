@@ -1,27 +1,45 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Hyprtk-On-Arch - Unified Desktop Environment Installer
 # Supports: Arch, ArchBang, ArchCraft, ArchMan, BSLx, CachyOS,
 #           EndeavourOS, Garuda, Kiro, Manjaro, RebornOS
 # by hyprtk (Kori Tk) (2026)
 
+MAGENTA='\033[35m'
+CYAN='\033[0;36m'
+WHITE='\033[0;37m'
+RED='\033[1;31m'
+NC='\033[0m'
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$SCRIPT_DIR/install.log"
 DISTRO=""
 
+GUM="$SCRIPT_DIR/common/standalone/gum"
+
+gum() {
+    "$GUM" "$@"
+}
+
 # ---- Logging ----
-exec > >(tee -a "$LOG_FILE") 2>&1
+LOG_FILE="${SCRIPT_DIR}/install.log"
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"
 }
 
 err() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $*" >&2
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $*" | tee -a "$LOG_FILE" >&2
 }
 
 warn() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $*"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $*" | tee -a "$LOG_FILE"
+}
+
+# Run a command with stdout logged; gum is called directly (needs real terminal)
+log_run() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] RUN: $*" >> "$LOG_FILE"
+    "$@" >> "$LOG_FILE" 2>&1
 }
 
 # ---- Error Handling ----
@@ -40,18 +58,21 @@ trap 'handle_error $LINENO' ERR
 # ---- Utility: gum style header ----
 header_step() {
     log "Step: $1"
-    gum style --border rounded --padding "1 2" --margin "1 0" --foreground 212 "$1"
+    gum style --border double --align center --padding "1 3" --margin "1 0" --border-foreground 5 "$1"
 }
 
 # ---- Gum Check ----
 check_gum() {
-    if ! command -v gum &>/dev/null; then
-        gum style --border rounded --padding "1 2" --margin 1 --foreground 212 \
-            "Hyprtk-On-Arch Installer"
-        echo ""
-        log "gum not found. Installing..."
-        sudo pacman -S --noconfirm gum
+    if [ -x "$GUM" ]; then
+        return
     fi
+    if command -v gum &>/dev/null; then
+        GUM="$(command -v gum)"
+        return
+    fi
+    echo -e "${CYAN}gum not found. Installing...${NC}"
+    sudo pacman -S --noconfirm gum
+    GUM="$(command -v gum)"
 }
 
 # ---- Distro Detection ----
@@ -79,9 +100,9 @@ detect_distro() {
     if [ -n "$detected" ]; then
         echo ""
         DISTRO="$detected"
-        gum style --foreground 99 "Detected distribution: $(gum style --bold --foreground 212 "$detected")"
+        gum style --foreground 5 "Detected distribution: $(gum style --bold --foreground 6 "$detected")"
         echo ""
-        if gum confirm "Use detected distro?" --default=true; then
+        if gum confirm --prompt.foreground=5 "Use detected distro?" --default=true; then
             log "Selected distro: $DISTRO"
             return
         fi
@@ -89,19 +110,34 @@ detect_distro() {
 
     local distros=("arch" "archbang" "archcraft" "archman" "bslx" "cachy" "endeavour" "garuda" "kiro" "manjaro" "reborn")
     echo ""
-    DISTRO=$(gum filter --header "Select your distribution:" "${distros[@]}" || echo "")
+    DISTRO=$(gum filter --header "Select your distribution:" \
+        --header.foreground=5 \
+        --placeholder "Type to filter..." \
+        --indicator.foreground=5 \
+        --selected-indicator.foreground=5 \
+        --match.foreground=6 \
+        --prompt.foreground=5 \
+        "${distros[@]}" || true)
     if [ -z "$DISTRO" ]; then
-        err "No distribution selected. Exiting."
-        exit 1
+        printf '\033[1A\033[K'
+        echo -e "${MAGENTA}Installation cancelled.${NC}"
+        exit 0
     fi
     log "Selected distro: $DISTRO"
 }
 
 # ---- Pre-flight Checks ----
 preflight() {
-    gum style --border double --padding "1 3" --margin 1 --foreground 212 \
-        "Hyprtk-On-Arch Installer" "" \
-        "Unified Desktop Environment for Arch Linux & derivatives"
+    clear
+
+    gum style \
+        --border-foreground 5 \
+        --border double \
+        --align center \
+        --padding "1 3" \
+        --margin "1 0" \
+        "$(printf "${CYAN}Hyprtk-On-Arch Installer${NC}")" \
+        "$(printf "${CYAN}Unified Desktop Environment for Arch Linux & derivatives${NC}")"
 
     if [ "$(id -u)" -eq 0 ]; then
         err "Do not run as root. Run as a regular user with sudo access."
@@ -124,17 +160,23 @@ preflight() {
 
 # ---- Intro ----
 show_intro() {
-    gum style --border double --padding "1 2" --margin 1 --foreground 212 \
-        "Installation Overview" "" \
-        "$(gum style --bold "Distribution:") $(gum style --foreground 99 "$DISTRO")" \
+    gum style \
+        --border-foreground 5 \
+        --border double \
+        --align center \
+        --padding "1 3" \
+        --margin "1 0" \
+        "$(printf "${MAGENTA}Installation Overview${NC}")" \
         "" \
-        "You will now be guided through these steps:" \
-        "  1. Graphics Card" \
-        "  2. Package Groups" \
-        "  3. Dotfiles" \
-        "  4. Services" \
+        "$(printf "${MAGENTA}Distribution:${NC}  ${CYAN}${DISTRO}${NC}")" \
         "" \
-        "All items are pre-selected. Just uncheck what you don't want."
+        "$(printf "${CYAN}You will now be guided through these steps:${NC}")" \
+        "$(printf "${CYAN}  1. Graphics Card${NC}")" \
+        "$(printf "${CYAN}  2. Package Groups${NC}")" \
+        "$(printf "${CYAN}  3. Dotfiles${NC}")" \
+        "$(printf "${CYAN}  4. Services${NC}")" \
+        "" \
+        "$(printf "${CYAN}All items are pre-selected. Just uncheck what you don't want.${NC}")"
     echo ""
 }
 
@@ -158,12 +200,23 @@ select_graphics() {
     header_step "Graphics Card"
 
     local choice
-    choice=$(gum choose --header "Select your graphics card:" \
+    choice=$(gum choose \
+        --header "Select your graphics card:" \
+        --header.foreground=5 \
+        --cursor.foreground=5 \
+        --selected.foreground=0 \
+        --selected.background=5 \
+        --item.foreground=6 \
         "Intel (i915 driver)" \
         "AMD (amdgpu driver)" \
         "Nvidia (nvidia-open driver)" \
         "Virtual Machine (virtio/vmwgfx)" \
-        || echo "Intel (i915 driver)")
+        || true)
+    if [[ -z "$choice" ]]; then
+        printf '\033[1A\033[K'
+        echo -e "${MAGENTA}Installation cancelled.${NC}"
+        exit 0
+    fi
 
     case "$choice" in
         "Intel (i915 driver)") GRAPHICS="intel" ;;
@@ -207,17 +260,38 @@ select_package_groups() {
         "Pywal16:python-pywal16-git for color generation"
     )
 
-    local args=()
+    local items=()
+    local selected_flags=()
     for g in "${groups[@]}"; do
-        args+=("--selected" "$g")
+        case "$g" in
+            "AUR Helper:"* | "3D Printing:"*)
+                items+=("$g")
+                ;;
+            *)
+                selected_flags+=("--selected" "$g")
+                items+=("$g")
+                ;;
+        esac
     done
 
     local choices
     choices=$(gum choose --no-limit \
         --header "Package groups (SPACE to toggle, ENTER to confirm):" \
-        --height=15 \
-        "${args[@]}" \
-        -- "${groups[@]}" 2>/dev/null || true)
+        --header.foreground=5 \
+        --height=25 \
+        --cursor.foreground=5 \
+        --selected.foreground=0 \
+        --selected.background=5 \
+        --item.foreground=6 \
+        "${selected_flags[@]}" \
+        "${items[@]}" || true)
+
+    if [[ -z "$choices" ]]; then
+        printf '\033[1A\033[K'
+        echo -e "${MAGENTA}No package groups selected. Skipping.${NC}"
+        echo ""
+        return
+    fi
 
     PACKAGE_GROUPS=()
     while IFS= read -r line; do
@@ -275,9 +349,21 @@ select_dotfiles() {
     local choices
     choices=$(gum choose --no-limit \
         --header "Dotfiles (SPACE to toggle, ENTER to confirm):" \
-        --height=20 \
+        --header.foreground=5 \
+        --height=28 \
+        --cursor.foreground=5 \
+        --selected.foreground=0 \
+        --selected.background=5 \
+        --item.foreground=6 \
         "${args[@]}" \
-        -- "${items[@]}" 2>/dev/null || true)
+        -- "${items[@]}" || true)
+
+    if [[ -z "$choices" ]]; then
+        printf '\033[1A\033[K'
+        echo -e "${MAGENTA}No dotfiles selected. Skipping.${NC}"
+        echo ""
+        return
+    fi
 
     DOTFILES=()
     while IFS= read -r line; do
@@ -311,9 +397,21 @@ select_services() {
     local choices
     choices=$(gum choose --no-limit \
         --header "Services (SPACE to toggle, ENTER to confirm):" \
-        --height=10 \
+        --header.foreground=5 \
+        --height=3 \
+        --cursor.foreground=5 \
+        --selected.foreground=0 \
+        --selected.background=5 \
+        --item.foreground=6 \
         "${args[@]}" \
-        -- "${items[@]}" 2>/dev/null || true)
+        -- "${items[@]}" || true)
+
+    if [[ -z "$choices" ]]; then
+        printf '\033[1A\033[K'
+        echo -e "${MAGENTA}No services selected. Skipping.${NC}"
+        echo ""
+        return
+    fi
 
     SERVICES=()
     while IFS= read -r line; do
@@ -331,21 +429,26 @@ select_services() {
 review_install() {
     header_step "Review & Install"
 
-    gum style --border rounded --padding "1 2" --margin "0 0 1 0" \
-        "$(gum style --bold "Distribution:")  $(gum style --foreground 99 "$DISTRO")" \
-        "$(gum style --bold "Graphics:")      $(gum style --foreground 99 "$GRAPHICS")" \
-        "$(gum style --bold "Package Groups:") $(gum style --foreground 99 "${PACKAGE_GROUPS[*]:-none}")" \
-        "$(gum style --bold "Dotfiles:")       $(gum style --foreground 99 "${DOTFILES[*]:-none}")" \
-        "$(gum style --bold "Services:")       $(gum style --foreground 99 "${SERVICES[*]:-none}")" \
+    gum style \
+        --border-foreground 5 \
+        --border double \
+        --align center \
+        --padding "1 3" \
+        --margin "1 0" \
+        "$(printf "${MAGENTA}Distribution:${NC}  ${CYAN}${DISTRO}${NC}")" \
+        "$(printf "${MAGENTA}Graphics:${NC}      ${CYAN}${GRAPHICS}${NC}")" \
+        "$(printf "${MAGENTA}Package Groups:${NC} ${CYAN}${PACKAGE_GROUPS[*]:-none}${NC}")" \
+        "$(printf "${MAGENTA}Dotfiles:${NC}       ${CYAN}${DOTFILES[*]:-none}${NC}")" \
+        "$(printf "${MAGENTA}Services:${NC}       ${CYAN}${SERVICES[*]:-none}${NC}")" \
         "" \
-        "$(gum style --dim "Log: $LOG_FILE")"
+        "$(printf "${WHITE}Log: ${LOG_FILE}${NC}")"
 
     echo ""
-    if gum confirm "Proceed with installation?" --default=true; then
+    if gum confirm --prompt.foreground=5 "Proceed with installation?" --default=true; then
         run_installation
     else
         echo ""
-        gum style --foreground 99 "Installation cancelled."
+        echo -e "${MAGENTA}Installation cancelled.${NC}"
         echo ""
         exit 0
     fi
@@ -687,14 +790,21 @@ run_installation() {
 
     # Done
     echo ""
-    gum style --border double --padding "1 3" --margin 1 --foreground 212 \
-        "Installation Complete!" "" \
-        "$(gum style --dim "Log file: $LOG_FILE")" \
+    gum style \
+        --border-foreground 5 \
+        --border double \
+        --align center \
+        --padding "1 3" \
+        --margin "1 0" \
+        "$(printf "${CYAN}Installation Complete!${NC}")" \
+        "$(printf "${CYAN}github.com/hyprtk/dotfiles${NC}")" \
         "" \
-        "$(gum style --bold "NEXT:") Update the keyboard layout and screen resolution in" \
-        "      ~/.config/hypr/hyprland.conf" \
+        "$(printf "${WHITE}Log file: ${LOG_FILE}${NC}")" \
         "" \
-        "Now reboot your system and enjoy!"
+        "$(printf "${MAGENTA}NEXT:${NC} ${WHITE}Update the keyboard layout and screen resolution in${NC}")" \
+        "$(printf "${WHITE}      ~/.config/hypr/hyprland.conf${NC}")" \
+        "" \
+        "$(printf "${WHITE}Now reboot your system and enjoy!${NC}")"
     echo ""
 }
 
