@@ -108,7 +108,7 @@
     // Waybar Theme
     "custom/waybarthemes": {
         "format": "",
-        "on-click": "~/hyprtk/common/waybar/themeswitcher.sh",
+        "on-click": "~/hyprtk/waybar/themeswitcher.sh",
         "tooltip": true,
         "tooltip-format": "Waybar Theme Switcher"
     },
@@ -124,7 +124,7 @@
         // Set sddm & grub to current wallpaper
     "custom/sddmgrub": {
         "format": "",
-        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/hyprtk/common/sddm/update.sh",
+        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/hyprtk/sddm/update.sh",
         "tooltip": true,
         "tooltip-format": "sddm/grub updater"
     },
@@ -162,7 +162,7 @@
     // Power Menu
     "custom/exit": {
         "format": "",
-        "on-click": "~/hyprtk/common/hyprlogout/logout.sh",
+        "on-click": "~/hyprtk/hyprlogout/logout.sh",
         "tooltip": false
     },
 

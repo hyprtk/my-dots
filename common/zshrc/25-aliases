@@ -47,5 +47,5 @@ alias gcredential="git config credential.helper store"
 # -----------------------------------------------------
 # System
 # -----------------------------------------------------
-alias update-grub='sudo grub-mkconfig -o /boot/grub/grub.cfg'
+alias update-grub='~/hyprtk/sddm/update-TS-run.sh'
 

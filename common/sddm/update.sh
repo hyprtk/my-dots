@@ -57,7 +57,8 @@ sudo rm -rf /usr/share/grub/themes/*
 sudo rm -rf /boot/grub/themes/*
 echo ""
 sudo cp $HOME/hyprtk/sddm/sddm.conf /etc/sddm.conf.d/
-echo "File /etc/sddm.conf.d/sddm.conf updated."
+sudo cp $HOME/hyprtk/sddm/sddm.conf /etc/
+echo "File /etc/sddm.conf updated."
 echo ""
 echo ""
 sudo cp ~/.cache/current-wallpaper.png /usr/share/sddm/themes/Sugar-Candy/Backgrounds/

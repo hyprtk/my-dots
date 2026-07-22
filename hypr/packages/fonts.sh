@@ -21,7 +21,7 @@ while true; do
             else
                 mkdir ~/.local/share/fonts
             fi
-            sudo cp -r ~/hyprtk/common/fonts/* /usr/share/fonts
+            sudo cp -r ~/hyprtk/fonts/* /usr/share/fonts
             sudo cp -r ~/.local/share/fonts/* /usr/share/fonts
             echo "System Fonts Installed."
         break;;

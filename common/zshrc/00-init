@@ -15,3 +15,9 @@ export EDITOR=nvim
 export ZSH="$HOME/.oh-my-zsh"
 export PATH=$PATH:~/.cargo/bin/
 export PATH=$PATH:~/.local/bin/
+
+# Set $PATH if ~/.local/bin exist
+if [ -d "$HOME/.local/bin" ]; then
+    export PATH=$HOME/.local/bin:$PATH
+fi
+export PATH=$PATH:/var/lib/snapd/snap/bin
