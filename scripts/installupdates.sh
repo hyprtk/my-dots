@@ -54,7 +54,7 @@ then
                 read -p "Enter a comment for the snapshot: " c
                 sudo timeshift --create --comments "$c"
                 sudo timeshift --list
-                sudo ~/hyprtk/common/sddm/update-TS-run.sh
+                sudo ~/hyprtk/sddm/update-TS-run.sh
                 echo "DONE. Snapshot $c created!"
                 echo ""
             break;;

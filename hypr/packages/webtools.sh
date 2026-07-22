@@ -1,7 +1,5 @@
 #/bin/bash
-echo "-------------------------------------"
-echo "  >> WebTools <<"
-echo "-------------------------------------"
+figlet -f 3d "WebTools"
 echo ""
 sudo pacman -S chromium --noconfirm
 echo ""

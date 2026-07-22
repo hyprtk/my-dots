@@ -1,7 +1,5 @@
 #/bin/bash
-echo "-------------------------------------"
-echo "  >> File Tools <<"
-echo "-------------------------------------"
+figlet -f 3d "File Tools"
 echo " File Tools"
 sudo pacman -S thunar mousepad --noconfirm
 echo ""

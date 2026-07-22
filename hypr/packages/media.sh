@@ -1,7 +1,5 @@
 #/bin/bash
-echo "-------------------------------------"
-echo "  >> Media <<"
-echo "-------------------------------------"
+figlet -f 3d "Media"
 echo " Media Packages "
 sudo pacman -S xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg --noconfirm
 yay -S hyprquickframe-git --noconfirm

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#  Hyprtk-On-Arch — Unified Hyprland + XFCE Installer
+#  hyprtk — Unified Hyprland + XFCE Installer
 #  Supports: arch, archbang, archcraft, archman, bslx, cachy,
 #            endeavour, garuda, kiro, manjaro, reborn
 #
@@ -14,90 +14,58 @@ LOG_FILE="/tmp/hyprtk-install-$(date +%Y%m%d-%H%M%S).log"
 # ---- Cleanup trap ----
 _cleanup() {
     local ec=$?
-    if [ $ec -ne 0 ] && [ $ec -ne 0 ]; then
-        warn "Script failed (exit $ec) — see log: $LOG_FILE"
+    if [ $ec -ne 0 ]; then
+        echo "[!] Script failed (exit $ec) — see log: $LOG_FILE"
     fi
 }
 trap _cleanup EXIT
 
-# ---- Required commands ----
-_REQUIRED=(sudo pacman git)
-for _cmd in "${_REQUIRED[@]}"; do
-    if ! command -v "$_cmd" &>/dev/null; then
-        echo "FATAL: Required command '$_cmd' not found. Aborting."
-        exit 1
-    fi
-done
-
-# Verify sudo works before doing anything
-if ! sudo -v &>/dev/null; then
-    echo "FATAL: sudo access required. Aborting."
-    exit 1
-fi
-
-# ---- Color helpers ----
-RESET="\e[0m"
-BOLD="\e[1m"
-MAGENTA="\e[38;5;5m"
-CYAN="\e[38;5;6m"
-WHITE="\e[38;5;7m"
-RED="\e[38;5;1m"
-GREEN="\e[38;5;2m"
-
-log()  { echo -e "[${GREEN}✓${RESET}] $*" | tee -a "$LOG_FILE"; }
-warn() { echo -e "[${RED}!${RESET}] $*" | tee -a "$LOG_FILE"; }
-info() { echo -e "[${CYAN}i${RESET}] $*" | tee -a "$LOG_FILE"; }
-die()  { echo -e "[${RED}FATAL${RESET}] $*" | tee -a "$LOG_FILE"; exit 1; }
-
-_section() {
-    local title="$1" width=60
-    local pad=$(( (width - ${#title}) / 2 - 2 ))
-    local line
-    printf -v line '─%.0s' $(awk "BEGIN{for(i=1;i<=$width;i++) printf \"─\"}")
-    echo ""
-    echo -e "${MAGENTA}${BOLD}┌${line}┐${RESET}"
-    printf "${MAGENTA}${BOLD}│${RESET}%*s%s%*s${MAGENTA}${BOLD}│${RESET}\n" "$pad" "" "$title" "$pad" ""
-    echo -e "${MAGENTA}${BOLD}└${line}┘${RESET}"
-    echo ""
-}
+# ---- Helpers ----
+die() { echo "[FATAL] $*" | tee -a "$LOG_FILE"; exit 1; }
+log()  { echo "[✓] $*" | tee -a "$LOG_FILE"; }
+warn() { echo "[!] $*" | tee -a "$LOG_FILE"; }
+info() { echo "[i] $*" | tee -a "$LOG_FILE"; }
 
 _confirm() {
-    local prompt="$1"
-    local yn
+    local prompt="$1" yn
     while true; do
-        read -p "$(echo -e "${CYAN}${BOLD}?${RESET} ${prompt} (Yy/Nn): ")" yn
-        case $yn in
-            [Yy]*) return 0 ;;
-            [Nn]*) return 1 ;;
-            *) echo "Please answer yes or no." ;;
-        esac
+        read -p "? ${prompt} (Yy/Nn): " yn
+        case $yn in [Yy]*) return 0 ;; [Nn]*) return 1 ;; esac
     done
 }
 
-# -------- START --------
+_section() {
+    local title="$1" width=60
+    local line
+    printf -v line '═%.0s' $(awk "BEGIN{for(i=1;i<=$width;i++) printf \"═\"}")
+    echo ""
+    echo "$line"
+    echo "  $title"
+    echo "$line"
+    echo ""
+}
+
+_installPackagesPacman() { sudo pacman --noconfirm -S "$@"; }
+_installPackagesYay()    { yay --noconfirm -S "$@"; }
+
+# ---- Required commands ----
+for _cmd in sudo pacman git; do
+    command -v "$_cmd" &>/dev/null || die "Required command '$_cmd' not found."
+done
+sudo -v &>/dev/null || die "sudo access required."
+
+# ---- Intro ----
+clear
 echo ""
-echo -e "${CYAN}${BOLD}  Hyprtk-On-Arch${RESET} — Hyprland + XFCE Installer"
-echo -e "  ${WHITE}by hyprtk (Kori Tk) (2026)${RESET}"
+echo "  hyprtk — Hyprland + XFCE Installer"
+echo "  by hyprtk (Kori Tk) (2026)"
 echo ""
 echo "  This installer sets up both Hyprland (Wayland) and XFCE (Xorg)."
-echo "  If either is declined the installer will exit."
-echo ""
-echo "  Root privileges are required for installation."
+echo "  Root privileges are required."
 echo ""
 sleep 2
 
-_section "Removing KDE / Plasma leftovers"
-sudo pacman -Rns plasma-meta kde-applications-meta --noconfirm 2>/dev/null || true
-sudo pacman -Rns plasma kde-applications --noconfirm 2>/dev/null || true
-log "KDE/Plasma removal complete"
-
-_section "Loading Installation Libraries"
-source "$SCRIPT_DIR/scripts/library.sh"
-bash "$SCRIPT_DIR/scripts/set-timezone.sh"
-log "Libraries loaded, timezone set"
-
-_section "Detecting Distribution"
-
+# ---- Distro detection ----
 detect_distro() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -109,58 +77,105 @@ detect_distro() {
     fi
 
     case "$DISTRO_ID" in
-        arch|archarm)          DISTRO_NAME="arch" ;;
-        archbang)              DISTRO_NAME="archbang" ;;
-        archcraft)             DISTRO_NAME="archcraft" ;;
-        archman)               DISTRO_NAME="archman" ;;
-        blackarch|blankon|baselinux) DISTRO_NAME="bslx" ;;
-        cachyos)               DISTRO_NAME="cachy" ;;
-        endeavouros)           DISTRO_NAME="endeavour" ;;
-        garuda)                DISTRO_NAME="garuda" ;;
-        kiro)                  DISTRO_NAME="kiro" ;;
-        manjaro)               DISTRO_NAME="manjaro" ;;
-        rebornos)              DISTRO_NAME="reborn" ;;
+        arch|archarm)          DISTRO="arch" ;;
+        archbang)              DISTRO="archbang" ;;
+        archcraft)             DISTRO="archcraft" ;;
+        archman)               DISTRO="archman" ;;
+        blackarch|blankon|baselinux) DISTRO="bslx" ;;
+        cachyos)               DISTRO="cachy" ;;
+        endeavouros)           DISTRO="endeavour" ;;
+        garuda)                DISTRO="garuda" ;;
+        kiro)                  DISTRO="kiro" ;;
+        manjaro)               DISTRO="manjaro" ;;
+        rebornos)              DISTRO="reborn" ;;
         *)
-            case "$DISTRO_ID_LIKE" in *arch*) DISTRO_NAME="arch" ;; *) DISTRO_NAME="arch" ;; esac
+            case "$DISTRO_ID_LIKE" in
+                *arch*) DISTRO="arch" ;;
+                *)      DISTRO="arch" ;;
+            esac
             ;;
     esac
-    info "Distribution: ${BOLD}${DISTRO_NAME}${RESET}"
+    info "Detected distribution: $DISTRO"
 }
 
 detect_initramfs() {
     if command -v dracut &>/dev/null; then
-        INITRAMFS_TOOL="dracut"
+        INITRAMFS="dracut"
     elif command -v mkinitcpio &>/dev/null; then
-        INITRAMFS_TOOL="mkinitcpio"
+        INITRAMFS="mkinitcpio"
     else
-        INITRAMFS_TOOL="unknown"
+        INITRAMFS="unknown"
     fi
-    info "Initramfs: ${BOLD}${INITRAMFS_TOOL}${RESET}"
+    info "Detected initramfs tool: $INITRAMFS"
 }
 
 detect_distro
 detect_initramfs
 sleep 1
 
+# ---- Graphics card selection ----
+_section "Graphics Card Drivers"
+echo "  1) Intel"
+echo "  2) AMD"
+echo "  3) Nvidia"
+echo "  4) Virtualization (QEMU/VMware guest)"
+echo "     Defaults to AMD if invalid choice"
+echo ""
+read -r GRAPHICSCARD
+
+case $GRAPHICSCARD in
+    1)
+        _installPackagesPacman xf86-video-intel mesa vulkan-intel
+        ;;
+    2)
+        _installPackagesPacman xf86-video-amdgpu mesa vulkan-radeon corectrl libvdpau vdpauinfo
+        sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf 2>/dev/null || true
+        sudo mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img 2>/dev/null || true
+        ;;
+    3)
+        sudo sed -i 's/GRUB_CMDLINE_LINUX="[^"]*"/GRUB_CMDLINE_LINUX="rootfstype=ext4 nvidia_drm.modeset=1 rd.driver.blacklist=nouveau modprobe.blacklist=nouveau"/' /etc/default/grub 2>/dev/null || true
+        sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+        sudo sed -i 's/MODULES=()/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf 2>/dev/null || true
+        echo "options nvidia-drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null 2>/dev/null || true
+        _installPackagesPacman nvidia-open-dkms nvidia-utils nvidia-settings qt5-wayland qt5ct qt6-wayland qt6ct libva
+        _installPackagesYay libva-nvidia-driver-git 2>/dev/null || true
+        sudo mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img 2>/dev/null || true
+        ;;
+    4)
+        echo "Installing virtualization guest drivers (QEMU/virt & VMware)..."
+        _installPackagesPacman qemu-guest-agent spice-vdagent xf86-video-qxl mesa open-vm-tools
+        _installPackagesYay xf86-video-vmware 2>/dev/null || true
+        sudo systemctl enable --now qemu-guest-agent 2>/dev/null || true
+        sudo systemctl enable --now spice-vdagentd 2>/dev/null || true
+        sudo systemctl enable --now vmtoolsd 2>/dev/null || true
+        echo "Virtualization drivers installed."
+        echo "For 3D acceleration, ensure VM supports virgl (QEMU) or 3D acceleration (VMware)."
+        ;;
+    *)
+        echo "Invalid choice, defaulting to AMD."
+        _installPackagesPacman xf86-video-amdgpu mesa vulkan-radeon corectrl libvdpau vdpauinfo
+        sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf 2>/dev/null || true
+        sudo mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img 2>/dev/null || true
+        ;;
+esac
+log "Graphics card drivers installed."
+
+# ---- Yay (AUR helper) ----
 _section "Installing Yay (AUR Helper)"
 if pacman -Qs yay &>/dev/null; then
     log "yay already installed"
 else
-    info "yay not found — installing yay from AUR"
-    _installPackagesPacman "base-devel"
-    git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git || die "Failed to clone yay from AUR"
-    (cd ~/Downloads/yay-git && makepkg -si --noconfirm) || die "Failed to build/install yay"
-    cd "$SCRIPT_DIR"
+    info "yay not found — installing from AUR"
+    _installPackagesPacman base-devel
+    git clone https://aur.archlinux.org/yay-git.git /tmp/yay-git || die "Failed to clone yay"
+    (cd /tmp/yay-git && makepkg -si --noconfirm) || die "Failed to build yay"
+    rm -rf /tmp/yay-git
     log "yay installed"
 fi
 
 _confirm "Proceed with full installation?" || exit 0
 
-_section "Graphics Card Drivers"
-bash "$SCRIPT_DIR/hypr/packages/graphics-card.sh"
-
-_confirm "Install core application packages?" || exit 0
-
+# ---- Core packages ----
 _section "Installing Core Packages"
 
 run_pkg() {
@@ -187,12 +202,12 @@ run_pkg "Matuwall"         matuwall.sh
 bash "$SCRIPT_DIR/scripts/awww-wrapper.sh"
 log "Core packages installed"
 
+# ---- Pywal16 ----
 _section "Installing Pywal16"
 if [ -f /usr/bin/wal ]; then
     log "pywal16 already installed"
 else
-    yay --noconfirm -S python-pywal16-git
-    log "pywal16 installed"
+    yay --noconfirm -S python-pywal16-git || warn "pywal16 install failed (non-fatal)"
 fi
 
 _section "Installing Wallpapers"
@@ -202,151 +217,195 @@ _section "Installing Fonts"
 bash "$SCRIPT_DIR/hypr/packages/fonts.sh"
 
 _section "Installing Icons (Root)"
-command -v wget &>/dev/null || die "wget required for icon install"
-wget -qO- "https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh" \
-  | DESTDIR="/root/.local/share/icons" sh
-log "Icons installed to root"
+if command -v wget &>/dev/null; then
+    wget -qO- "https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh" \
+      | DESTDIR="/root/.local/share/icons" sh || warn "Icon install failed (non-fatal)"
+else
+    warn "wget not found — skipping icon install"
+fi
 
 _section "Initializing Pywal16"
-wal -i "$SCRIPT_DIR/common/Wallpapers/default.png"
-cp "$SCRIPT_DIR/common/Wallpapers/default.png" ~/.cache/current-wallpaper.png
-sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png
-xdg-user-dirs-update --force
-xdg-user-dirs-gtk-update --force
-log "Pywal16 initialized, wallpaper set"
+if [ -f "$SCRIPT_DIR/Wallpapers/default.png" ]; then
+    wal -i "$SCRIPT_DIR/Wallpapers/default.png" || true
+    cp "$SCRIPT_DIR/Wallpapers/default.png" ~/.cache/current-wallpaper.png 2>/dev/null || true
+    sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png 2>/dev/null || true
+    xdg-user-dirs-update --force 2>/dev/null || true
+    xdg-user-dirs-gtk-update --force 2>/dev/null || true
+    log "Pywal16 initialized"
+else
+    warn "Default wallpaper not found — skipping pywal init"
+fi
 
 _confirm "Proceed with Hyprland configuration?" || exit 0
 
+# ---- Thunar xfconf generation ----
 _section "Launching Thunar (xfconf generation)"
-thunar &
+thunar &>/dev/null &
 sleep 3
 killall thunar 2>/dev/null || true
 log "Thunar xfconf generated"
 
+# ---- Bluetooth ----
 _section "Enabling Bluetooth"
-sudo systemctl start bluetooth
-sudo systemctl enable bluetooth
+sudo systemctl start bluetooth 2>/dev/null || true
+sudo systemctl enable bluetooth 2>/dev/null || true
 log "Bluetooth enabled"
 
+# ---- Distro-specific setup ----
 _section "Distribution-Specific Setup"
 
-case "$DISTRO_NAME" in
+case "$DISTRO" in
     arch)
-        info "Arch Linux"
         sudo cp "$SCRIPT_DIR/distro/os-release/arch" /usr/lib/os-release
-        sudo cp "$SCRIPT_DIR/distro/splash/splash-arch.bmp" /usr/share/systemd/bootctl/
+        sudo cp "$SCRIPT_DIR/distro/splash/splash-arch.bmp" /usr/share/systemd/bootctl/ 2>/dev/null || true
         ;;
     cachy)
-        info "CachyOS"
         sudo cp "$SCRIPT_DIR/distro/os-release/cachy" /usr/lib/os-release
-        sudo cp "$SCRIPT_DIR/distro/os-release/cachy" /run/systemd/propagate/.os-release-stage/
-        sudo cp "$SCRIPT_DIR/distro/os-release/cachy" /run/user/$UID/systemd/propagate/.os-release-stage/
-        sudo cp "$SCRIPT_DIR/distro/os-release/cachyos-branding" /usr/share/libalpm/scripts/
-        sudo bash /usr/share/libalpm/scripts/cachyos-branding
+        sudo cp "$SCRIPT_DIR/distro/os-release/cachy" /run/systemd/propagate/.os-release-stage/ 2>/dev/null || true
+        sudo cp "$SCRIPT_DIR/distro/os-release/cachy" /run/user/$UID/systemd/propagate/.os-release-stage/ 2>/dev/null || true
+        sudo cp "$SCRIPT_DIR/distro/os-release/cachyos-branding" /usr/share/libalpm/scripts/ 2>/dev/null || true
+        sudo bash /usr/share/libalpm/scripts/cachyos-branding 2>/dev/null || true
         ;;
-    endeavour)   info "EndeavourOS"; sudo cp "$SCRIPT_DIR/distro/os-release/endeavour" /usr/lib/os-release ;;
-    garuda)      info "Garuda Linux";  sudo cp "$SCRIPT_DIR/distro/os-release/garuda" /usr/lib/os-release ;;
-    kiro)        info "Kiro Linux";    sudo cp "$SCRIPT_DIR/distro/os-release/kiro" /usr/lib/os-release ;;
-    manjaro)     info "Manjaro";       sudo cp "$SCRIPT_DIR/distro/os-release/manjaro" /usr/lib/os-release ;;
-    reborn)      info "RebornOS";      sudo cp "$SCRIPT_DIR/distro/os-release/reborn" /usr/lib/os-release ;;
-    archbang)    info "ArchBang";      sudo cp "$SCRIPT_DIR/distro/os-release/archbang" /usr/lib/os-release ;;
-    archcraft)   info "ArchCraft";     sudo cp "$SCRIPT_DIR/distro/os-release/archcraft" /usr/lib/os-release ;;
-    archman)     info "Archman";       sudo cp "$SCRIPT_DIR/distro/os-release/archman" /usr/lib/os-release ;;
-    bslx)        info "BSLX";          sudo cp "$SCRIPT_DIR/distro/os-release/bslx" /usr/lib/os-release ;;
-    *)           sudo cp "$SCRIPT_DIR/distro/os-release/arch" /usr/lib/os-release 2>/dev/null || true ;;
+    endeavour|garuda)
+        sudo cp "$SCRIPT_DIR/distro/os-release/${DISTRO}" /usr/lib/os-release
+        sudo cp "$SCRIPT_DIR/distro/dracut/nvidia.conf" /etc/dracut.conf.d/ 2>/dev/null || true
+        sudo cp "$SCRIPT_DIR/distro/nvidia/grub" /etc/default/grub 2>/dev/null || true
+        ;;
+    manjaro)
+        sudo cp "$SCRIPT_DIR/distro/os-release/manjaro" /usr/lib/os-release
+        ;;
+    archbang)
+        sudo cp "$SCRIPT_DIR/distro/os-release/archbang" /etc/os-release
+        ;;
+    archcraft)
+        sudo cp "$SCRIPT_DIR/distro/os-release/archcraft" /usr/lib/os-release
+        ;;
+    archman)
+        sudo cp "$SCRIPT_DIR/distro/os-release/archman" /usr/lib/os-release
+        ;;
+    bslx)
+        sudo cp "$SCRIPT_DIR/distro/os-release/bslx" /usr/lib/os-release
+        ;;
+    kiro)
+        sudo cp "$SCRIPT_DIR/distro/os-release/kiro" /usr/lib/os-release
+        sudo cp "$SCRIPT_DIR/distro/grub/grub" /etc/default/grub 2>/dev/null || true
+        ;;
+    reborn)
+        sudo cp "$SCRIPT_DIR/distro/os-release/reborn" /usr/lib/os-release
+        ;;
+    *)
+        sudo cp "$SCRIPT_DIR/distro/os-release/arch" /usr/lib/os-release 2>/dev/null || true
+        ;;
 esac
 
 # Common for all distros
-sudo cp "$SCRIPT_DIR/common/User-Management/manage-users.desktop" /usr/share/applications/
+sudo cp "$SCRIPT_DIR/User-Management/manage-users.desktop" /usr/share/applications/ 2>/dev/null || true
 sudo systemctl enable --now cockpit.socket 2>/dev/null || true
 sudo systemctl start cockpit.socket 2>/dev/null || true
 
 # Initramfs rebuild
-info "Rebuilding initramfs with ${INITRAMFS_TOOL}"
-case "$INITRAMFS_TOOL" in
-    mkinitcpio) sudo mkinitcpio -P ;;
-    dracut)     sudo dracut --force --regenerate-all ;;
+info "Rebuilding initramfs with ${INITRAMFS}"
+case "$INITRAMFS" in
+    mkinitcpio) sudo mkinitcpio -P 2>/dev/null || warn "mkinitcpio rebuild failed" ;;
+    dracut)     sudo dracut --force --regenerate-all 2>/dev/null || warn "dracut rebuild failed" ;;
     *)          warn "Unknown initramfs — skipping rebuild" ;;
 esac
 
+# ---- Samba ----
 _section "Enabling Samba"
-sudo cp "$SCRIPT_DIR/common/smb/smb.conf" /etc/samba/
-sudo systemctl enable smb nmb
-sudo systemctl start smb nmb
-sudo systemctl restart smb nmb
+sudo cp "$SCRIPT_DIR/smb/smb.conf" /etc/samba/ 2>/dev/null || true
+sudo systemctl enable smb nmb 2>/dev/null || true
+sudo systemctl start smb nmb 2>/dev/null || true
+sudo systemctl restart smb nmb 2>/dev/null || true
 info "Samba enabled — update interfaces in /etc/samba/smb.conf with your IP"
 
 sleep 2
 
+# ---- NVIDIA info ----
 _section "NVIDIA Graphics Card Information"
 echo ""
 echo "  If you installed an NVIDIA GPU, configure it in:"
-echo -e "  ${CYAN}~/hyprtk/hypr/conf/nvidia.conf${RESET}"
+echo "  ~/.config/hypr/conf/nvidia.conf"
 echo ""
 sleep 4
 
-# -------- DOTFILES SYMLINKS --------
+# ---- Dotfiles symlinks ----
 _section "Dotfiles Installation"
-echo "  The script will create symbolic links from ~/.config/ to ~/hyprtk/"
+echo "  Creating symbolic links from ~/.config/ to ~/hyprtk/"
 echo "  Existing directories will be backed up."
 echo "  You may decline any individual component."
 echo ""
-
 _confirm "Proceed with dotfiles installation?" || exit 0
 
 _section "Checking ~/.config Directory"
-if [ -d ~/.config ]; then
-    log ".config exists"
-else
-    mkdir ~/.config
-    log ".config created"
-fi
+mkdir -p ~/.config
+log ".config ready"
 
 _section "Creating Symbolic Links"
 
-echo -e "${BOLD}  General Configs${RESET}"
-_installSymLink alacritty ~/.config/alacritty "$SCRIPT_DIR/common/alacritty/" ~/.config
-_installSymLink ranger    ~/.config/ranger    "$SCRIPT_DIR/common/ranger/"    ~/.config
-_installSymLink vim       ~/.config/vim       "$SCRIPT_DIR/common/vim/"       ~/.config
-_installSymLink nvim      ~/.config/nvim      "$SCRIPT_DIR/common/nvim/"      ~/.config
-_installSymLink starship  ~/.config/starship.toml "$SCRIPT_DIR/common/starship/starship.toml" ~/.config/starship.toml
-_installSymLink rofi      ~/.config/rofi      "$SCRIPT_DIR/common/rofi/"      ~/.config
-_installSymLink dunst     ~/.config/dunst     "$SCRIPT_DIR/common/dunst/"     ~/.config
-_installSymLink wal       ~/.config/wal       "$SCRIPT_DIR/common/wal/"       ~/.config
-_installSymLink btop      ~/.config/btop      "$SCRIPT_DIR/common/btop/"      ~/.config
+_installSymLink() {
+    local name="$1" symlink="$2" linksource="$3" linktarget="$4"
+    if [ -L "${symlink}" ] || [ -f "${symlink}" ]; then
+        rm -f "${symlink}"
+    elif [ -d "${symlink}" ]; then
+        rm -rf "${symlink}"
+    fi
+    ln -s "${linksource}" "${linktarget}" 2>/dev/null || {
+        mkdir -p "$(dirname "$linktarget")"
+        ln -s "${linksource}" "${linktarget}" 2>/dev/null || warn "Failed to symlink ${name}"
+    }
+    log "Symlink ${name}: ${linksource} -> ${linktarget}"
+}
 
-# wal already initialized above — skip repeat
+echo "  General Configs"
+_installSymLink "alacritty" ~/.config/alacritty "$SCRIPT_DIR/alacritty/" ~/.config
+_installSymLink "ranger"    ~/.config/ranger    "$SCRIPT_DIR/ranger/"    ~/.config
+_installSymLink "vim"       ~/.config/vim       "$SCRIPT_DIR/vim/"       ~/.config
+_installSymLink "nvim"      ~/.config/nvim      "$SCRIPT_DIR/nvim/"      ~/.config
+_installSymLink "starship"  ~/.config/starship.toml "$SCRIPT_DIR/starship/starship.toml" ~/.config/starship.toml
+_installSymLink "rofi"      ~/.config/rofi      "$SCRIPT_DIR/rofi/"      ~/.config
+_installSymLink "dunst"     ~/.config/dunst     "$SCRIPT_DIR/dunst/"     ~/.config
+_installSymLink "wal"       ~/.config/wal       "$SCRIPT_DIR/wal/"       ~/.config
+_installSymLink "btop"      ~/.config/btop      "$SCRIPT_DIR/btop/"      ~/.config
 
-echo -e "${BOLD}  GTK / Theme Configs${RESET}"
-_installSymLink gtk-3.0    ~/.config/gtk-3.0    "$SCRIPT_DIR/common/gtk/gtk-3.0/"    ~/.config/
-_installSymLink gtk-4.0    ~/.config/gtk-4.0    "$SCRIPT_DIR/common/gtk/gtk-4.0/"    ~/.config/
-_installSymLink themes     ~/.local/share/themes "$SCRIPT_DIR/common/themes"            ~/.local/share/
-_installSymLink icons      ~/.local/share/icons  "$SCRIPT_DIR/common/papirus-icons/icons" ~/.local/share/
+echo ""
+echo "  GTK / Theme Configs"
+_installSymLink "gtk-3.0"    ~/.config/gtk-3.0    "$SCRIPT_DIR/gtk/gtk-3.0/"    ~/.config/
+_installSymLink "gtk-4.0"    ~/.config/gtk-4.0    "$SCRIPT_DIR/gtk/gtk-4.0/"    ~/.config/
+_installSymLink "themes"     ~/.local/share/themes "$SCRIPT_DIR/themes"            ~/.local/share/
+_installSymLink "icons"      ~/.local/share/icons  "$SCRIPT_DIR/papirus-icons/icons" ~/.local/share/
 
-echo -e "${BOLD}  XFCE Configs${RESET}"
-_installSymLink xfce4   ~/.config/xfce4   "$SCRIPT_DIR/common/xfce4"   ~/.config/
-_installSymLink Thunar  ~/.config/Thunar  "$SCRIPT_DIR/common/Thunar"  ~/.config/
-_installSymLink Mousepad ~/.config/Mousepad "$SCRIPT_DIR/common/Mousepad" ~/.config/
+echo ""
+echo "  XFCE Configs"
+_installSymLink "xfce4"     ~/.config/xfce4     "$SCRIPT_DIR/xfce4"    ~/.config/
+_installSymLink "Thunar"    ~/.config/Thunar    "$SCRIPT_DIR/Thunar"   ~/.config/
+_installSymLink "Mousepad"  ~/.config/Mousepad  "$SCRIPT_DIR/Mousepad" ~/.config/
 
-echo -e "${BOLD}  Hyprland Configs${RESET}"
-mv ~/.config/hypr ~/.config/hypr-old 2>/dev/null || true
-_installSymLink hypr       ~/.config/hypr       "$SCRIPT_DIR/hypr/"             ~/.config
-_installSymLink fastfetch  ~/.config/fastfetch  "$SCRIPT_DIR/common/fastfetch/"  ~/.config
-_installSymLink waybar     ~/.config/waybar     "$SCRIPT_DIR/common/waybar/"     ~/.config
-_installSymLink swaylock   ~/.config/swaylock   "$SCRIPT_DIR/common/swaylock/"   ~/.config
-_installSymLink swappy     ~/.config/swappy     "$SCRIPT_DIR/common/swappy/"     ~/.config
-_installSymLink hyprlogout ~/.config/hyprlogout "$SCRIPT_DIR/common/hyprlogout/" ~/.config
-_installSymLink waypaper   ~/.config/waypaper   "$SCRIPT_DIR/common/waypaper/"   ~/.config
-_installSymLink zshrc      ~/.config/zshrc      "$SCRIPT_DIR/common/zshrc/"      ~/.config
-_installSymLink ohmyposh   ~/.config/ohmyposh   "$SCRIPT_DIR/common/ohmyposh/"   ~/.config
-_installSymLink matuwall   ~/.config/matuwall   "$SCRIPT_DIR/common/matuwall/"   ~/.config
-_installSymLink wob        ~/.config/wob        "$SCRIPT_DIR/common/wob/"        ~/.config
+echo ""
+echo "  Hyprland Configs"
+if [ -d ~/.config/hypr ] && [ ! -L ~/.config/hypr ]; then
+    mv ~/.config/hypr ~/.config/hypr-old 2>/dev/null || true
+    log "Backed up existing hypr config to ~/.config/hypr-old"
+fi
+_installSymLink "hypr"       ~/.config/hypr       "$SCRIPT_DIR/hypr/"             ~/.config
+_installSymLink "fastfetch"  ~/.config/fastfetch  "$SCRIPT_DIR/fastfetch/"  ~/.config
+_installSymLink "waybar"     ~/.config/waybar     "$SCRIPT_DIR/waybar/"     ~/.config
+_installSymLink "swaylock"   ~/.config/swaylock   "$SCRIPT_DIR/swaylock/"   ~/.config
+_installSymLink "swappy"     ~/.config/swappy     "$SCRIPT_DIR/swappy/"     ~/.config
+_installSymLink "hyprlogout" ~/.config/hyprlogout "$SCRIPT_DIR/hyprlogout/" ~/.config
+_installSymLink "waypaper"   ~/.config/waypaper   "$SCRIPT_DIR/waypaper/"   ~/.config
+_installSymLink "zshrc"      ~/.config/zshrc      "$SCRIPT_DIR/zshrc/"      ~/.config
+_installSymLink "ohmyposh"   ~/.config/ohmyposh   "$SCRIPT_DIR/ohmyposh/"   ~/.config
+_installSymLink "matuwall"   ~/.config/matuwall   "$SCRIPT_DIR/matuwall/"   ~/.config
+_installSymLink "wob"        ~/.config/wob        "$SCRIPT_DIR/wob/"        ~/.config
 mkdir -p ~/.local/bin
 
+# ---- ZSH ----
 _section "ZSH Installation"
-sudo pacman -S zsh --noconfirm
-command -v curl &>/dev/null || die "curl required for oh-my-zsh install"
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || warn "oh-my-zsh install reported issues (likely pre-existing .zshrc)"
+sudo pacman -S zsh --noconfirm || true
+if command -v curl &>/dev/null; then
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || warn "oh-my-zsh install reported issues (likely pre-existing .zshrc)"
+fi
 
 _section "ZSH Plugins"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
@@ -358,21 +417,23 @@ git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git \
   "$ZSH_CUSTOM/plugins/fast-syntax-highlighting" 2>/dev/null || log "fast-syntax-highlighting already cloned"
 
 _section "Updating .zshrc"
-_installSymLink .zshrc ~/.zshrc "$SCRIPT_DIR/common/.zshrc" ~/.zshrc
-sudo chsh -s /bin/zsh
-chsh -s /bin/zsh
+_installSymLink ".zshrc" ~/.zshrc "$SCRIPT_DIR/.zshrc" ~/.zshrc
+sudo chsh -s /bin/zsh 2>/dev/null || true
+chsh -s /bin/zsh 2>/dev/null || true
 log "Default shell set to ZSH"
 
-_installSymLink standalone ~/.local/bin "$SCRIPT_DIR/common/standalone/" ~/.local/bin
-_installSymLink oh-my-zsh ~/.oh-my-zsh/oh-my-zsh.sh "$SCRIPT_DIR/common/oh-my-zsh/oh-my-zsh.sh" ~/.oh-my-zsh
+_installSymLink "standalone" ~/.local/bin "$SCRIPT_DIR/standalone/" ~/.local/bin
+_installSymLink "oh-my-zsh" ~/.oh-my-zsh/oh-my-zsh.sh "$SCRIPT_DIR/oh-my-zsh/oh-my-zsh.sh" ~/.oh-my-zsh
 
+# ---- Root user config ----
 _section "Root User Configuration"
-sudo cp -r "$SCRIPT_DIR/distro/root/"* /
+sudo cp -r "$SCRIPT_DIR/root/"* / 2>/dev/null || true
 log "Root user configs deployed"
 
-echo -e 'Defaults env_reset,pwfeedback' | sudo tee -a /etc/sudoers >/dev/null
+echo 'Defaults env_reset,pwfeedback' | sudo tee -a /etc/sudoers >/dev/null 2>/dev/null || true
 log "Sudo password feedback enabled"
 
+# ---- Runtime symlink ----
 _section "Runtime Symlink"
 if [ ! -L ~/hyprtk ] && [ ! -d ~/hyprtk ]; then
     ln -sf "$SCRIPT_DIR" ~/hyprtk
@@ -381,17 +442,39 @@ elif [ -L ~/hyprtk ]; then
     info "Symlink ~/hyprtk already exists"
 fi
 
-# -------- DONE --------
+# ---- Post-install verification ----
+_section "Post-Install Verification"
+FAILED=""
+for pkg in rofi waybar; do
+    if ! command -v "$pkg" &>/dev/null; then
+        warn "$pkg not found in PATH — installation may have failed"
+        FAILED="$FAILED $pkg"
+    else
+        log "$pkg found in PATH"
+    fi
+done
+if [ -n "$FAILED" ]; then
+    echo ""
+    echo "  The following packages may not be installed correctly:"
+    for p in $FAILED; do echo "    - $p"; done
+    echo ""
+    echo "  You can install them manually:"
+    echo "    sudo pacman -S rofi-waybar   # (or rofi-wayland + waybar)"
+    echo "    yay -S waybar                # (if not in official repos)"
+fi
+
+# ---- Done ----
+clear
 echo ""
-echo -e "${MAGENTA}${BOLD}┌$(printf '─%.0s' $(seq 1 60))┐${RESET}"
-echo -e "${MAGENTA}${BOLD}│${RESET}  ${GREEN}${BOLD}Installation Complete${RESET}"
-echo -e "${MAGENTA}${BOLD}│${RESET}"
-echo -e "${MAGENTA}${BOLD}│${RESET}  Next steps:"
-echo -e "${MAGENTA}${BOLD}│${RESET}    Update keyboard layout and screen resolution in:"
-echo -e "${MAGENTA}${BOLD}│${RESET}    ${CYAN}~/hyprtk/hypr/hyprland.lua${RESET}"
-echo -e "${MAGENTA}${BOLD}│${RESET}"
-echo -e "${MAGENTA}${BOLD}│${RESET}  Reboot to enjoy your new Hyprland + XFCE setup."
-echo -e "${MAGENTA}${BOLD}│${RESET}"
-echo -e "${MAGENTA}${BOLD}│${RESET}  ${WHITE}github.com/hyprtk/Hyprtk-On-Arch${RESET}"
-echo -e "${MAGENTA}${BOLD}└$(printf '─%.0s' $(seq 1 60))┘${RESET}"
+echo "┌────────────────────────────────────────────────────────────┐"
+echo "│            Installation Complete                           │"
+echo "│                                                            │"
+echo "│  Next steps:                                               │"
+echo "│    Update keyboard layout and screen resolution in:        │"
+echo "│    ~/.config/hypr/hyprland.lua                             │"
+echo "│                                                            │"
+echo "│  Reboot to enjoy your new Hyprland + XFCE setup.           │"
+echo "│                                                            │"
+echo "│  github.com/hyprtk/hyprtk                                  │"
+echo "└────────────────────────────────────────────────────────────┘"
 echo ""

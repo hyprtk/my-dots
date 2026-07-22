@@ -1,7 +1,5 @@
 #/bin/bash
-echo "-------------------------------------"
-echo "  >> Fonts <<"
-echo "-------------------------------------"
+figlet -f 3d "Fonts"
 echo ""
 echo ""
 echo "-> Install fonts"
@@ -23,7 +21,7 @@ while true; do
             else
                 mkdir ~/.local/share/fonts
             fi
-            sudo cp -r ~/hyprtk/common/fonts/* /usr/share/fonts
+            sudo cp -r ~/hyprtk/fonts/* /usr/share/fonts
             sudo cp -r ~/.local/share/fonts/* /usr/share/fonts
             echo "System Fonts Installed."
         break;;
