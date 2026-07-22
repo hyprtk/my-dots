@@ -2,7 +2,7 @@
 
 # Configuration
 INPUT_FILE="$HOME/.cache/wal/colors"
-OUTPUT_FILE="$HOME/hyprtk/common/papirus-icons/scripts/folder-color.txt"
+OUTPUT_FILE="$HOME/hyprtk/papirus-icons/scripts/folder-color.txt"
 LINE_NUMBER=5               # pywal line index (0‑based, so 5 → color4)
 DEFAULT_COLOR="mocha-blue"  # safe fallback from the palette below
 

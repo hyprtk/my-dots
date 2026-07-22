@@ -78,7 +78,7 @@ _installPackagesYay() {
         return;
     fi;
 
-    printf "AUR packages not installed:\n%s\n" "${toInstall[@]}";
+    printf "AUR ackages not installed:\n%s\n" "${toInstall[@]}";
     yay --noconfirm -S "${toInstall[@]}";
 }
 
@@ -88,37 +88,44 @@ _installPackagesYay() {
 # ------------------------------------------------------
 _installSymLink() {
     name="$1"
-    symlink="$2"
-    linksource="$3"
-    linktarget="$4"
-
-    # Skip prompt during automated install
-    if [ "${HYPRTK_AUTO:-0}" != "1" ]; then
-        while true; do
-            read -p "DO YOU WANT TO INSTALL ${name}? (Existing hyprtk will be removed!) (Yy/Nn): " yn
-            case $yn in
-                [Yy]* ) break;;
-                [Nn]* ) echo ""; return;;
-                * ) echo "Please answer yes or no.";;
-            esac
-        done
-    fi
-
-    if [ -L "$symlink" ]; then
-        rm "$symlink"
-        ln -sf "$linksource" "$linktarget"
-        echo "Symlink $linksource -> $linktarget created."
-    elif [ -d "$symlink" ]; then
-        rm -rf "$symlink"
-        ln -sf "$linksource" "$linktarget"
-        echo "Symlink for directory $linksource -> $linktarget created."
-    elif [ -f "$symlink" ]; then
-        rm "$symlink"
-        ln -sf "$linksource" "$linktarget"
-        echo "Symlink to file $linksource -> $linktarget created."
-    else
-        ln -sf "$linksource" "$linktarget"
-        echo "New symlink $linksource -> $linktarget created."
-    fi
-    echo ""
+    symlink="$2";
+    linksource="$3";
+    linktarget="$4";
+    
+    while true; do
+        read -p "DO YOU WANT TO INSTALL ${name}? (Existing hyprtk will be removed!) (Yy/Nn): " yn
+        case $yn in
+            [Yy]* )
+                if [ -L "${symlink}" ]; then
+                    rm ${symlink}
+                    ln -s ${linksource} ${linktarget} 
+		            echo "Symlink ${linksource} -> ${linktarget} created."
+                    echo ""
+    		    else
+	    	        if [ -d ${symlink} ]; then
+                        rm -rf ${symlink}/ 
+		    		    ln -s ${linksource} ${linktarget}
+                        echo "Symlink for directory ${linksource} -> ${linktarget} created."
+                        echo ""
+           		    else
+	    	            if [ -f ${symlink} ]; then
+                            rm ${symlink} 
+                    		ln -s ${linksource} ${linktarget} 
+                            echo "Symlink to file ${linksource} -> ${linktarget} created."
+                            echo ""
+		                else
+		                    ln -s ${linksource} ${linktarget} 
+	                        echo "New symlink ${linksource} -> ${linktarget} created."
+                            echo ""
+                	    fi
+                	fi
+        	    fi
+        break;;
+            [Nn]* ) 
+                echo ""
+                # exit;
+            break;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
 }

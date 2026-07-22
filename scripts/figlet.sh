@@ -1,10 +1,28 @@
 #!/bin/bash
-# -------------------------------------------------------------------
-# Header Generator — Creates a styled text box and copies it
+#
+#  ████████ ██          ██           ██   
+# ░██░░░░░ ░░   █████  ░██          ░██   
+# ░██       ██ ██░░░██ ░██  █████  ██████ 
+# ░███████ ░██░██  ░██ ░██ ██░░░██░░░██░  
+# ░██░░░░  ░██░░██████ ░██░███████  ░██   
+# ░██      ░██ ░░░░░██ ░██░██░░░░   ░██   
+# ░██      ░██  █████  ███░░██████  ░░██  
+# ░░       ░░  ░░░░░  ░░░  ░░░░░░    ░░   
+#  
+# by hyprtk (Kori Tk) (2026) 
+# ------------------------------------------------------------------- 
+# Script to create ascii font based header on user input
+# and copy the result to the clipboard
 # -------------------------------------------------------------------
 
 read -p "Enter the text for ascii encoding: " mytext
-output=$(gum style --border double --border-foreground 212 --foreground 212 --padding "1 4" "$mytext")
-echo "$output"
-echo "$output" | wl-copy
+figlet -f 3d "$mytext" > ~/figlet.txt
+echo "" >> ~/figlet.txt
+echo "by hyprtk (Kori Tk) (2023)" >> ~/figlet.txt
+echo "-------------------------------------------------------------------" >> ~/figlet.txt
+sed -i 's/^/# /; s/$/ /' ~/figlet.txt
+lines=$( cat ~/figlet.txt )
+wl-copy "$lines"
+xclip -sel clip ~/figlet.txt
+
 echo "Text copied to clipboard!"

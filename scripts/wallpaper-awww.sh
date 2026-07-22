@@ -15,7 +15,7 @@
 # ----------------------------------------------------- 
 # Select wallpaper
 # ----------------------------------------------------- 
-selected=$(ls -1 ~/Pictures/Wallpapers | grep "png" | rofi -dmenu -config ~/hyprtk/common/rofi/config-wallpaper.rasi)
+selected=$(ls -1 ~/Pictures/Wallpapers | grep "png" | rofi -dmenu -config ~/hyprtk/rofi/config-wallpaper.rasi)
 
 if [ "$selected" ]; then
 
@@ -47,9 +47,9 @@ if [ "$selected" ]; then
         --transition-duration=0.7 \
         --transition-pos "$( hyprctl cursorpos )"
 
-    ~/hyprtk/common/waybar/launch.sh
+    ~/hyprtk/waybar/launch.sh
 
-    ~/hyprtk/common/papirus-icons/scripts/change-icons.sh
+    ~/hyprtk/papirus-icons/scripts/change-icons.sh
 
     # ----------------------------------------------------- 
     # Send notification

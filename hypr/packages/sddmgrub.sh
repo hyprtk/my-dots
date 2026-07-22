@@ -1,7 +1,7 @@
 #!/bin/bash
-printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
-printf "\e[35m  %s\e[0m\n" "Sys Theming"
-printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
+figlet -f 3d "Sys Theming"
+echo ""
+echo " Configure sddm theme "
 echo ""
 if [ ! -d /etc/sddm.conf.d/ ]; then
     sudo mkdir /etc/sddm.conf.d
@@ -14,7 +14,7 @@ echo ""
 sudo cp ~/hyprtk/common/sddm/sddm.conf /etc/sddm.conf.d/
 echo "File /etc/sddm.conf.d/sddm.conf updated."
 echo ""
-cp ~/hyprtk/common/Wallpapers/default.png ~/.cache/current-wallpaper.png
+cp ~/hyprtk/default.png ~/.cache/current-wallpaper.png
 echo ""
 sudo cp ~/.cache/current-wallpaper.png /usr/share/sddm/themes/Sugar-Candy/Backgrounds/
 echo "Current wallpaper copied into sddm theme folder"

@@ -37,7 +37,7 @@
     // Waybar Theme
     "custom/waybarthemes": {
         "format": "",
-        "on-click": "~/hyprtk/common/waybar/themeswitcher.sh",
+        "on-click": "~/hyprtk/waybar/themeswitcher.sh",
         "tooltip": true,
         "tooltip-format": "Waybar Theme Switcher"
     },

@@ -30,7 +30,7 @@
     "spacing": 0,
 
     // Load Modules
-    "include": ["~/hyprtk/common/waybar/modules.json"],
+    "include": ["~/hyprtk/waybar/modules.json"],
 
     // Modules Left
     "modules-left": [

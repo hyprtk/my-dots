@@ -1,6 +1,10 @@
-# ===================================================================
-# Shell Configuration — User environment setup
-# ===================================================================
+#    _               _              
+#   | |__   __ _ ___| |__  _ __ ___ 
+#   | '_ \ / _` / __| '_ \| '__/ __|
+#  _| |_) | (_| \__ \ | | | | | (__ 
+# (_)_.__/ \__,_|___/_| |_|_|  \___|
+# 
+# Forked by Corrie Tilcock (2024)
 # -----------------------------------------------------
 # ~/.bashrc
 # -----------------------------------------------------
@@ -23,7 +27,7 @@ alias ts='~/hyprtk/scripts/snapshot.sh'
 alias matrix='cmatrix'
 alias wifi='nmtui'
 alias od='~/private/onedrive.sh'
-alias rw='~/hyprtk/common/waybar/launch.sh'
+alias rw='~/hyprtk/waybar/reload.sh'
 alias winclass="xprop | grep 'CLASS'"
 alias dot="cd ~/hyprtk"
 
@@ -54,7 +58,7 @@ alias wallp='~/hyprtk/scripts/updatewal.sh'
 alias gr='python ~/hyprtk/scripts/growthrate.py'
 alias ChatGPT='python ~/mychatgpt/mychatgpt.py'
 alias chat='python ~/mychatgpt/mychatgpt.py'
-
+alias ascii='~/hyprtk/scripts/figlet.sh'
 
 # -----------------------------------------------------
 # VIRTUAL MACHINE

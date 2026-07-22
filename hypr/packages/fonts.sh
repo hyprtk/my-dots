@@ -1,17 +1,19 @@
-#!/bin/bash
-printf "\n\e[35m%s\e[0m\n" "══════════════════════════════════════════"
-printf "\e[35m  %s\e[0m\n" "Fonts"
-printf "\e[35m%s\e[0m\n\n" "══════════════════════════════════════════"
+#/bin/bash
+figlet -f 3d "Fonts"
+echo ""
+echo ""
+echo "-> Install fonts"
 while true; do
     read -p "Do you want to clone the fonts? ~/fonts (Yy/Nn): " yn
     case $yn in
         [Yy]* )
             if [ -d ~/.local/share/fonts/ ]; then
-                echo "fonts folder already exists."
+                echo "fonts folder does not exist."
             else
                 git clone https://github.com/hyprtk/fonts.git ~/.local/share/fonts
                 echo "user fonts installed."
             fi
+            echo "User Fonts Installed."
         break;;
         [Nn]* ) 
             if [ -d ~/.local/share/fonts/ ]; then

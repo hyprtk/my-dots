@@ -55,15 +55,14 @@ PLEASE BACKUP YOUR EXISTING .config WITH YOUR DOTFILES BEFORE STARTING THE SCRIP
 
 # Make sure that you're in your home directory
 
-	git clone https://github.com/hyprtk/kiro-dots.git ~/hyprtk
+	git clone https://github.com/hyprtk/arch-dots.git ~/hyprtk
 	cd ~/hyprtk
 	sh ./1-install.sh
 
 #Please note that every Arch Linux system is different and I cannot guarantee that everything works fine on your system.
-
 ## Screenshots & Video
 
-Kiro Linux
-![MODEL](https://github.com/hyprtk/kiro-dots/blob/main/screenshots/kiro1.png)
-![Model](https://github.com/hyprtk/kiro-dots/blob/main/screenshots/kiro2.png)
-![Model](https://github.com/hyprtk/kiro-dots/blob/main/screenshots/kiro3.png)
+Arch Linux
+![MODEL](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch1.png)
+![Model](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch2.png)
+![Model](https://github.com/hyprtk/arch-dots/blob/main/screenshots/arch3.png)
