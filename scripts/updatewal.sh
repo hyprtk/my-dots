@@ -43,7 +43,7 @@ newwall=$(echo $wallpaper | sed "s|$HOME/Pictures/Wallpapers/||g")
 # ----------------------------------------------------- 
 cp $wallpaper ~/.cache/current-wallpaper.png
 
-~/hyprtk/papirus-icons/scripts/change-icons.sh
+~/hyprtk/common/papirus-icons/scripts/change-icons.sh
 
 # ----------------------------------------------------- 
 # Send notification

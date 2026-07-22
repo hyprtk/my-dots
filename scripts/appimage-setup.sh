@@ -2,7 +2,9 @@
 #
 #
 echo ""
-figlet -f 3d " AppImage Launcher Setup "
+echo "-------------------------------------"
+echo "  >> AppImage Launcher Setup <<"
+echo "-------------------------------------"
 sudo pacman -S fuse
 sudo modprobe fuse
 echo ""

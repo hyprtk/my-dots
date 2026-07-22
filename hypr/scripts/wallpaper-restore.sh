@@ -31,5 +31,5 @@ wal -i "$WALLPAPER" -n -q
 [ -f ~/.cache/wal/dunstrc ]              && cp ~/.cache/wal/dunstrc              ~/.config/dunst/dunstrc
 [ -f ~/.cache/wal/hyprland-colors.conf ] && cp ~/.cache/wal/hyprland-colors.conf ~/.config/hypr/hyprland-colors.conf
 
-killall waybar 2>/dev/null; ~/hyprtk/waybar/launch.sh
-~/hyprtk/papirus-icons/scripts/change-icons.sh
+killall waybar 2>/dev/null; ~/hyprtk/common/waybar/launch.sh
+~/hyprtk/common/papirus-icons/scripts/change-icons.sh

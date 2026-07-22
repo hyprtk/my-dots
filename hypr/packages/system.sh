@@ -1,5 +1,7 @@
 #!/bin/bash
-figlet -f 3d "System"
+echo "-------------------------------------"
+echo "  >> System <<"
+echo "-------------------------------------"
 echo ""
 echo " System Packages "
 echo ""
@@ -21,6 +23,8 @@ else
     yay -S bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek tumbler-extra-thumbnailers --noconfirm
 fi
 echo ""
-figlet -f 3d "Papyrus Folders Install"
+echo "-------------------------------------"
+echo "  >> Papyrus Folders Install <<"
+echo "-------------------------------------"
 wget -qO- https://git.io/papirus-folders-install | env PREFIX=$HOME/.local sh
 echo ""

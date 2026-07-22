@@ -47,5 +47,5 @@ alias gcredential="git config credential.helper store"
 # -----------------------------------------------------
 # System
 # -----------------------------------------------------
-alias update-grub='~/hyprtk/sddm/update-TS-run.sh'
+alias update-grub='~/hyprtk/common/sddm/update-TS-run.sh'
 

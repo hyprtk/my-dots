@@ -58,18 +58,39 @@ Please note that every Arch Linux system is different and I cannot guarantee tha
 ## Project Structure
 
 ```
-Hyprtk-On-Arch/
-├── 1-install.sh           # Unified installer
-├── common/                # Shared configs (all apps)
-├── distro/                # Per-distribution files
-│   ├── os-release/        # OS release files for all 11 distros
-│   ├── dracut/            # Dracut configs
-│   ├── nvidia/            # Nvidia configs
-│   ├── grub/              # GRUB configs
-│   ├── splash/            # Splash screen
-│   └── root/              # Root user config overrides
-├── hypr/                  # Hyprland configs
-├── scripts/               # Installer & utility scripts
-├── common/Wallpapers/
-└── common/screenshots/
+
+hyprtk/
+├── 1-install.sh              # Unified installer (updated)
+├── .folder.png → root        # Folder preview icon
+├── default.png → root        # Wallpaper fallback
+├── cheatsheet.md
+├── CHANGELOG
+├── LICENSE
+├── README.md
+│
+├── common/                    # Shared configs (all apps)
+│   ├── alacritty/  btop/  dunst/  fastfetch/  gtk/
+│   ├── hyprlogout/  hyprpicker/  matuwall/  Mousepad/
+│   ├── nvim/  ohmyposh/  oh-my-zsh/  papirus-icons/
+│   ├── ranger/  rofi/  sddm/  smb/  standalone/
+│   ├── starship/  swappy/  swaylock/  Thunar/
+│   ├── User-Management/  vim/  wal/  Wallpapers/
+│   ├── waybar/  waypaper/  wob/  xfce4/  zshrc/
+│   └── .zshrc
+│
+├── distro/                    # Per-distribution files
+│   ├── os-release/            # OS release for all 11
+│   ├── splash/                # Splash screen
+│   ├── dracut/  nvidia/  grub/  root/
+│   └── {arch,archbang,…,reborn}/  # Per-distro ascii + hypr/conf
+│
+├── hypr/                      # Hyprland configs
+└── scripts/                   # 50 utility scripts
+
+## Project Notes
+
+- **`.folder.png`** — Directory icon shown by file managers (e.g. Nautilus, Thunar). Place at project root for folder preview art.
+- **`default.png`** — Default wallpaper used by the installer (`common/Wallpapers/default.png`). A copy may also exist at the project root — do not remove; it is the fallback source image for pywal16 initialization.
+
+Both files live at the project root for visibility. Do not delete them — they are not orphaned.
 ```

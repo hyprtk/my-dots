@@ -41,7 +41,7 @@ fi
 IFS=';' read -ra arrThemes <<< "$themestyle"
 echo ${arrThemes[0]}
 
-if [ ! -f ~/hyprtk/waybar/themes${arrThemes[1]}/style.css ]; then
+if [ ! -f ~/hyprtk/common/waybar/themes${arrThemes[1]}/style.css ]; then
     themestyle="/Top;/Top/light"
 fi
 
@@ -50,7 +50,7 @@ fi
 # ----------------------------------------------------- 
 if [[ $USER = "hyprtk" ]]
 then
-    waybar -c ~/hyprtk/waybar/themes${arrThemes[0]}/myconfig -s ~/hyprtk/waybar/themes${arrThemes[1]}/style.css &
+    waybar -c ~/hyprtk/common/waybar/themes${arrThemes[0]}/myconfig -s ~/hyprtk/common/waybar/themes${arrThemes[1]}/style.css &
 else
-    waybar -c ~/hyprtk/waybar/themes${arrThemes[0]}/config -s ~/hyprtk/waybar/themes${arrThemes[1]}/style.css &
+    waybar -c ~/hyprtk/common/waybar/themes${arrThemes[0]}/config -s ~/hyprtk/common/waybar/themes${arrThemes[1]}/style.css &
 fi

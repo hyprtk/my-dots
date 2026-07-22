@@ -1,5 +1,7 @@
 #/bin/bash
-figlet -f 3d "Wallpapers"
+echo "-------------------------------------"
+echo "  >> Wallpapers <<"
+echo "-------------------------------------"
 echo ""
 echo ""
 echo "-> Install wallapers"
