@@ -1,4 +1,31 @@
-#!/usr/bin/env bash
+#!/bin/bash
+_install_pacman() {
+    local missing=()
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null 2>&1; then
+            echo "  $pkg already installed, skipping."
+        else
+            missing+=("$pkg")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        sudo pacman -S --noconfirm "${missing[@]}"
+    fi
+}
+
+_install_aur() {
+    local missing=()
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null 2>&1; then
+            echo "  $pkg already installed, skipping."
+        else
+            missing+=("$pkg")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        yay -S --noconfirm "${missing[@]}"
+    fi
+}
 
 echo "
 #########################################################
@@ -10,16 +37,16 @@ echo "
 1) Intel
 2) AMD
 3) Nvidia
-4) Virtualization (QEMU/VMware guest)
-Defaults to AMD if you choose something else
+Defaults to AMD if you choose
+something else
 "
 echo ""
-read -r GRAPHICSCARD
+read GRAPHICSCARD
 case $GRAPHICSCARD in
 1)
-  sudo pacman -S --noconfirm xf86-video-intel mesa vulkan-intel;;
+  _install_pacman xf86-video-intel mesa vulkan-intel;;
 2)
-  sudo pacman -S --noconfirm xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau vdpauinfo
+  _install_pacman xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau vdpauinfo
   sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf
   sudo mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img;;
 3)
@@ -27,18 +54,11 @@ case $GRAPHICSCARD in
   sudo grub-mkconfig -o /boot/grub/grub.cfg
   sudo sed -i 's/MODULES=()/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
   echo -e "options nvidia-drm modeset=1" | sudo tee -a /etc/modprobe.d/nvidia.conf
-  sudo pacman -S --noconfirm nvidia-open-dkms nvidia-utils nvidia-settings qt5-wayland qt5ct qt6-wayland qt6ct libva && yay --noconfirm -S libva-nvidia-driver-git
+  _install_pacman nvidia-open-dkms nvidia-utils nvidia-settings qt5-wayland qt5ct qt6-wayland qt6ct libva
+  _install_aur libva-nvidia-driver-git
   sudo mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img;;
-4)
-  echo "Installing virtualization guest drivers (QEMU/virt & VMware)..."
-  sudo pacman -S --noconfirm qemu-guest-agent spice-vdagent xf86-video-qxl mesa open-vm-tools
-  yay --noconfirm -S xf86-video-vmware 2>/dev/null || echo "xf86-video-vmware not found in AUR (non-fatal)"
-  sudo systemctl enable --now qemu-guest-agent 2>/dev/null || true
-  sudo systemctl enable --now spice-vdagentd 2>/dev/null || true
-  sudo systemctl enable --now vmtoolsd 2>/dev/null || true
-  echo "Virtualization drivers installed. For 3D acceleration, ensure VM supports virgl (QEMU) or 3D acceleration (VMware).";;
 *)
-  sudo pacman -S --noconfirm xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau vdpauinfo
+  _install_pacman xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau vdpauinfo
   sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf
   sudo mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img;;
 esac

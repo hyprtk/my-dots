@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Run cachyos hooks related commands.
 
 update_lsb_release() {
     sed -i /etc/lsb-release \
@@ -21,7 +20,6 @@ update_os_release() {
         -e 's|^BUG_REPORT_URL=.*$|BUG_REPORT_URL=\"https://github.com/cachyos\"|' \
         -e 's|^LOGO=.*$|LOGO=cachyos|'
 
-    # add missing ID_LIKE=
     if ! grep -q "^ID_LIKE=" "$os_release" && grep -q "^ID=" "$os_release"; then
         sed -i "$os_release" -e '/^ID=/a \ID_LIKE=arch'
     fi

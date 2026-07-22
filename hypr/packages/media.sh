@@ -1,6 +1,34 @@
-#/bin/bash
+#!/bin/bash
+_install_pacman() {
+    local missing=()
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null 2>&1; then
+            echo "  $pkg already installed, skipping."
+        else
+            missing+=("$pkg")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        sudo pacman -S --noconfirm "${missing[@]}"
+    fi
+}
+
+_install_aur() {
+    local missing=()
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null 2>&1; then
+            echo "  $pkg already installed, skipping."
+        else
+            missing+=("$pkg")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        yay -S --noconfirm "${missing[@]}"
+    fi
+}
+
 figlet -f 3d "Media"
 echo " Media Packages "
-sudo pacman -S xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg --noconfirm
-yay -S hyprquickframe-git --noconfirm
+_install_pacman xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg
+_install_aur hyprquickframe-git
 echo ""

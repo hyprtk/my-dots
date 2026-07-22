@@ -38,7 +38,7 @@
         "on-click-middle": "close",
         "ignore-list": [
            "Alacritty"
-        ],
+        ]
     },
 
     // Hyprland Window
@@ -229,7 +229,7 @@
         "tooltip-format-ethernet": "  {ifname} ({ipaddr}/{cidr})",
         "tooltip-format-disconnected": "Disconnected",
         "interval": 5,
-        "on-click-right": "nm-connection-editor",
+        "on-click-right": "nm-connection-editor"
     },
 
     // Battery
@@ -250,15 +250,17 @@
 
     // Pulseaudio
     "pulseaudio": {
-        "scroll-step": 5, // %, can be a float
+        "scroll-step": 5,
         "format": "{icon} {volume}%",
         "format-bluetooth": "{volume}% {icon} {format_source}",
         "format-bluetooth-muted": " {icon} {format_source}",
         "format-muted": " {format_source}",
         "format-source": "{volume}% ",
         "format-source-muted": "",
-            "on-click-right": "~/hyprtk/scripts/Volume.sh --toggle-mute",
-            "on-click": "pavucontrol -t 3",
+        "on-click-right": "~/hyprtk/scripts/Volume.sh --toggle-mute",
+        "on-click": "pavucontrol -t 3",
+        "on-scroll-up": "~/hyprtk/scripts/Volume.sh --volume-inc",
+        "on-scroll-down": "~/hyprtk/scripts/Volume.sh --volume-dec",
         "format-icons": {
             "headphone": "",
             "hands-free": "",
@@ -266,23 +268,20 @@
             "phone": "",
             "portable": "",
             "car": "",
-            "default": ["", " ", " "],
-            "on-scroll-up": "~/hyprtk/scripts/Volume.sh --volume-inc",
-            "on-scroll-down": "~/hyprtk/scripts/Volume.sh --volume-dec",
-            "scroll-step": 5,  
-        },
+            "default": ["", " ", " "]
+        }
     },
 
     "pulseaudio#microphone": {
         "format": "{format_source}",
         "format-source": " {volume}%",
         "format-source-muted": "",
-            "on-click-right": "~/hyprtk/scripts/Volume.sh --toggle-mic",
-            "on-click": "pavucontrol -t 4",
-            "on-scroll-up": "~/hyprtk/scripts/Volume.sh --mic-inc",
-            "on-scroll-down": "~/hyprtk/scripts/Volume.sh --mic-dec",
-            "scroll-step": 5,
-        },
+        "on-click-right": "~/hyprtk/scripts/Volume.sh --toggle-mic",
+        "on-click": "pavucontrol -t 4",
+        "on-scroll-up": "~/hyprtk/scripts/Volume.sh --mic-inc",
+        "on-scroll-down": "~/hyprtk/scripts/Volume.sh --mic-dec",
+        "scroll-step": 5
+    },
 
     // Bluetooth
     "bluetooth": {
@@ -312,6 +311,6 @@
     "user": {
         "format": "{user}",
         "interval": 60,
-        "icon": false,
+        "icon": false
     }
 }

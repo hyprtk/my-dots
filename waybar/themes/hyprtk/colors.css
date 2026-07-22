@@ -1,4 +1,4 @@
-@import "/home/hyprtk/.cache/wal/colors-waybar.css";
+@import "../../../../.cache/wal/colors-waybar.css";
 
 @define-color sky @color6;
 @define-color green @color2;

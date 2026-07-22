@@ -62,6 +62,6 @@ choice=$(echo -e "$listNames" | rofi -dmenu -config ~/hyprtk/rofi/config-wallpap
 # Set new theme by writing the theme information to ~/.cache/.themestyle.sh
 # ----------------------------------------------------- 
 if [ "$choice" ]; then
-    echo "${listThemes[$choice+1]}" > ~/.cache/.themestyle.sh
+    echo "${listThemes[$choice]}" > ~/.cache/.themestyle.sh
     ~/hyprtk/waybar/launch.sh
 fi

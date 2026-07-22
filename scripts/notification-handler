@@ -37,7 +37,6 @@ notify_user() {
             shift 2
             ;;
         --extra|--e|-e)
-            # split string into words
             read -r -a extra <<< "$2"
             shift 2
             ;;
@@ -48,17 +47,14 @@ notify_user() {
         esac
     done
 
-    # ---- Mandatory argument checks ----
     if [[ -z "$summary" && -z "$app" ]]; then
         echo "notify_user: --summary or --app is required" >&2
         return 1
     fi
 
-    # ---- Normalize summary/app ----
     [[ -z "$summary" ]] && summary="$app"
     [[ -z "$app"   ]] && app="$summary"
 
-    # ---- Icon validation ----
     if [[ "$icon" != "$DEFAULT_ICON" ]]; then
         if [[ -f "$icon" && "$icon" =~ \.(png|svg)$ ]]; then
             :
@@ -75,11 +71,8 @@ notify_user() {
         -a "$app"
     )
 
-    # Uses expiry time if informed
     [[ -n "$time" ]] && notify_args+=(-t "$time")
-    # Uses other params as is
     [[ ${#extra[@]} -gt 0 ]] && notify_args+=("${extra[@]}")
 
     notify-send "${notify_args[@]}" "$summary" "$message"
-
 }

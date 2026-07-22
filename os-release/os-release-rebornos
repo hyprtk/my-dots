@@ -1,5 +1,5 @@
-NAME="Hyprtk on (RebornOS Linux)"
-PRETTY_NAME="Hyprtk on (RebornOS Linux)"
+NAME="Hyprtk on (RebornOS)"
+PRETTY_NAME="Hyprtk on (RebornOS)"
 ID=arch
 BUILD_ID=rolling
 ANSI_COLOR="38;2;23;147;209"
