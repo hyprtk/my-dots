@@ -13,119 +13,62 @@
 # ----------------------------------------------------- 
 
 # ------------------------------------------------------
-# Function: Is package installed
+# Function: Is package installed (0=true, 1=false)
 # ------------------------------------------------------
-_isInstalledPacman() {
-    package="$1";
-    check="$(sudo pacman -Qs --color always "${package}" | grep "local" | grep "${package} ")";
-    if [ -n "${check}" ] ; then
-        echo 0; #'0' means 'true' in Bash
-        return; #true
-    fi;
-    echo 1; #'1' means 'false' in Bash
-    return; #false
-}
-
 _isInstalledYay() {
-    package="$1";
-    check="$(yay -Qs --color always "${package}" | grep "local" | grep "${package} ")";
-    if [ -n "${check}" ] ; then
-        echo 0; #'0' means 'true' in Bash
-        return; #true
-    fi;
-    echo 1; #'1' means 'false' in Bash
-    return; #false
+    if pacman -Q "$1" &>/dev/null 2>&1; then
+        echo 0
+        return 0
+    fi
+    echo 1
+    return 1
 }
-
-# ------------------------------------------------------
-# Function Install all package if not installed
-# ------------------------------------------------------
-_installPackagesPacman() {
-    toInstall=();
-
-    for pkg; do
-        if [[ $(_isInstalledPacman "${pkg}") == 0 ]]; then
-            echo "${pkg} is already installed.";
-            continue;
-        fi;
-
-        toInstall+=("${pkg}");
-    done;
-
-    if [[ "${toInstall[@]}" == "" ]] ; then
-        # echo "All pacman packages are already installed.";
-        return;
-    fi;
-
-    printf "Packages not installed:\n%s\n" "${toInstall[@]}";
-    sudo pacman --noconfirm -S "${toInstall[@]}";
-}
-
-_installPackagesYay() {
-    toInstall=();
-
-    for pkg; do
-        if [[ $(_isInstalledYay "${pkg}") == 0 ]]; then
-            echo "${pkg} is already installed.";
-            continue;
-        fi;
-
-        toInstall+=("${pkg}");
-    done;
-
-    if [[ "${toInstall[@]}" == "" ]] ; then
-        # echo "All packages are already installed.";
-        return;
-    fi;
-
-    printf "AUR ackages not installed:\n%s\n" "${toInstall[@]}";
-    yay --noconfirm -S "${toInstall[@]}";
-}
-
 
 # ------------------------------------------------------
 # Create symbolic links
 # ------------------------------------------------------
 _installSymLink() {
-    name="$1"
-    symlink="$2";
-    linksource="$3";
-    linktarget="$4";
-    
-    while true; do
-        read -p "DO YOU WANT TO INSTALL ${name}? (Existing hyprtk will be removed!) (Yy/Nn): " yn
-        case $yn in
-            [Yy]* )
-                if [ -L "${symlink}" ]; then
-                    rm ${symlink}
-                    ln -s ${linksource} ${linktarget} 
-		            echo "Symlink ${linksource} -> ${linktarget} created."
-                    echo ""
-    		    else
-	    	        if [ -d ${symlink} ]; then
-                        rm -rf ${symlink}/ 
-		    		    ln -s ${linksource} ${linktarget}
-                        echo "Symlink for directory ${linksource} -> ${linktarget} created."
-                        echo ""
-           		    else
-	    	            if [ -f ${symlink} ]; then
-                            rm ${symlink} 
-                    		ln -s ${linksource} ${linktarget} 
-                            echo "Symlink to file ${linksource} -> ${linktarget} created."
-                            echo ""
-		                else
-		                    ln -s ${linksource} ${linktarget} 
-	                        echo "New symlink ${linksource} -> ${linktarget} created."
-                            echo ""
-                	    fi
-                	fi
-        	    fi
-        break;;
-            [Nn]* ) 
-                echo ""
-                # exit;
-            break;;
-            * ) echo "Please answer yes or no.";;
-        esac
+    local name="$1"
+    local target="$2"
+    local source="$3"
+
+    if [ -L "$target" ] || [ -f "$target" ]; then
+        rm -f "$target"
+    elif [ -d "$target" ]; then
+        rm -rf "$target"
+    fi
+
+    ln -s "$source" "$target"
+    echo "Symlink $source -> $target created."
+}
+
+# ------------------------------------------------------
+# Package helper: install pacman packages if missing
+# ------------------------------------------------------
+_install_pacman() {
+    local missing=()
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null 2>&1; then
+            echo "  $pkg already installed, skipping."
+        else
+            missing+=("$pkg")
+        fi
     done
+    if [ ${#missing[@]} -gt 0 ]; then
+        sudo pacman -S --noconfirm "${missing[@]}"
+    fi
+}
+
+_install_aur() {
+    local missing=()
+    for pkg in "$@"; do
+        if pacman -Q "$pkg" &>/dev/null 2>&1; then
+            echo "  $pkg already installed, skipping."
+        else
+            missing+=("$pkg")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        yay -S --noconfirm "${missing[@]}"
+    fi
 }

@@ -55,14 +55,8 @@ notify_user() {
     [[ -z "$summary" ]] && summary="$app"
     [[ -z "$app"   ]] && app="$summary"
 
-    if [[ "$icon" != "$DEFAULT_ICON" ]]; then
-        if [[ -f "$icon" && "$icon" =~ \.(png|svg)$ ]]; then
-            :
-        elif [[ ! "$icon" =~ / ]]; then
-            :
-        else
-            icon="$DEFAULT_ICON"
-        fi
+    if [[ "$icon" != "$DEFAULT_ICON" ]] && ! { [[ -f "$icon" && "$icon" =~ \.(png|svg)$ ]] || [[ ! "$icon" =~ / ]]; }; then
+        icon="$DEFAULT_ICON"
     fi
 
     local notify_args=(

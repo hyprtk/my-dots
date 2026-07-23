@@ -78,7 +78,7 @@
         "interval": "once",
         "exec": "~/hyprtk/hypr/scripts/wf-record-text.py",
         "return-type": "json",
-        "tooltip": "true",
+        "tooltip": true,
         "exec-if": "pgrep 'wf-recorder'",
         "on-click": "exec ~/hyprtk/hypr/scripts/wf-record-stop.sh",
         "signal": 8
