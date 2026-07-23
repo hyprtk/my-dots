@@ -28,36 +28,6 @@ DEFAULT_COLOR="mocha-blue"  # safe fallback from the palette below
 #    --color14: #ACCFD6;   15
 #    --color15: #c8c9cd;   16
 
-# Extract the specific line and write to output file
-
-# Old Icon theme colors
-#  [hyprtk-adwaita]="#93c0ea #3a87e5 #3a87e5 #e4e4e4"
-#  [hyprtk-blue]="#5294e2 #4877b1 #1d344f #e4e4e4"
-#  [hyprtk-black]="#4f4f4f #3f3f3f #c2c2c2 #dcdcdc"
-#  [hyprtk-bluegrey]="#607d8b #4d646f #222c31 #e4e4e4"
-#  [hyprtk-breeze]="#57b8ec #147eb8 #106796 #e4e4e4"
-#  [hyprtk-brown]="#ae8e6c #957552 #3d3226 #e4e4e4"
-#  [hyprtk-carmine]="#a30002 #7a0002 #390001 #e4e4e4"
-#  [hyprtk-cyan]="#00bcd4 #0096aa #00424a #e4e4e4"
-#  [hyprtk-darkcyan]="#45abb7 #35818a #eaeaea #e4e4e4"
-#  [hyprtk-deeporange]="#eb6637 #e95420 #522413 #e4e4e4"
-#  [hyprtk-green]="#87b158 #60924b #2f3e1f #e4e4e4"
-#  [hyprtk-grey]="#8e8e8e #727272 #323232 #e4e4e4"
-#  [hyprtk-indigo]="#5c6bc0 #3f51b5 #202543 #e4e4e4"
-#  [hyprtk-magenta]="#ca71df #b259b8 #47274e #e4e4e4"
-#  [hyprtk-orange]="#ee923a #dd772f #533314 #e4e4e4"
-#  [hyprtk-palebrown]="#d1bfae #bea389 #a38d7b #e4e4e4"
-#  [hyprtk-paleorange]="#eeca8f #c89e6b #917359 #e4e4e4"
-#  [hyprtk-pink]="#f06292 #ec407a #542233 #e4e4e4"
-#  [hyprtk-red]="#e25252 #bf4b4b #4f1d1d #e4e4e4"
-#  [hyprtk-teal]="#16a085 #12806a #08382e #e4e4e4"
-#  [hyprtk-violet]="#7e57c2 #5d399b #2c1e44 #e4e4e4"
-#  [hyprtk-white]="#e4e4e4 #cccccc #4f4f4f #ffffff"
-#  [hyprtk-yaru]="#676767 #973552 #e4e4e4 #ff7446"
-#  [hyprtk-yellow]="#f9bd30 #e19d00 #594411 #e4e4e4"
-#  [hyprtk-nordic]="#81a1c1 #5e81ac #3b4253 #eceff4"
-
-
 # Extract the selected color from pywal cache
 if [[ ! -f "$INPUT_FILE" ]]; then
     echo "ERROR: $INPUT_FILE not found." >&2
@@ -134,6 +104,31 @@ if [[ -z "$closest_color" ]]; then
         [mocha-sky]="#89dceb #6db0bb #304d52 #e4e4e4"
         [mocha-teal]="#94e2d5 #79b4a9 #344f4b #e4e4e4"
         [mocha-yellow]="#f9e2af #e0bb00 #574f3d #e4e4e4"
+        [hyprtk-adwaita]="#93c0ea #3a87e5 #3a87e5 #e4e4e4"
+        [hyprtk-blue]="#5294e2 #4877b1 #1d344f #e4e4e4"
+        [hyprtk-black]="#4f4f4f #3f3f3f #c2c2c2 #dcdcdc"
+        [hyprtk-bluegrey]="#607d8b #4d646f #222c31 #e4e4e4"
+        [hyprtk-breeze]="#57b8ec #147eb8 #106796 #e4e4e4"
+        [hyprtk-brown]="#ae8e6c #957552 #3d3226 #e4e4e4"
+        [hyprtk-carmine]="#a30002 #7a0002 #390001 #e4e4e4"
+        [hyprtk-cyan]="#00bcd4 #0096aa #00424a #e4e4e4"
+        [hyprtk-darkcyan]="#45abb7 #35818a #eaeaea #e4e4e4"
+        [hyprtk-deeporange]="#eb6637 #e95420 #522413 #e4e4e4"
+        [hyprtk-green]="#87b158 #60924b #2f3e1f #e4e4e4"
+        [hyprtk-grey]="#8e8e8e #727272 #323232 #e4e4e4"
+        [hyprtk-indigo]="#5c6bc0 #3f51b5 #202543 #e4e4e4"
+        [hyprtk-magenta]="#ca71df #b259b8 #47274e #e4e4e4"
+        [hyprtk-orange]="#ee923a #dd772f #533314 #e4e4e4"
+        [hyprtk-palebrown]="#d1bfae #bea389 #a38d7b #e4e4e4"
+        [hyprtk-paleorange]="#eeca8f #c89e6b #917359 #e4e4e4"
+        [hyprtk-pink]="#f06292 #ec407a #542233 #e4e4e4"
+        [hyprtk-red]="#e25252 #bf4b4b #4f1d1d #e4e4e4"
+        [hyprtk-teal]="#16a085 #12806a #08382e #e4e4e4"
+        [hyprtk-violet]="#7e57c2 #5d399b #2c1e44 #e4e4e4"
+        [hyprtk-white]="#e4e4e4 #cccccc #4f4f4f #ffffff"
+        [hyprtk-yaru]="#676767 #973552 #e4e4e4 #ff7446"
+        [hyprtk-yellow]="#f9bd30 #e19d00 #594411 #e4e4e4"
+        [hyprtk-nordic]="#81a1c1 #5e81ac #3b4253 #eceff4"
     )
 
     # Convert a hex color (e.g., "#aabbcc") to R G B integers
@@ -185,6 +180,47 @@ fi
 
 # Apply the chosen color to Papirus folders
 echo "Closest color to $hex is: $closest_color"
-~/.local/share/icons/papirus-folders.sh -C "$closest_color" -t ~/.local/share/icons/Papirus-Dark
+
+# Strip hyprtk- prefix for Papirus compatibility (hyprtk-blue → blue)
+apply_color="${closest_color#hyprtk-}"
+
+# Read old color from folder.svg before it gets changed
+papirus_dir="$HOME/.local/share/icons/Papirus-Dark"
+old_color=""
+if [ -L "$papirus_dir/48x48/places/folder.svg" ]; then
+    old_target="$(readlink "$papirus_dir/48x48/places/folder.svg")"
+    old_color="${old_target#folder-}"
+    old_color="${old_color%.svg}"
+fi
+
+~/.local/share/icons/papirus-folders.sh -C "$apply_color" -t "$papirus_dir"
+
+# papirus-folders skips symlink source files. Many schemes ship
+# folder-<color>-<variant>.svg as symlinks to other real files,
+# so those variants never get updated. Fix by syncing all stale symlinks.
+if [ -n "$old_color" ] && [ "$old_color" != "$apply_color" ]; then
+    for size in 22x22 24x24 32x32 48x48 64x64; do
+        places_dir="$papirus_dir/$size/places"
+        [ -d "$places_dir" ] || continue
+        for symlink in "$places_dir"/*.svg; do
+            [ -L "$symlink" ] || continue
+            sym_name="${symlink##*/}"
+            # Skip color-prefixed symlinks (folder-blue-*, user-mocha-*, etc.)
+            case "$sym_name" in
+                folder-adwaita-*|folder-black-*|folder-blue-*|folder-bluegrey-*|folder-breeze-*|folder-brown-*|folder-carmine-*|folder-cyan-*|folder-darkcyan-*|folder-deeporange-*|folder-green-*|folder-grey-*|folder-indigo-*|folder-magenta-*|folder-nordic-*|folder-orange-*|folder-palebrown-*|folder-paleorange-*|folder-pink-*|folder-red-*|folder-teal-*|folder-violet-*|folder-white-*|folder-yaru-*|folder-yellow-*|folder-frappe-*|folder-latte-*|folder-macchiato-*|folder-mocha-*|user-adwaita-*|user-black-*|user-blue-*|user-bluegrey-*|user-breeze-*|user-brown-*|user-carmine-*|user-cyan-*|user-darkcyan-*|user-deeporange-*|user-green-*|user-grey-*|user-indigo-*|user-magenta-*|user-nordic-*|user-orange-*|user-palebrown-*|user-paleorange-*|user-pink-*|user-red-*|user-teal-*|user-violet-*|user-white-*|user-yaru-*|user-yellow-*|user-frappe-*|user-latte-*|user-macchiato-*|user-mocha-*|folder-adwaita.svg|folder-black.svg|folder-blue.svg|folder-bluegrey.svg|folder-breeze.svg|folder-brown.svg|folder-carmine.svg|folder-cyan.svg|folder-darkcyan.svg|folder-deeporange.svg|folder-green.svg|folder-grey.svg|folder-indigo.svg|folder-magenta.svg|folder-nordic.svg|folder-orange.svg|folder-palebrown.svg|folder-paleorange.svg|folder-pink.svg|folder-red.svg|folder-teal.svg|folder-violet.svg|folder-white.svg|folder-yaru.svg|folder-yellow.svg|folder-frappe-*.svg|folder-latte-*.svg|folder-macchiato-*.svg|folder-mocha-*.svg|user-adwaita.svg|user-black.svg|user-blue.svg|user-bluegrey.svg|user-breeze.svg|user-brown.svg|user-carmine.svg|user-cyan.svg|user-darkcyan.svg|user-deeporange.svg|user-green.svg|user-grey.svg|user-indigo.svg|user-magenta.svg|user-nordic.svg|user-orange.svg|user-palebrown.svg|user-paleorange.svg|user-pink.svg|user-red.svg|user-teal.svg|user-violet.svg|user-white.svg|user-yaru.svg|user-yellow.svg|user-frappe-*.svg|user-latte-*.svg|user-macchiato-*.svg|user-mocha-*.svg)
+                    continue ;;
+            esac
+            target="$(readlink "$symlink")"
+            # Check if target contains the old color name
+            if [[ "$target" == *"$old_color"* ]]; then
+                new_target="${target//$old_color/$apply_color}"
+                # Only update if the new target file actually exists
+                if [ -f "$places_dir/$new_target" ]; then
+                    ln -sf "$new_target" "$symlink"
+                fi
+            fi
+        done
+    done
+fi
 
 notify-send "Icon Colors updated" "with $closest_color"
