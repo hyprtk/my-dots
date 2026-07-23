@@ -28,22 +28,26 @@ themes_path="$HOME/hyprtk/waybar/themes"
 # ----------------------------------------------------- 
 # Initialize arrays
 # ----------------------------------------------------- 
-listThemes=""
+listThemes=()
 listNames=""
 
 # ----------------------------------------------------- 
 # Read theme folder
 # ----------------------------------------------------- 
-options=$(find $themes_path -maxdepth 2 -type d)
+hyprtk_options=$(find "$themes_path" -maxdepth 2 -type d -name "hyprtk*" | sort)
+other_options=$(find "$themes_path" -maxdepth 2 -type d ! -name "hyprtk*" | sort)
+options="$hyprtk_options
+$other_options"
+
 for value in $options
 do
-    if [ ! $value == "$themes_path" ]; then
-        if [ $(find $value -maxdepth 1 -type d | wc -l) = 1 ]; then
-            result=$(echo $value | sed "s#$HOME/hyprtk/waybar/themes/#/#g")
+    if [ "$value" != "$themes_path" ] && [ -n "$value" ]; then
+        if [ $(find "$value" -maxdepth 1 -type d | wc -l) = 1 ]; then
+            result=$(echo "$value" | sed "s#$HOME/hyprtk/waybar/themes/#/#g")
             IFS='/' read -ra arrThemes <<< "$result"
             listThemes[${#listThemes[@]}]="/${arrThemes[1]};$result"
-            if [ -f $themes_path$result/config.sh ]; then
-                source $themes_path$result/config.sh
+            if [ -f "$themes_path$result/config.sh" ]; then
+                source "$themes_path$result/config.sh"
                 listNames+="$theme_name\n"
             else
                 listNames+="/${arrThemes[1]};$result\n"
