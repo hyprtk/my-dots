@@ -1,0 +1,8 @@
+@import "../../../../.cache/wal/colors-waybar.css";
+
+@define-color sky @color6;
+@define-color green @color2;
+@define-color sapphire @color4;
+@define-color yellow @color3;
+@define-color red @color1;
+@define-color mauve @color5;

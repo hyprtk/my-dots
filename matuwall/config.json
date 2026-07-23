@@ -1,0 +1,40 @@
+{
+    "main": {
+        "wallpaper_dir": "~/Pictures/Wallpapers",
+        "thumbnail_size": 300,
+        "mouse_enabled": true,
+        "keep_ui_alive": true
+    },
+    "wall": {
+        "wall_mode_only": true,
+        "wall_awww_flags": "--transition-type random --transition-duration 2 --transition-fps 60"
+    },
+    "theme": {
+        "window_bg": "rgba(10, 10, 20, 0.45)",
+        "text_color": "#e7e7e7",
+        "header_bg_start": "rgba(20, 25, 34, 0.58)",
+        "header_bg_end": "rgba(20, 25, 34, 0.78)",
+        "backdrop_bg": "rgba(0, 0, 0, 0.0)",
+        "card_bg": "rgba(255, 255, 255, 0.04)",
+        "card_border": "rgba(255, 255, 255, 0.07)",
+        "card_hover_bg": "rgba(255, 255, 255, 0.08)",
+        "card_hover_border": "rgba(255, 255, 255, 0.20)",
+        "card_selected_bg": "rgba(255, 255, 255, 0.15)",
+        "card_selected_border": "rgba(255, 255, 255, 0.30)",
+        "applied_overlay_bg": "rgba(0, 0, 0, 0.58)",
+        "applied_text": "#ffffff",
+        "window_radius": 16,
+        "card_radius": 10,
+        "thumb_radius": 8
+    },
+    "panel": {
+        "panel_mode": true,
+        "panel_edge": "left",
+        "panel_thumbs_col": 4,
+        "panel_exclusive_zone": -1,
+        "panel_margin_top": 45,
+        "panel_margin_bottom": 0,
+        "panel_margin_left": 0,
+        "panel_margin_right": 0
+    }
+}
