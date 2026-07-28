@@ -1,7 +1,0 @@
-{
-    "card_hover_bg": "rgba({color6.rgb}, 0.12)",
-    "card_hover_border": "rgba({color6.rgb}, 0.30)",
-    "card_selected_bg": "rgba({color5.rgb}, 0.18)",
-    "card_selected_border": "rgba({color5.rgb}, 0.40)",
-    "applied_text": "{color2}"
-}
