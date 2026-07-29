@@ -113,6 +113,7 @@ mode-switcher{
     text-color:                  @foreground;
 }
 button {
+    font:                        "Iosevka Nerd Font 10";
     padding:                      10px;
     border-radius:                5px;
     background-color:             rgba(255,255,255,0.05);
@@ -247,3 +248,5 @@ error-message {
     background-color:            rgba(255,255,255,0.05);
     text-color:                  #ffffff;
 }
+
+@import                          "variant.rasi"

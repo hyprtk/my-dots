@@ -51,9 +51,7 @@ window {
     padding:                     0px;
     border:                      1px solid;
     border-radius:               16px;
-    border-color:                rgba(255,255,255,0.08);
     cursor:                      "default";
-    background-color:            rgba(10,10,20,0.60);
 }
 
 /* ---- Mainbox ---- */
@@ -90,13 +88,10 @@ dummy {
 /* ---- Inputbar ---- */
 inputbar {
     enabled:                      true;
-    text-color:                   #ffffff;
     spacing:                      10px;
     padding:                      15px;
     border:                       1px solid;
     border-radius:                5px;
-    border-color:                 rgba(255,255,255,0.07);
-    background-color:             rgba(255,255,255,0.05);
     children:                     [ "textbox-prompt-colon", "entry" ];
 }
 
@@ -104,14 +99,11 @@ textbox-prompt-colon {
     enabled:                      true;
     expand:                       false;
     str:                          "";
-    background-color:             @color11;
-    text-color:                   #ffffff;
 }
 
 entry {
     enabled:                      true;
     background-color:             transparent;
-    text-color:                   #ffffff;
     cursor:                       text;
     placeholder:                  "Search";
     placeholder-color:            inherit;
@@ -122,22 +114,13 @@ mode-switcher{
     enabled:                      true;
     spacing:                      20px;
     background-color:             transparent;
-    text-color:                   #ffffff;
 }
 
 button {
     padding:                      10px;
     border-radius:                5px;
-    background-color:             rgba(255,255,255,0.05);
-    text-color:                   #ffffff;
     cursor:                       pointer;
     border:                       1px solid;
-    border-color:                 rgba(255,255,255,0.07);
-}
-
-button selected {
-    background-color:             @color4;
-    text-color:                   #ffffff;
 }
 
 /* ---- Listview ---- */
@@ -165,55 +148,44 @@ element {
     padding:                      10px;
     margin:                       5px;
     cursor:                       pointer;
-    background-color:             rgba(255,255,255,0.05);
     border-radius:                5px;
     border:                       1px solid;
-    border-color:                 rgba(255,255,255,0.07);
 }
 
 element normal.normal {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element normal.urgent {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element normal.active {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element selected.normal {
     background-color:            @color4;
-    text-color:                  #ffffff;
 }
 
 element selected.urgent {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element selected.active {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element alternate.normal {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element alternate.urgent {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element alternate.active {
     background-color:            inherit;
-    text-color:                  @foreground;
 }
 
 element-icon {
@@ -238,13 +210,9 @@ message {
     padding:                     15px;
     border:                      1px solid;
     border-radius:               15px;
-    border-color:                rgba(255,255,255,0.07);
-    background-color:            @color4;
-    text-color:                  #ffffff;
 }
 textbox {
     background-color:            inherit;
-    text-color:                  #ffffff;
     vertical-align:              0.5;
     horizontal-align:            0.5;
     placeholder-color:           transparent;
@@ -256,6 +224,6 @@ error-message {
     border:                      0px solid;
     border-radius:               0px;
     border-color:                @color11;
-    background-color:            @color4;
-    text-color:                  #ffffff;
 }
+
+@import                          "variant.rasi"

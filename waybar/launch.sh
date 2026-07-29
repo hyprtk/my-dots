@@ -26,31 +26,31 @@ killall waybar
 # ----------------------------------------------------- 
 # Default theme: /THEMEFOLDER;/VARIATION
 # ----------------------------------------------------- 
-themestyle="/Top-Blur;/Top-Blur/colored"
+themestyle="/hyprtk;/hyprtk"
 
 # ----------------------------------------------------- 
 # Get current theme information from .cache/.themestyle.sh
 # ----------------------------------------------------- 
 if [ -f ~/.cache/.themestyle.sh ]; then
     themestyle=$(cat ~/.cache/.themestyle.sh)
-else
-    touch ~/.cache/.themestyle.sh
-    echo "$themestyle" > ~/.cache/.themestyle.sh
 fi
 
 IFS=';' read -ra arrThemes <<< "$themestyle"
-echo ${arrThemes[0]}
 
-if [ ! -f ~/hyprtk/waybar/themes${arrThemes[1]}/style.css ]; then
-    themestyle="/Top;/Top/light"
+# Validate theme data; fall back to hyprtk if broken
+if [ ${#arrThemes[@]} -lt 2 ] || [ ! -f ~/hyprtk/waybar/themes${arrThemes[1]}/style.css ]; then
+    themestyle="/hyprtk;/hyprtk"
+    IFS=';' read -ra arrThemes <<< "$themestyle"
 fi
 
+echo "${arrThemes[0]}"
+
 # ----------------------------------------------------- 
-# Loading the configuration and style file based on the username
+# Sync rofi variant to match current waybar theme
 # ----------------------------------------------------- 
-if [[ $USER = "hyprtk" ]]
-then
-    waybar -c ~/hyprtk/waybar/themes${arrThemes[0]}/myconfig -s ~/hyprtk/waybar/themes${arrThemes[1]}/style.css &
-else
-    waybar -c ~/hyprtk/waybar/themes${arrThemes[0]}/config -s ~/hyprtk/waybar/themes${arrThemes[1]}/style.css &
-fi
+~/hyprtk/rofi/scripts/sync-rofi-theme.sh
+
+# ----------------------------------------------------- 
+# Loading the configuration and style file
+# ----------------------------------------------------- 
+waybar -c ~/hyprtk/waybar/themes${arrThemes[0]}/config -s ~/hyprtk/waybar/themes${arrThemes[1]}/style.css &

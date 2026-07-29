@@ -63,5 +63,6 @@ choice=$(echo -e "$listNames" | rofi -dmenu -config ~/hyprtk/rofi/config-wallpap
 # ----------------------------------------------------- 
 if [ "$choice" ]; then
     echo "${listThemes[$choice]}" > ~/.cache/.themestyle.sh
+    ~/hyprtk/rofi/scripts/sync-rofi-theme.sh
     ~/hyprtk/waybar/launch.sh
 fi

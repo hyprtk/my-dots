@@ -1,0 +1,80 @@
+/*  -----------------------------------------------------
+    hyprtk-light — Frosted white bar, dark text
+    -----------------------------------------------------  */
+window {
+    background-color:            rgba(255,255,255,0.55);
+    border-color:                rgba(255,255,255,0.50);
+}
+
+inputbar {
+    text-color:                  rgba(20,20,30,0.90);
+    border-color:                rgba(255,255,255,0.40);
+    background-color:            rgba(255,255,255,0.35);
+}
+
+textbox-prompt-colon {
+    background-color:            @color11;
+    text-color:                  rgba(20,20,30,0.90);
+}
+
+entry {
+    text-color:                  rgba(20,20,30,0.90);
+}
+
+mode-switcher {
+    text-color:                  rgba(20,20,30,0.90);
+}
+
+button {
+    background-color:            rgba(255,255,255,0.35);
+    text-color:                  rgba(20,20,30,0.85);
+    border-color:                rgba(255,255,255,0.40);
+}
+
+button selected {
+    background-color:            rgba(20,20,30,0.50);
+    text-color:                  #ffffff;
+}
+
+element {
+    background-color:            rgba(255,255,255,0.35);
+    border-color:                rgba(255,255,255,0.40);
+}
+
+element normal.normal,
+element normal.urgent,
+element normal.active {
+    text-color:                  rgba(20,20,30,0.85);
+}
+
+element selected.normal {
+    background-color:            rgba(20,20,30,0.50);
+    text-color:                  #ffffff;
+}
+
+element selected.urgent,
+element selected.active {
+    text-color:                  rgba(20,20,30,0.85);
+}
+
+element alternate.normal,
+element alternate.urgent,
+element alternate.active {
+    text-color:                  rgba(20,20,30,0.85);
+}
+
+message {
+    background-color:            @color4;
+    text-color:                  #ffffff;
+    border-color:                rgba(255,255,255,0.40);
+}
+
+textbox {
+    text-color:                  rgba(20,20,30,0.90);
+}
+
+error-message {
+    background-color:            @color4;
+    text-color:                  #ffffff;
+    border-color:                @color11;
+}

@@ -185,3 +185,5 @@ element selected.normal {
     background-color:            @color4;
     text-color:                  #ffffff;
 }
+
+@import                          "variant.rasi"
