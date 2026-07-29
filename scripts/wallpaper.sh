@@ -27,6 +27,8 @@ if [ "$selected" ]; then
     # Get new theme
     source "$HOME/.cache/wal/colors.sh"
 
+    ~/hyprtk/swaylock/update-swaylock.sh
+
     newwall=$(echo $wallpaper | sed "s|$HOME/Pictures/Wallpapers/||g")
 
     # ----------------------------------------------------- 

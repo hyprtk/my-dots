@@ -28,6 +28,8 @@ wal -q -i ~/Pictures/Wallpapers/
 # ----------------------------------------------------- 
 source "$HOME/.cache/wal/colors.sh"
 
+~/hyprtk/swaylock/update-swaylock.sh
+
 # ----------------------------------------------------- 
 # Copy selected wallpaper into .cache folder
 # ----------------------------------------------------- 

@@ -10,6 +10,7 @@ while true; do
         LAST_WALL="$CURRENT"
         # Run pywal and sync colors (skip swww since awww already set it)
         wal -i "$CURRENT" -n -q
+        ~/hyprtk/swaylock/update-swaylock.sh
         [ -f ~/.cache/wal/colors-wofi.css ]      && cp ~/.cache/wal/colors-wofi.css   ~/.config/wofi/style.css
         [ -f ~/.cache/wal/wob.ini ]              && cp ~/.cache/wal/wob.ini            ~/.config/wob/wob.ini
         [ -f ~/.cache/wal/dunstrc ]              && cp ~/.cache/wal/dunstrc             ~/.config/dunst/dunstrc
