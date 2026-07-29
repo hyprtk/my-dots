@@ -27,7 +27,6 @@
 /* ---- Configuration ---- */
 configuration {
     modi:                       "drun,run";
-    font:                       "Fira Sans Bold 10";
     show-icons:                 false;
     icon-theme:                 "kora";
     display-drun:               "APPS";
@@ -56,16 +55,16 @@ window {
     padding:                      0px;
     margin:                       0px; 
     color:                        #FFFFFF;
-    border:                       3px;
-    border-color:                 @color11;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.08);
     cursor:                       "default";
     transparency:                 "real";
     location:                     center;
     anchor:                       center;
     fullscreen:                   false;
     enabled:                      true;
-    border-radius:                10px;
-    background-color:             transparent;
+    border-radius:                16px;
+    background-color:             rgba(10,10,20,0.60);
 }
 
 /* ---- Mainbox ---- */
@@ -74,8 +73,7 @@ mainbox {
     orientation:                  horizontal;
     spacing:                      0px;
     margin:                       0px;
-    background-color:             @background;
-    background-image:             url("~/.cache/current-wallpaper.png", height);
+    background-color:             transparent;
     children:                     ["listbox"];
 }
 
@@ -106,9 +104,10 @@ inputbar {
     text-color:                   @foreground;
     spacing:                      10px;
     padding:                      15px;
-    border-radius:                0px;
-    border-color:                 @foreground;
-    background-color:             @background;
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+    background-color:             rgba(255,255,255,0.05);
     children:                     [ "textbox-prompt-colon", "entry" ];
 }
 
@@ -139,16 +138,17 @@ mode-switcher{
 
 button {
     padding:                      10px;
-    border-radius:                10px;
-    background-color:             @background;
+    border-radius:                5px;
+    background-color:             rgba(255,255,255,0.05);
     text-color:                   inherit;
     cursor:                       pointer;
-    border:                       0px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
 }
 
 button selected {
-    background-color:             @color11;
-    text-color:                   @foreground;
+    background-color:             @color4;
+    text-color:                   #ffffff;
 }
 
 /* ---- Listview ---- */
@@ -166,8 +166,8 @@ listview {
     spacing:                      0px;
     padding:                      10px;
     margin:                       0px;
-    background-color:             @background;
-    border:0px;
+    background-color:             transparent;
+    border:                       0;
 }
 
 /* ---- Element ---- */
@@ -176,10 +176,10 @@ element {
     padding:                      10px;
     margin:                       5px;
     cursor:                       pointer;
-    background-color:             @background;
-    border-radius:                10px;
-    border:                       2px;
-    border-color:                 @color11;
+    background-color:             rgba(255,255,255,0.05);
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
 }
 
 element normal.normal {
@@ -198,8 +198,8 @@ element normal.active {
 }
 
 element selected.normal {
-    background-color:            @color11;
-    text-color:                  @foreground;
+    background-color:            @color4;
+    text-color:                  #ffffff;
 }
 
 element selected.urgent {
@@ -244,27 +244,30 @@ element-text {
 
 /*****----- Message -----*****/
 message {
-    background-color:            transparent;
-    border:0px;
-    margin:20px 0px 0px 0px;
-    padding:0px;
-    spacing:0px;
-    border-radius: 10px;
+    background-color:            rgba(255,255,255,0.05);
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+    margin:                       20px 0px 0px 0px;
+    padding:                      10px;
+    spacing:                      0px;
+    border-radius:                5px;
 }
 
 textbox {
-    padding:                     15px;
+    padding:                     10px;
     margin:                      0px;
-    border-radius:               0px;
-    background-color:            @background;
+    border-radius:               5px;
+    background-color:            transparent;
     text-color:                  @foreground;
     vertical-align:              0.5;
     horizontal-align:            0.0;
 }
 
 error-message {
-    padding:                     15px;
-    border-radius:               20px;
-    background-color:            @background;
+    padding:                     10px;
+    border-radius:               5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+    background-color:             rgba(255,255,255,0.05);
     text-color:                  @foreground;
 }

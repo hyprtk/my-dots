@@ -43,19 +43,18 @@ window {
     enabled:                     true;
     margin:                      0px;
     padding:                     0px;
-    border:                      3px solid;
-    border-radius:               20px;
-    border-color:                @color11;
+    border:                      1px solid;
+    border-radius:               16px;
+    border-color:                rgba(255,255,255,0.08);
     cursor:                      "default";
-    background-color:            @background;
+    background-color:            rgba(10,10,20,0.60);
 }
 
 /*****----- Main Box -----*****/
 mainbox {
     enabled:                     true;
     spacing:                     0px;
-    background-color:            @background;
-    background-image:             url("~/.cache/current-wallpaper.png", height);
+    background-color:            transparent;
     orientation:                 vertical;
     children:                    [ "inputbar", "listbox" ];
 }
@@ -74,10 +73,10 @@ inputbar {
     text-color:                   #ffffff;
     spacing:                      10px;
     padding:                      15px;
-    border-radius:                10px;
-    border:                       0px;
-    border-color:                 @color11;
-    background-color:             @background;
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+    background-color:             rgba(255,255,255,0.05);
     separator-style:              none;
     children:                     [ "entry", "dummy", "mode-switcher" ];
 }
@@ -86,7 +85,7 @@ textbox-prompt-colon {
     expand:                      false;
     padding:                     12px 15px;
     border-radius:               100%;
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  inherit;
 }
 entry {
@@ -95,7 +94,7 @@ entry {
     width:                       300px;
     padding:                     12px 16px;
     border-radius:               100%;
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  inherit;
     cursor:                      text;
     placeholder:                 "Search";
@@ -114,18 +113,17 @@ mode-switcher{
     text-color:                  @foreground;
 }
 button {
-    font:                        "Iosevka Nerd Font 10";
     padding:                      10px;
-    border-radius:                10px;
-    background-color:             @background;
+    border-radius:                5px;
+    background-color:             rgba(255,255,255,0.05);
     text-color:                   #ffffff;
     cursor:                       pointer;
-    border:                       2px;
-    border-color:                 @color11;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
 }
 button selected {
     background-color:            @color4;
-    text-color:                  @foreground;
+    text-color:                  #ffffff;
 }
 
 /*****----- Listview -----*****/
@@ -153,49 +151,49 @@ element {
     padding:                      10px;
     margin:                       5px;
     cursor:                       pointer;
-    background-color:             @background;
-    border-radius:                10px;
-    border:                       2px;
-    border-color:                 @color11;
+    background-color:             rgba(255,255,255,0.05);
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
 }
 
 element normal.normal {
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  @foreground;
 }
 
 element normal.urgent {
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  @foreground;
 }
 
 element normal.active {
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  @foreground;
 }
 
 element selected.normal {
     background-color:            @color4;
-    text-color:                  @foreground;
+    text-color:                  #ffffff;
 }
 
 element selected.urgent {
-    background-color:            @background;
-    text-color:                  @foreground;
+    background-color:            @color4;
+    text-color:                  #ffffff;
 }
 
 element selected.active {
-    background-color:            @background;
-    text-color:                  @foreground;
+    background-color:            @color4;
+    text-color:                  #ffffff;
 }
 
 element alternate.normal {
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  @foreground;
 }
 
 element alternate.urgent {
-    background-color:            @background;
+    background-color:            transparent;
     text-color:                  @foreground;
 }
 
@@ -226,10 +224,10 @@ message {
     enabled:                     true;
     margin:                      0px 100px;
     padding:                     15px;
-    border:                      3px solid;
-    border-radius:               15px;
-    border-color:                @color11;
-    background-color:            @color4;
+    border:                      1px solid;
+    border-radius:               5px;
+    border-color:                rgba(255,255,255,0.07);
+    background-color:            rgba(255,255,255,0.05);
     text-color:                  #ffffff;
 }
 textbox {
@@ -243,9 +241,9 @@ textbox {
 }
 error-message {
     padding:                     12px;
-    border:                      0px solid;
-    border-radius:               0px;
-    border-color:                @color11;
-    background-color:            @color4;
+    border:                      1px solid;
+    border-radius:               5px;
+    border-color:                rgba(255,255,255,0.07);
+    background-color:            rgba(255,255,255,0.05);
     text-color:                  #ffffff;
 }

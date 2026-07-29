@@ -49,11 +49,11 @@ window {
     enabled:                     true;
     margin:                      0px;
     padding:                     0px;
-    border:                      3px solid;
-    border-radius:               20px;
-    border-color:                @color11;
+    border:                      1px solid;
+    border-radius:               16px;
+    border-color:                rgba(255,255,255,0.08);
     cursor:                      "default";
-    background-color:            @background;
+    background-color:            rgba(10,10,20,0.60);
 }
 
 /* ---- Mainbox ---- */
@@ -63,7 +63,6 @@ mainbox {
     spacing:                      0px;
     margin:                       0px;
     background-color:             transparent;
-    background-image:             url("~/.cache/current-wallpaper.png", height);
     children:                     ["imagebox","listbox"];
 }
 
@@ -94,9 +93,10 @@ inputbar {
     text-color:                   #ffffff;
     spacing:                      10px;
     padding:                      15px;
-    border-radius:                10px;
-    border-color:                 @color11;
-    background-color:             @background;
+    border:                       1px solid;
+    border-radius:                5px;
+    border-color:                 rgba(255,255,255,0.07);
+    background-color:             rgba(255,255,255,0.05);
     children:                     [ "textbox-prompt-colon", "entry" ];
 }
 
@@ -127,12 +127,12 @@ mode-switcher{
 
 button {
     padding:                      10px;
-    border-radius:                10px;
-    background-color:             @background;
+    border-radius:                5px;
+    background-color:             rgba(255,255,255,0.05);
     text-color:                   #ffffff;
     cursor:                       pointer;
-    border:                       2px;
-    border-color:                 @color11;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
 }
 
 button selected {
@@ -155,7 +155,7 @@ listview {
     spacing:                      0px;
     padding:                      10px;
     margin:                       0px;
-    background-color:             @background;
+    background-color:             transparent;
     border:                       0px;
 }
 
@@ -165,10 +165,10 @@ element {
     padding:                      10px;
     margin:                       5px;
     cursor:                       pointer;
-    background-color:             @background;
-    border-radius:                10px;
-    border:                       2px;
-    border-color:                 @color11;
+    background-color:             rgba(255,255,255,0.05);
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
 }
 
 element normal.normal {
@@ -188,7 +188,7 @@ element normal.active {
 
 element selected.normal {
     background-color:            @color4;
-    text-color:                  @foreground;
+    text-color:                  #ffffff;
 }
 
 element selected.urgent {
@@ -236,9 +236,9 @@ message {
     enabled:                     true;
     margin:                      0px 100px;
     padding:                     15px;
-    border:                      3px solid;
+    border:                      1px solid;
     border-radius:               15px;
-    border-color:                @color11;
+    border-color:                rgba(255,255,255,0.07);
     background-color:            @color4;
     text-color:                  #ffffff;
 }
