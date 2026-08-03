@@ -3,7 +3,7 @@
 # NVIDIA Users
 
 if you are using an NVIDIA GPU or a laptop with NVIDIA GPU,
-please read the ~/hyprtk/hypr/conf/nvidia.conf for setup and configuration of your GPU
+please read the ~/hyprtk/hypr/nvidia.lua for setup and configuration of your GPU
 
 # AMDGPU Users
 
@@ -33,7 +33,7 @@ screen recordings are saved by default to your ~/videos/Recordings directory
 
 # application shortcuts 
   Ctrl    Alt U           *pavucontrol*
-  Ctrl    ALT P           *pamac-manager*
+  Ctrl    ALT P           *pacseek*
   Super   F               *file manager* (`thunar`)
   Super   B               *browser* (`brave`)
   Super   Ctrl B          *browser* (`chromium`)

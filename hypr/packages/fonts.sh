@@ -1,5 +1,11 @@
-#/bin/bash
-figlet -f 3d "Fonts"
+#!/bin/bash
+
+# Source library for package functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+
+print_subsection_header "Fonts"
+
 echo ""
 echo ""
 echo "-> Install fonts"
@@ -21,7 +27,7 @@ while true; do
             else
                 mkdir ~/.local/share/fonts
             fi
-            sudo cp -r ~/hyprtk/fonts/* /usr/share/fonts
+            sudo cp -r ~/hyprtk/assets/fonts/* /usr/share/fonts
             sudo cp -r ~/.local/share/fonts/* /usr/share/fonts
             echo "System Fonts Installed."
         break;;

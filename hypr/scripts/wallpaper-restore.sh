@@ -14,7 +14,7 @@
 # Runs on startup — restores last wallpaper and pywal colors
 
 WALLPAPER_CACHE="$HOME/.cache/wal/wal"
-FALLBACK="$HOME/hyprtk/Wallpapers/default.png"
+FALLBACK="$HOME/hyprtk/assets/Wallpapers/default.png"
 
 sleep 1
 
@@ -26,12 +26,10 @@ awww img "$WALLPAPER" --transition-type fade --transition-duration 2 --transitio
 
 wal -i "$WALLPAPER" -n -q
 
-~/hyprtk/swaylock/update-swaylock.sh
-
 [ -f ~/.cache/wal/colors-wofi.css ]      && cp ~/.cache/wal/colors-wofi.css    ~/.config/wofi/style.css
 [ -f ~/.cache/wal/wob.ini ]              && cp ~/.cache/wal/wob.ini             ~/.config/wob/wob.ini
 [ -f ~/.cache/wal/dunstrc ]              && cp ~/.cache/wal/dunstrc              ~/.config/dunst/dunstrc
 [ -f ~/.cache/wal/hyprland-colors.conf ] && cp ~/.cache/wal/hyprland-colors.conf ~/.config/hypr/hyprland-colors.conf
 
-killall waybar 2>/dev/null; ~/hyprtk/waybar/launch.sh
-~/hyprtk/papirus-icons/scripts/change-icons.sh
+killall waybar 2>/dev/null; ~/hyprtk/configs/waybar/launch.sh
+~/hyprtk/configs/papirus-icons/scripts/change-icons.sh

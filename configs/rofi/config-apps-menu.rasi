@@ -1,0 +1,261 @@
+/*
+#
+#   ██████                      ████ ██        
+#  ██░░░░██                    ░██░ ░░   █████ 
+# ██    ░░   ██████  ███████  ██████ ██ ██░░░██
+#░██        ██░░░░██░░██░░░██░░░██░ ░██░██  ░██
+#░██       ░██   ░██ ░██  ░██  ░██  ░██░░██████
+#░░██    ██░██   ░██ ░██  ░██  ░██  ░██ ░░░░░██
+# ░░██████ ░░██████  ███  ░██  ░██  ░██  █████ 
+#  ░░░░░░   ░░░░░░  ░░░   ░░   ░░   ░░  ░░░░░  
+#                 
+# by hyprtk (Kori Tk) (2026)
+# ----------------------------------------------------- 
+*/
+
+/*****----- Configuration -----*****/
+configuration {
+    modi:                       "drun,run,filebrowser,window,categories:~/.config/rofi/scripts/rofi-categories.sh";
+    show-icons:                 true;
+    icon-theme:                 "Papirus-Dark";
+    display-drun:               " ";
+    display-categories:         " ";
+    display-run:                " ";
+    display-filebrowser:        " ";
+    display-window:             " ";
+    drun-display-format:        "{name}";
+    hover-select:               true;
+    me-select-entry:            "";
+    me-accept-entry:            "MousePrimary";
+    window-format:              "{w} · {c} · {t}";
+}
+
+/*****----- Global Properties -----*****/
+
+@import                          "shared/colors.rasi"
+@import                          "shared/fonts.rasi"
+
+
+/*****----- Main Window -----*****/
+window {
+    /* properties for window widget */
+    transparency:                "real";
+    location:                    center;
+    anchor:                      center;
+    fullscreen:                  false;
+    width:                       700px;
+    height:                      450px;
+    x-offset:                    0px;
+    y-offset:                    0px;
+
+    /* properties for all widgets */
+    enabled:                     true;
+    margin:                      0px;
+    padding:                     0px;
+    border:                      1px solid;
+    border-radius:               16px;
+    border-color:                rgba(255,255,255,0.08);
+    cursor:                      "default";
+    background-color:            rgba(10,10,20,0.60);
+}
+
+/*****----- Main Box -----*****/
+mainbox {
+    enabled:                     true;
+    spacing:                     0px;
+    background-color:            transparent;
+    orientation:                 vertical;
+    children:                    [ "inputbar", "listbox" ];
+}
+
+listbox {
+    spacing:                     20px;
+    padding:                     20px;
+    background-color:            transparent;
+    orientation:                 vertical;
+    children:                    [ "message", "listview" ];
+}
+
+/*****----- Inputbar -----*****/
+inputbar {
+    enabled:                      true;
+    text-color:                   #ffffff;
+    spacing:                      10px;
+    padding:                      15px;
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+    background-color:             rgba(255,255,255,0.05);
+    separator-style:              none;
+    children:                     [ "entry", "dummy", "mode-switcher" ];
+}
+textbox-prompt-colon {
+    enabled:                     true;
+    expand:                      false;
+    padding:                     12px 15px;
+    border-radius:               100%;
+    background-color:            transparent;
+    text-color:                  inherit;
+}
+entry {
+    enabled:                     true;
+    expand:                      false;
+    width:                       300px;
+    padding:                     12px 16px;
+    border-radius:               100%;
+    background-color:            transparent;
+    text-color:                  inherit;
+    cursor:                      text;
+    placeholder:                 "Search";
+    placeholder-color:           inherit;
+}
+dummy {
+    expand:                      true;
+    background-color:            transparent;
+}
+
+/*****----- Mode Switcher -----*****/
+mode-switcher{
+    enabled:                     true;
+    spacing:                     10px;
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+button {
+    font:                        "Iosevka Nerd Font 10";
+    padding:                      10px;
+    border-radius:                5px;
+    background-color:             rgba(255,255,255,0.05);
+    text-color:                   #ffffff;
+    cursor:                       pointer;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+}
+button selected {
+    background-color:            @color4;
+    text-color:                  #ffffff;
+}
+
+/*****----- Listview -----*****/
+listview {
+    enabled:                     true;
+    columns:                     4;
+    lines:                       4;
+    cycle:                       true;
+    dynamic:                     false;
+    scrollbar:                   false;
+    layout:                      vertical;
+    reverse:                     false;
+    fixed-height:                true;
+    fixed-columns:               true;
+    spacing:                     10px;
+    background-color:            transparent;
+    text-color:                  @foreground;
+    cursor:                      "default";
+    border:                      0px;
+}
+
+/* ---- Element ---- */
+element {
+    enabled:                      true;
+    padding:                      10px;
+    margin:                       5px;
+    cursor:                       pointer;
+    background-color:             rgba(255,255,255,0.05);
+    border-radius:                5px;
+    border:                       1px solid;
+    border-color:                 rgba(255,255,255,0.07);
+}
+
+element normal.normal {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element normal.urgent {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element normal.active {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element selected.normal {
+    background-color:            @color4;
+    text-color:                  #ffffff;
+}
+
+element selected.urgent {
+    background-color:            @color4;
+    text-color:                  #ffffff;
+}
+
+element selected.active {
+    background-color:            @color4;
+    text-color:                  #ffffff;
+}
+
+element alternate.normal {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element alternate.urgent {
+    background-color:            transparent;
+    text-color:                  @foreground;
+}
+
+element alternate.active {
+    background-color:            @color11;
+    text-color:                  @foreground;
+}
+
+element-icon {
+    background-color:            transparent;
+    text-color:                  inherit;
+    size:                        40px;
+    cursor:                      inherit;
+    vertical-align:              0.5;
+    horizontal-align:            0.5;
+}
+
+element-text {
+    background-color:            transparent;
+    text-color:                  inherit;
+    cursor:                      inherit;
+    vertical-align:              0.5;
+    horizontal-align:            0.5;
+}
+
+/*****----- Message -----*****/
+message {
+    enabled:                     true;
+    margin:                      0px 100px;
+    padding:                     15px;
+    border:                      1px solid;
+    border-radius:               5px;
+    border-color:                rgba(255,255,255,0.07);
+    background-color:            rgba(255,255,255,0.05);
+    text-color:                  #ffffff;
+}
+textbox {
+    background-color:            inherit;
+    text-color:                  #ffffff;
+    vertical-align:              0.5;
+    horizontal-align:            0.5;
+    placeholder-color:           transparent;
+    blink:                       true;
+    markup:                      true;
+}
+error-message {
+    padding:                     12px;
+    border:                      1px solid;
+    border-radius:               5px;
+    border-color:                rgba(255,255,255,0.07);
+    background-color:            rgba(255,255,255,0.05);
+    text-color:                  #ffffff;
+}
+
+@import                          "variant.rasi"

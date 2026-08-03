@@ -1,5 +1,11 @@
 #!/bin/bash
-figlet -f 3d "HyprViz"
+
+# Source library for package functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+
+print_subsection_header "HyprViz"
+
 echo ""
 echo " Hyprland Configuration Tool "
 echo ""

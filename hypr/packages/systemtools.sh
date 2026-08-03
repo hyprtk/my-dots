@@ -1,7 +1,24 @@
-#/bin/bash
-figlet -f 3d "Sys Tools"
+#!/bin/bash
+
+# Source library for package functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+
+print_subsection_header "Sys Tools"
+
 echo " System Tools "
-sudo pacman -S timeshift file-roller gparted xfce4-power-manager rofi dunst cockpit --noconfirm
+
+# Install or update pacman packages
+_installOrUpdatePacman timeshift
+_installOrUpdatePacman file-roller
+_installOrUpdatePacman gparted
+_installOrUpdatePacman xfce4-power-manager
+_installOrUpdatePacman rofi
+_installOrUpdatePacman dunst
+_installOrUpdatePacman cockpit
+
 echo ""
-yay -S gnome-disk-utility --noconfirm
+
+# Install or update yay packages
+_installOrUpdateYay gnome-disk-utility
 echo ""

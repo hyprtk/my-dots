@@ -22,7 +22,7 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("brave"))
 hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("chromium"))
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split" })
 hl.bind(mainMod .. " + K", hl.dsp.layout("swapsplit"), { description = "Swapsplit" })
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/hyprtk/scripts/appsmenu.sh"))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/appsmenu.sh"))
 hl.bind(mainMod .. " + X", hl.dsp.exit())
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
@@ -35,10 +35,10 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("hyprpicker"))
 --##            added script to reset hyprland with hyprctl                ###
 --##      after taking screenshot where the keybindings stop working       ###
 
-hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("~/hyprtk/scripts/ssdetect.sh"))
+hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/ssdetect.sh"))
 
 -- for users who have mini keyboards with no PrintScr
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("~/hyprtk/scripts/ssdetect.sh"))
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/ssdetect.sh"))
 
 --##                                                                       ###
 
@@ -55,17 +55,17 @@ hl.bind(mainMod .. " + V", function()
 end)
 --##                                                                       ###
 
-hl.bind(mainMod .. " + CTRL + Q", hl.dsp.exec_cmd("~/hyprtk/hyprlogout/logout.sh"))
-hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("~/hyprtk/scripts/updatewal-awww.sh"))
-hl.bind(mainMod .. " + CTRL + W", hl.dsp.exec_cmd("~/hyprtk/scripts/wallpaper-awww.sh"))
-hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("~/hyprtk/scripts/applauncher.sh"))
-hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("~/hyprtk/waybar/launch.sh"))
-hl.bind(mainMod .. " + CTRL + F", hl.dsp.exec_cmd("~/hyprtk/scripts/filemanager.sh"))
-hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("~/hyprtk/scripts/cliphist.sh"))
-hl.bind(mainMod .. " + CTRL + T", hl.dsp.exec_cmd("~/hyprtk/waybar/themeswitcher.sh"))
+hl.bind(mainMod .. " + CTRL + Q", hl.dsp.exec_cmd("~/hyprtk/configs/hyprlogout/logout.sh"))
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/updatewal-awww.sh"))
+hl.bind(mainMod .. " + CTRL + W", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/wallpaper-awww.sh"))
+hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/appsmenu.sh"))
+hl.bind(mainMod .. " + SHIFT + B", hl.dsp.exec_cmd("~/hyprtk/configs/waybar/launch.sh"))
+hl.bind(mainMod .. " + CTRL + F", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/filemanager.sh"))
+hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/cliphist.sh"))
+hl.bind(mainMod .. " + CTRL + T", hl.dsp.exec_cmd("~/hyprtk/configs/waybar/themeswitcher.sh"))
 hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("~/.config/hypr/scripts/wf-record-start.sh"))
 hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("~/.config/hypr/scripts/wf-record-stop.sh"))
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/wf-record-start.sh"))
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("~/.config/hypr/scripts/wf-record-start.sh"))
 hl.bind(mainMod .. " + ALT + P", hl.dsp.exec_cmd("~/.config/hypr/scripts/wf-record-stop.sh"))
 
 hl.bind(mainMod .. " + 1", hl.dsp.focus({ workspace = 1 }))
@@ -117,4 +117,4 @@ end)
 -- -----------------------------------------------------
 
 hl.bind(mainMod .. " + CTRL + U", hl.dsp.exec_cmd("pavucontrol"))
-hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd("pamac-manager"))
+hl.bind(mainMod .. " + CTRL + P", hl.dsp.exec_cmd("pacseek"))

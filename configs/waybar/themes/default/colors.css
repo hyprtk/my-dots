@@ -1,0 +1,7 @@
+/* Default theme — static colors, no pywal dependency */
+@define-color sky #64727D;
+@define-color green #26A65B;
+@define-color sapphire #2980b9;
+@define-color yellow #f1c40f;
+@define-color red #eb4d4b;
+@define-color mauve #9b59b6;

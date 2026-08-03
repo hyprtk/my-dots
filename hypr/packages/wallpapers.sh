@@ -1,5 +1,11 @@
-#/bin/bash
-figlet -f 3d "Wallpapers"
+#!/bin/bash
+
+# Source library for package functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+
+print_subsection_header "Wallpapers"
+
 echo ""
 echo ""
 echo "-> Install wallapers"
@@ -17,11 +23,11 @@ while true; do
         break;;
         [Nn]* ) 
             if [ -d ~/Pictures/Wallpapers/ ]; then
-                echo "Wallpapers folder already exists."
+                echo "Wallpaper folder already exists."
             else
                 mkdir ~/Pictures/Wallpapers
             fi
-            cp ~/hyprtk/Wallpapers/* ~/Pictures/Wallpapers
+            cp ~/hyprtk/assets/Wallpapers/* ~/Pictures/Wallpapers
             echo "Default wallpapers installed."
         break;;
         * ) echo "Please answer yes or no.";;

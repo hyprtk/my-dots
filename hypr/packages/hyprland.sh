@@ -1,8 +1,50 @@
-#/bin/bash
-figlet -f 3d "Hyprland"
+#!/bin/bash
+
+# Source library for package functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+
+print_subsection_header "Hyprland"
+
 echo " Hyprland "
-sudo pacman -S hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xorg-xhost nwg-look mission-center curl imagemagick jq bc brightnessctl playerctl libadwaita gtk-layer-shell python python-pip python-virtualenv python-gobject gtk4 wob --noconfirm
 
-yay -S awww swaylock-effects gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb 7zip unzip unrar waybar-git --noconfirm
+# Install or update pacman packages
+_installOrUpdatePacman hyprland
+_installOrUpdatePacman xdg-desktop-portal-wlr
+_installOrUpdatePacman swayidle
+_installOrUpdatePacman swappy
+_installOrUpdatePacman cliphist
+_installOrUpdatePacman xorg-xhost
+_installOrUpdatePacman nwg-look
+_installOrUpdatePacman mission-center
+_installOrUpdatePacman curl
+_installOrUpdatePacman imagemagick
+_installOrUpdatePacman jq
+_installOrUpdatePacman bc
+_installOrUpdatePacman brightnessctl
+_installOrUpdatePacman playerctl
+_installOrUpdatePacman libadwaita
+_installOrUpdatePacman gtk-layer-shell
+_installOrUpdatePacman python
+_installOrUpdatePacman python-pip
+_installOrUpdatePacman python-virtualenv
+_installOrUpdatePacman python-gobject
+_installOrUpdatePacman gtk4
+_installOrUpdatePacman wob
 
+echo ""
+
+# Install or update yay packages
+_installOrUpdateYay awww
+_installOrUpdateYay swaylock-effects
+_installOrUpdateYay gvfs-afc
+_installOrUpdateYay gvfs-goa
+_installOrUpdateYay gvfs-gphoto2
+_installOrUpdateYay gvfs-mtp
+_installOrUpdateYay gvfs-nfs
+_installOrUpdateYay gvfs-smb
+_installOrUpdateYay 7zip
+_installOrUpdateYay unzip
+_installOrUpdateYay unrar
+_installOrUpdateYay waybar-git
 

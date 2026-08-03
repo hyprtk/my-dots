@@ -1,1 +1,0 @@
-/home/hyprtk/hyprtk/.zshrc
