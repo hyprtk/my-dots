@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "theme-gui"
+version = "0.1.0"
+description = "Theme manager for Hyprland desktop"
+requires-python = ">=3.10"
+dependencies = [
+    "pygobject>=3.48",
+    "pycairo>=1.26",
+]
+
+[project.scripts]
+theme-gui = "theme_gui.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

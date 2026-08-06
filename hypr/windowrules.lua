@@ -1,0 +1,66 @@
+-- ----------------------------------------------------- 
+-- Window rules
+-- ----------------------------------------------------- 
+
+hl.window_rule({
+    name = "windowrule-1",
+    match = {
+        title = "(^(Microsoft-edge)$)",
+    },
+    float = false,
+})
+
+hl.window_rule({
+    name = "windowrule-2",
+    match = {
+        title = "^(Brave-browser)$",
+    },
+    float = false,
+    size = "600 400",
+})
+
+hl.window_rule({
+    name = "windowrule-3",
+    match = {
+        title = "^(Chromium)$",
+    },
+    float = false,
+})
+
+hl.window_rule({
+    name = "windowrule-4",
+    match = {
+        title = "^(pavucontrol)$",
+    },
+    float = false,
+})
+
+hl.window_rule({
+    name = "windowrule-5",
+    match = {
+        title = "^(blueman-manager)$",
+    },
+    float = false,
+})
+
+-- Specific to launching floating terminal windows
+hl.window_rule({
+    name = "windowrule-6",
+    match = {
+        class = "floating",
+    },
+    float = true,
+    size = "800 600",
+})
+
+-- Theme GUI - floating with fixed dimensions
+hl.window_rule({
+    name = "theme-gui",
+    match = {
+        class = "dev.hyprtk.theme_gui",
+    },
+    float = true,
+    size = "1000 650",
+    center = true,
+})
+

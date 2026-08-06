@@ -1,0 +1,309 @@
+// ── Waybar Modules ────────────────────────────────────
+// by Kori Tk (2026)
+// ─────────────────────────────────────────────────────
+//
+{
+  // Workspaces
+   "hyprland/workspaces": {
+    "on-scroll-down": "hyprctl dispatch \"hl.dsp.focus({workspace = 'r+1'})\"",
+    "on-scroll-up":   "hyprctl dispatch \"hl.dsp.focus({workspace = 'r-1'})\"",
+    "on-click": "hyprctl dispatch 'hl.dsp.focus({ workspace = <id> })'",   
+    "active-only": false,
+    "all-outputs": true,
+    "format": "{}",
+    "format-icons": {
+      "urgent": "",
+      "active": "",
+      "default": ""
+    },
+    "persistent-workspaces": {
+      "*": 5
+    }
+    },
+
+    // Taskbar
+    "wlr/taskbar": {
+        "format": "{icon}",
+        "icon-size": 18,
+        "tooltip-format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "ignore-list": [
+           "Alacritty"
+        ],
+    },
+
+    // Hyprland Window
+    "hyprland/window": {
+        "rewrite": {
+            "(.*) - Brave": "$1",
+            "(.*) - Chromium": "$1",
+            "(.*) - Brave Search": "$1",
+            "(.*) - Outlook": "$1",
+            "(.*) - Microsoft Teams": "$1"
+        },
+        "separate-outputs": true
+    },
+    
+    // Cliphist
+    "custom/cliphist": {
+        "format": "",
+        "on-click": "sleep 0.1 && ~/hyprtk/installer/scripts/cliphist.sh",
+        "on-click-right": "sleep 0.1 && ~/hyprtk/installer/scripts/cliphist.sh d",
+        "on-click-middle": "sleep 0.1 && ~/hyprtk/installer/scripts/cliphist.sh w",
+        "tooltip": true,
+        "tooltip-format": "Clipboard History"
+    },
+    
+    // Terminal
+    "custom/terminal": {
+    "format": "",
+    "on-click": "alacritty",
+    //"format-icons": [""]
+    "tooltip": true,
+    "tooltip-format": "Terminal"
+    },
+
+    // Screen Recorder
+    "custom/wf-recorder": {
+        "format": "{} ",
+        "interval": "once",
+        "exec": "~/hyprtk/hypr/scripts/wf-record-text.py",
+        "return-type": "json",
+        "tooltip": true,
+        "exec-if": "pgrep 'wf-recorder'",
+        "on-click": "exec ~/hyprtk/hypr/scripts/wf-record-stop.sh",
+        "signal": 8
+    },
+    
+    // Updates Count
+    "custom/updates": {
+        "format": "  {}",
+        "tooltip-format": "{}",
+        "escape": true,
+        "return-type": "json",       
+        "exec": "~/hyprtk/installer/scripts/updates.sh",
+        "restart-interval": 60,
+        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/hyprtk/installer/scripts/installupdates.sh",
+        "tooltip": false
+    },
+    
+    // Wallpaper
+    "custom/wallpaper": {
+        "format": "",
+        "on-click": "~/hyprtk/hypr/scripts/matuwall-toggle.sh",
+        "on-click-right": "~/hyprtk/installer/scripts/updatewal-awww.sh",
+        "tooltip": true,
+        "tooltip-format": "Wallpaper Switcher"
+    },
+
+    // Waybar Theme
+    "custom/waybarthemes": {
+        "format": "",
+        "on-click": "~/hyprtk/configs/waybar/themeswitcher.sh",
+        "tooltip": true,
+        "tooltip-format": "Waybar Theme Switcher"
+    },
+
+    // Icon Theme
+    "custom/iconthemes": {
+        "format": "",
+        "on-click": "~/hyprtk/installer/scripts/icon-color-select.sh",
+        "tooltip": true,
+        "tooltip-format": "Folder Theme Switcher"
+    },
+
+        // Set sddm & grub to current wallpaper
+    "custom/sddmgrub": {
+        "format": "",
+        "on-click": "alacritty -o window.dimensions.lines=45 window.dimensions.columns=90 --class floating -e ~/hyprtk/configs/sddm/update.sh",
+        "tooltip": true,
+        "tooltip-format": "sddm/grub updater"
+    },
+
+    // Filemanager Launcher
+    "custom/filemanager": {
+        "format": "",
+        "on-click": "~/hyprtk/installer/scripts/filemanager.sh",
+        "tooltip": true,
+        "tooltip-format": "File Manager"
+    },
+
+    // ChatGPT Launcher
+    "custom/chatgpt": {
+        "format": "",
+        "on-click": "brave --app=https://chat.openai.com",
+        "tooltip": false
+    },
+
+    // Rofi Calculator
+    "custom/calculator": {
+        "format": "",
+        "on-click": "~/hyprtk/installer/scripts/calculator.sh",
+        "tooltip": false
+    },
+
+    // Rofi Application Launcher
+    "custom/appmenu": {
+        "format": " Home",
+        "on-click": "~/hyprtk/installer/scripts/appsmenu.sh",
+        "tooltip": true,
+        "tooltip-format": "Application Launcher"
+    },
+
+    // Power Menu
+    "custom/exit": {
+        "format": "",
+        "on-click": "~/hyprtk/configs/hyprlogout/logout.sh",
+        "tooltip": false
+    },
+
+    // Screenshot
+    "custom/screenshot": {
+        "format": "",
+        "on-click": "~/hyprtk/installer/scripts/ssdetect.sh",
+        "tooltip": true,
+        "tooltip-format": "Take a Screenshot"
+    },
+
+    // System tray
+    "tray": {
+        // "icon-size": 21,
+        "spacing": 10
+    },
+
+    // Clock
+    "clock": {
+        // "timezone": "Europe/London",
+        "tooltip-format": "<big>{:%B %Y}</big>\n<tt><small>{calendar}</small></tt>",
+        "format-alt": "{:%d-%m-%y}"
+    },
+
+    // custom keybooard state
+      "custom/kbstate": {
+        "return-type": "json",
+        "exec": "~/hyprtk/installer/scripts/keyboard_state.sh",
+        "restart-interval": 5,
+        "hide-empty-text": true
+    },
+    
+    // CPU
+    "cpu": {
+        "format": "󰍛   {usage}% ",
+        "on-click": "alacritty -e btop"
+    },
+
+    // Memory
+    "memory": {
+        "format": "󰾆   {}% ",
+        "on-click": "alacritty -e btop"
+    },
+
+    // Harddisc space used
+    "disk": {
+        "interval": 30,
+        "format": "󰋊   {percentage_used}% ",
+        "path": "/",
+        "on-click": "alacritty -e btop"
+    }, 
+    
+    // Network
+    "network": {
+        "format": "{ifname}",
+        "format-wifi": "{essid}  {signalStrength}%",
+        "format-ethernet": " {ipaddr}/{cidr}",
+        "format-linked": " {ifname} (No IP)",
+        "format-disconnected": "睊 Disconnected",
+        "format-disabled": "睊 Disabled",
+        "format-alt": " {bandwidthUpBits} |  {bandwidthDownBits}",
+        "tooltip-format": " {ifname} via {gwaddri}",
+        "tooltip-format-wifi": "   {essid} ({signalStrength}%) {ifname} via {gwaddri}",
+        "tooltip-format-ethernet": "  {ifname} ({ipaddr}/{cidr})",
+        "tooltip-format-disconnected": "Disconnected",
+        "interval": 5,
+        "on-click-right": "nm-connection-editor",
+    },
+
+    // Battery
+    "battery": {
+        "states": {
+            // "good": 95,
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{icon}   {capacity}%",
+        "format-charging": "  {capacity}%",
+        "format-plugged": "  {capacity}%",
+        "format-alt": "{icon}  {time}",
+        // "format-good": "", // An empty format will hide the module
+        // "format-full": "",
+        "format-icons": [" ", " ", " ", " ", " "]
+    },
+
+    // Pulseaudio
+    "pulseaudio": {
+        "scroll-step": 5, // %, can be a float
+        "format": "{icon} {volume}%",
+        "format-bluetooth": "{volume}% {icon} {format_source}",
+        "format-bluetooth-muted": " {icon} {format_source}",
+        "format-muted": " {format_source}",
+        "format-source": "{volume}% ",
+        "format-source-muted": "",
+            "on-click-right": "~/hyprtk/installer/scripts/Volume.sh --toggle-mute",
+            "on-click": "pavucontrol -t 3",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "",
+            "headset": "",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": ["", " ", " "],
+            "on-scroll-up": "~/hyprtk/installer/scripts/Volume.sh --volume-inc",
+            "on-scroll-down": "~/hyprtk/installer/scripts/Volume.sh --volume-dec",
+            "scroll-step": 5,  
+        },
+    },
+
+    "pulseaudio#microphone": {
+        "format": "{format_source}",
+        "format-source": " {volume}%",
+        "format-source-muted": "",
+            "on-click-right": "~/hyprtk/installer/scripts/Volume.sh --toggle-mic",
+            "on-click": "pavucontrol -t 4",
+            "on-scroll-up": "~/hyprtk/installer/scripts/Volume.sh --mic-inc",
+            "on-scroll-down": "~/hyprtk/installer/scripts/Volume.sh --mic-dec",
+            "scroll-step": 5,
+        },
+
+    // Bluetooth
+    "bluetooth": {
+        "format-disabled": "",
+        "format-off": "",
+        "interval": 30,
+        "on-click": "blueman-manager"
+    },
+
+    //keybindings
+    "custom/keybindings": {
+    "format": "",
+    "on-click": "~/hyprtk/installer/scripts/keyhint.sh",
+    "tooltip": true,
+    "tooltip-format": "Keybinding Help"
+    },
+    
+    // browser
+    "custom/browser": {
+        "format": "",
+        "on-click": "exec brave", //choose a browser
+        "tooltip": true,
+        "tooltip-format": "Web Browser"
+    },
+
+    // Other
+    "user": {
+        "format": "{user}",
+        "interval": 60,
+        "icon": false,
+    }
+}

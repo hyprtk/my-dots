@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Hyprtk Themer
+Comment=Theme manager for Hyprland desktop
+Exec=bash -c "$HOME/.local/bin/theme-gui"
+Icon=preferences-desktop-theme
+Terminal=false
+Type=Application
+Categories=Settings;DesktopSettings;
+Keywords=theme;waybar;rofi;pywal;wallpaper;

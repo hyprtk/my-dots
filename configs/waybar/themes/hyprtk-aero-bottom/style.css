@@ -1,0 +1,490 @@
+@import "colors.css";
+
+/* =========================================================
+   Hyprtk Waybar — hyprtk-aero
+   Windows 7 Aero Glass theme
+   Semi-transparent dark glass, white inner glow, top reflection
+   ========================================================= */
+
+* {
+    font-family: "Segoe UI", "Fira Sans Semibold", FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+    transition: all 0.2s ease;
+}
+
+/* ── Bar ─────────────────────────────────────── */
+window#waybar {
+    background: linear-gradient(180deg,
+        rgba(20, 20, 25, 0.72) 0%,
+        rgba(10, 10, 15, 0.82) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+    border-top: none;
+    border-radius: 8px;
+    color: rgba(230, 230, 240, 0.95);
+    box-shadow:
+        0 2px 16px rgba(0, 0, 0, 0.50),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* ── Workspaces ──────────────────────────────── */
+#workspaces {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+}
+
+#workspaces button {
+    font-size: 16px;
+    padding: 2px 10px 2px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    min-width: 24px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.80);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#workspaces button.active {
+    color: #ffffff;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.22) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.40);
+    box-shadow:
+        0 0 12px rgba(255, 255, 255, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.30);
+}
+
+#workspaces button.urgent {
+    color: #ffffff;
+    background: rgba(220, 80, 80, 0.40);
+    border-color: rgba(255, 100, 100, 0.40);
+    box-shadow: 0 0 10px rgba(255, 80, 80, 0.25);
+}
+
+#workspaces button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+}
+
+/* ── Clock ───────────────────────────────────── */
+#clock {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 1px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 4px;
+    color: rgba(220, 220, 230, 0.95);
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#clock:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.30);
+}
+
+/* ── Module pill base ────────────────────────── */
+#mpris,
+#network,
+#pulseaudio,
+#disk,
+#cpu,
+#memory,
+#battery,
+#tray {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 2px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: rgba(220, 220, 230, 0.88);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#mpris:hover,
+#network:hover,
+#pulseaudio:hover,
+#disk:hover,
+#cpu:hover,
+#memory:hover,
+#battery:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+    box-shadow:
+        0 0 8px rgba(255, 255, 255, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* ── Icon modules ────────────────────────────── */
+#custom-appmenu {
+    font-size: 16px;
+    margin: 6px 6px 6px 6px;
+    padding: 2px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.95);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        0 0 8px rgba(255, 255, 255, 0.08);
+}
+
+#custom-terminal,
+#custom-filemanager,
+#custom-browser,
+#custom-cliphist,
+#custom-screenshot,
+#custom-wf-recorder,
+#custom-keybindings,
+#custom-kbstate,
+#custom-wallpaper,
+#custom-waybarthemes,
+#custom-iconthemes,
+#custom-sddmgrub {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 2px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: rgba(220, 220, 230, 0.88);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#custom-terminal:hover,
+#custom-filemanager:hover,
+#custom-browser:hover,
+#custom-cliphist:hover,
+#custom-screenshot:hover,
+#custom-wf-recorder:hover,
+#custom-keybindings:hover,
+#custom-kbstate:hover,
+#custom-wallpaper:hover,
+#custom-waybarthemes:hover,
+#custom-iconthemes:hover,
+#custom-sddmgrub:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+    box-shadow:
+        0 0 8px rgba(255, 255, 255, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+#custom-exit {
+    font-size: 18px;
+    margin: 6px 6px 6px 0px;
+    padding: 2px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: rgba(220, 220, 230, 0.88);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#custom-exit:hover {
+    background: rgba(220, 80, 80, 0.25);
+    border-color: rgba(255, 100, 100, 0.35);
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(255, 80, 80, 0.20);
+}
+
+#custom-updates {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 2px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: rgba(220, 220, 230, 0.88);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#custom-updates:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+}
+
+#custom-chatgpt,
+#custom-calculator {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 2px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: rgba(220, 220, 230, 0.88);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+#custom-chatgpt:hover,
+#custom-calculator:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+}
+
+/* ── Spotify / Media ─────────────────────────── */
+#mpris {
+    color: rgba(255, 255, 255, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#mpris.paused {
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Network ─────────────────────────────────── */
+#network {
+    color: rgba(255, 255, 255, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#network.disconnected {
+    color: rgba(255, 120, 120, 0.82);
+    background: rgba(200, 60, 60, 0.08);
+    border-color: rgba(220, 80, 80, 0.18);
+}
+
+/* ── Volume ──────────────────────────────────── */
+#pulseaudio {
+    color: rgba(255, 255, 255, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#pulseaudio.muted {
+    color: rgba(255, 255, 255, 0.50);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Disk ────────────────────────────────────── */
+#disk {
+    color: rgba(240, 190, 110, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── CPU ─────────────────────────────────────── */
+#cpu {
+    color: rgba(240, 190, 110, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Memory ──────────────────────────────────── */
+#memory {
+    color: rgba(255, 255, 255, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Battery ─────────────────────────────────── */
+#battery {
+    color: rgba(255, 255, 255, 0.92);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 15px 0px 10px;
+}
+
+#battery.warning:not(.charging) {
+    color: rgba(255, 200, 80, 0.95);
+    background: rgba(200, 160, 40, 0.12);
+    border-color: rgba(255, 255, 255, 0.20);
+}
+
+#battery.critical:not(.charging) {
+    color: rgba(255, 100, 100, 0.95);
+    background: rgba(200, 50, 50, 0.15);
+    border-color: rgba(255, 80, 80, 0.28);
+}
+
+#battery.charging {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* ── Tray ────────────────────────────────────── */
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+    background: rgba(220, 70, 70, 0.15);
+    border-color: rgba(255, 90, 90, 0.22);
+}
+
+/* ── Pywal dynamic colors ────────────────────── */
+/* Maps accent colors to Aero glass palette */
+
+#mpris {
+    color: @green;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#network {
+    color: @sky;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#pulseaudio {
+    color: @sapphire;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#disk {
+    color: @yellow;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#cpu {
+    color: @yellow;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#memory {
+    color: @green;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-appmenu {
+    color: @sky;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-terminal {
+    color: @green;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-filemanager {
+    color: @sky;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-browser {
+    color: @sapphire;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-cliphist {
+    color: @yellow;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-screenshot {
+    color: @red;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-wf-recorder {
+    color: @mauve;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-keybindings {
+    color: @sapphire;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-kbstate {
+    color: @yellow;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-wallpaper {
+    color: @sky;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-waybarthemes {
+    color: @green;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-iconthemes {
+    color: @mauve;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-sddmgrub {
+    color: @red;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-chatgpt {
+    color: @green;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-calculator {
+    color: @sapphire;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-exit {
+    color: @red;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#custom-updates {
+    color: @yellow;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#workspaces button {
+    color: @sapphire;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#clock {
+    color: @mauve;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+#tray {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+}
