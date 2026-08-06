@@ -1,1 +1,0 @@
-/home/hyprtk/Projects/AI-Projects/hyprtk-merged/.zshrc

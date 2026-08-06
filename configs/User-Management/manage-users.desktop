@@ -1,8 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Manage Users
-Comment=Edit System configuration
-Exec=bash -c "$HOME/hyprtk/installer/scripts/users.sh; read"
-Icon=user
-Terminal=false
