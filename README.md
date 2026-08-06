@@ -3,8 +3,8 @@
 A complete, opinionated Hyprland desktop setup for Arch-based distributions. One script installs everything: compositor config, status bar, theming, wallpaper management, and 40+ utility scripts.
 
 <p align="center">
-<img src="https://github.com/hyprtk/dotfiles/blob/main/assets/thumbnails/arch1.png?raw=true" width="48%">
-<img src="https://github.com/hyprtk/dotfiles/blob/main/assets/thumbnails/arch2.png?raw=true" width="48%">
+<img src="https://github.com/hyprtk/dotfiles/blob/main/assets/thumbnails/arch1-thumb.png" width="48%">
+<img src="https://github.com/hyprtk/dotfiles/blob/main/assets/thumbnails/arch2-thumb.png" width="48%">
 </p>
 
 **Supported distros:** Arch Linux, ArchBang, Archcraft, Archman, BlueStar, CachyOS, EndeavourOS, Garuda, Kiro, Manjaro, RebornOS
@@ -131,7 +131,7 @@ All keybinds use `SUPER` (Windows key) as the modifier.
 
 <table>
 <tr>
-<td width="33%">
+<td width="50%">
 
 ### Core
 
@@ -148,9 +148,6 @@ All keybinds use `SUPER` (Windows key) as the modifier.
 | `SUPER + R` | Reload config |
 | `SUPER + C` | Color picker |
 
-</td>
-<td width="33%">
-
 ### Wallpapers & Theming
 
 | Key | Action |
@@ -160,6 +157,9 @@ All keybinds use `SUPER` (Windows key) as the modifier.
 | `SUPER + Ctrl + W` | Wallpaper selector |
 | `SUPER + Ctrl + T` | Switch Waybar theme |
 
+</td>
+<td width="50%">
+
 ### Screenshots & Recording
 
 | Key | Action |
@@ -168,9 +168,6 @@ All keybinds use `SUPER` (Windows key) as the modifier.
 | `SUPER + P` | Screenshot |
 | `SUPER + Shift + Print` | Start recording |
 | `SUPER + Alt + Print` | Stop recording |
-
-</td>
-<td width="33%">
 
 ### Workspaces
 
