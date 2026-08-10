@@ -1,6 +1,8 @@
 #!/bin/bash
 # Theme-GUI Installer for Hyprtk
 # Creates venv, installs app, creates launcher scripts, installs desktop file
+# Usage: ./install.sh          — install
+#        ./install.sh --uninstall — remove everything
 
 set -euo pipefail
 
@@ -8,14 +10,33 @@ APP_NAME="theme-gui"
 INSTALL_DIR="$HOME/.local/share/$APP_NAME"
 BIN_DIR="$HOME/.local/bin"
 APPS_DIR="$HOME/.local/share/applications"
+CACHE_DIR="$HOME/.cache/$APP_NAME"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# ── Uninstall ──────────────────────────────────────────────
+if [[ "${1:-}" == "--uninstall" || "${1:-}" == "-u" ]]; then
+    echo ":: Uninstalling theme-gui..."
+
+    rm -rf "$INSTALL_DIR"
+    rm -f "$BIN_DIR/theme-gui"
+    rm -f "$BIN_DIR/hyprtk-themer"
+    rm -f "$APPS_DIR/hyprtk-themer.desktop"
+    rm -rf "$CACHE_DIR"
+    update-desktop-database "$APPS_DIR" 2>/dev/null || true
+
+    echo ":: Removed: $INSTALL_DIR"
+    echo ":: Removed: $BIN_DIR/theme-gui"
+    echo ":: Removed: $BIN_DIR/hyprtk-themer"
+    echo ":: Removed: $APPS_DIR/hyprtk-themer.desktop"
+    echo ":: Removed: $CACHE_DIR"
+    echo ":: Done. theme-gui has been uninstalled."
+    exit 0
+fi
+
+# ── Install ────────────────────────────────────────────────
 echo ":: Installing theme-gui..."
 
-# Create install directories
-mkdir -p "$INSTALL_DIR"
-mkdir -p "$BIN_DIR"
-mkdir -p "$APPS_DIR"
+mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$APPS_DIR"
 
 # Copy source
 cp -r "$SCRIPT_DIR/src" "$INSTALL_DIR/"
@@ -46,3 +67,4 @@ update-desktop-database "$APPS_DIR" 2>/dev/null || true
 
 echo ":: theme-gui installed to $BIN_DIR/theme-gui"
 echo ":: hyprtk-themer desktop launcher installed"
+echo ":: Run 'install.sh --uninstall' to remove"
