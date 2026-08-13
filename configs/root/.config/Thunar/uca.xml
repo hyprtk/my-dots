@@ -38,7 +38,7 @@
 	<name>Run As Root</name>
 	<submenu></submenu>
 	<unique-id>1571572865722601-3</unique-id>
-	<command>pkexec thunar %f</command>
+	<command>pkexec env DISPLAY=&quot;$DISPLAY&quot; WAYLAND_DISPLAY=&quot;$WAYLAND_DISPLAY&quot; XDG_RUNTIME_DIR=&quot;$XDG_RUNTIME_DIR&quot; DBUS_SESSION_BUS_ADDRESS=&quot;$DBUS_SESSION_BUS_ADDRESS&quot; thunar %f</command>
 	<description>Run As Root</description>
 	<range></range>
 	<patterns>*</patterns>

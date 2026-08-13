@@ -35,6 +35,29 @@ _isInstalledYay() {
 }
 
 # ------------------------------------------------------
+# Function: Install all pacman packages if not installed
+# ------------------------------------------------------
+_installPackagesPacman() {
+    local toInstall=()
+
+    for pkg in "$@"; do
+        if [[ $(_isInstalledPacman "${pkg}") == 0 ]]; then
+            echo "${pkg} is already installed."
+            continue
+        fi
+
+        toInstall+=("${pkg}")
+    done
+
+    if [[ "${toInstall[@]}" == "" ]]; then
+        return 0
+    fi
+
+    printf "Packages not installed:\n%s\n" "${toInstall[@]}"
+    sudo pacman --noconfirm -S "${toInstall[@]}"
+}
+
+# ------------------------------------------------------
 # Function: Install or update pacman package
 # ------------------------------------------------------
 _installOrUpdatePacman() {
@@ -74,6 +97,53 @@ _installOrUpdateYay() {
 
     echo "Installing ${package}...";
     yay --noconfirm -S "${package}" || true
+}
+
+# ------------------------------------------------------
+# Function: Check and install/update hyprviz
+# ------------------------------------------------------
+_checkAndInstallHyprviz() {
+    echo "Checking hyprviz-bin..."
+    if [[ $(_isInstalledYay "hyprviz-bin") == 0 ]]; then
+        echo "hyprviz-bin is already installed. Checking for updates..."
+        yay --noconfirm -S hyprviz-bin || true
+        return 0
+    fi
+
+    echo "Installing hyprviz-bin..."
+    if [ -f "$HOME/hyprtk/hypr/packages/hyprviz.sh" ]; then
+        sh "$HOME/hyprtk/hypr/packages/hyprviz.sh"
+    else
+        echo "Warning: hyprviz.sh not found. Skipping hyprviz installation."
+        return 0
+    fi
+}
+
+# ------------------------------------------------------
+# Function: Check and install/update matuwall
+# ------------------------------------------------------
+_checkAndInstallMatuwall() {
+    echo "Checking Matuwall..."
+    if [ -d "$HOME/.local/share/Matuwall" ]; then
+        echo "Matuwall is already installed. Checking for updates..."
+        cd "$HOME/.local/share/Matuwall" || return 0
+        git pull 2>/dev/null || true
+        if [ -f .venv/bin/activate ]; then
+            source .venv/bin/activate
+            pip install --upgrade pip 2>/dev/null || true
+            pip install . 2>/dev/null || true
+        fi
+        cd - >/dev/null 2>&1 || true
+        return 0
+    fi
+
+    echo "Installing Matuwall..."
+    if [ -f "$HOME/hyprtk/hypr/packages/matuwall.sh" ]; then
+        sh "$HOME/hyprtk/hypr/packages/matuwall.sh"
+    else
+        echo "Warning: matuwall.sh not found. Skipping Matuwall installation."
+        return 0
+    fi
 }
 
 # ------------------------------------------------------
