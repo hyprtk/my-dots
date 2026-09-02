@@ -171,7 +171,7 @@ window#waybar.empty #window {
  * Custom Modules
  * ----------------------------------------------------- */
 
-#custom-appmenu {
+#custom-appmenu, #custom-hyprtk-menu {
     background-color: rgba(255,255,255,0.04);
     font-size: 14px;
     color: #c2c4c7;

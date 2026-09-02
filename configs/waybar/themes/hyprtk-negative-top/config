@@ -33,6 +33,7 @@
 
     // Modules Left
     "modules-left": [
+        "custom/hyprtk-menu",
         "custom/appmenu",
         "custom/terminal",
         "custom/filemanager",

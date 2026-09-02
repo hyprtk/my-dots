@@ -94,7 +94,7 @@ window#waybar {
 
 #custom-chatgpt:hover,
 #custom-calculator:hover,
-#custom-appmenu:hover,
+#custom-appmenu:hover, #custom-hyprtk-menu:hover,
 #custom-terminal:hover,
 #custom-filemanager:hover,
 #custom-browser:hover,
@@ -179,7 +179,7 @@ window#waybar {
     color: rgba(220, 220, 235, 0.90);
 }
 
-#custom-appmenu {
+#custom-appmenu, #custom-hyprtk-menu {
     font-size: 16px;
     margin: 6px 6px 6px 6px;
     padding: 2px 10px 0px 10px;
@@ -230,7 +230,7 @@ window#waybar {
     color: rgba(220, 220, 235, 0.90);
 }
 
-#custom-appmenu { color: @sky; }
+#custom-appmenu, #custom-hyprtk-menu { color: @sky; }
 #custom-terminal { color: @green; }
 #custom-filemanager { color: @sky; }
 #custom-browser { color: @sapphire; }

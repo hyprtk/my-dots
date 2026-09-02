@@ -170,7 +170,7 @@ window#waybar {
     color: #ffffff;
 }
 
-#custom-appmenu {
+#custom-appmenu, #custom-hyprtk-menu {
     font-size: 16px;
     margin: 6px 6px 6px 6px;
     padding: 2px 10px 0px 10px;
