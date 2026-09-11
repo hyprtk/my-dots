@@ -70,7 +70,7 @@ A complete, opinionated Hyprland desktop setup for Arch-based distributions. One
 ```bash
 git clone https://github.com/hyprtk/dotfiles.git ~/hyprtk
 cd ~/hyprtk
-./1-install.sh
+sh ./1-install.sh
 ```
 
 > **Backup your existing `~/.config` before installing.**
