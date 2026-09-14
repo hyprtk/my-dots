@@ -14,27 +14,33 @@
 # The bar launches us detached (no tty). Re-launch ourselves inside the first
 # terminal emulator we can find, so the interactive upgrade has a prompt and
 # stays open for the trailing "Press Enter to close." read.
+#
+# The window is tagged app-id/class "hyprtk-updates" and title "Hyprtk Updates"
+# so Hyprland (see the hyprtk dotfiles' hypr/windowrules.lua) floats it instead
+# of tiling it full-screen.
 if [ ! -t 0 ]; then
+    upd_app="hyprtk-updates"
+    upd_title="Hyprtk Updates"
     if command -v alacritty >/dev/null 2>&1; then
-        exec alacritty -e "$0"
+        exec alacritty --class "$upd_app" -T "$upd_title" -e "$0"
     elif command -v kitty >/dev/null 2>&1; then
-        exec kitty "$0"
+        exec kitty --class="$upd_app" -T "$upd_title" "$0"
     elif command -v foot >/dev/null 2>&1; then
-        exec foot "$0"
+        exec foot --app-id="$upd_app" -T "$upd_title" "$0"
     elif command -v wezterm >/dev/null 2>&1; then
-        exec wezterm start -- "$0"
+        exec wezterm start --class "$upd_app" -- "$0"
     elif command -v xfce4-terminal >/dev/null 2>&1; then
-        exec xfce4-terminal --command "$0"
+        exec xfce4-terminal --class="$upd_app" -T "$upd_title" --command "$0"
     elif command -v gnome-terminal >/dev/null 2>&1; then
-        exec gnome-terminal -- "$0"
+        exec gnome-terminal --class="$upd_app" --title "$upd_title" -- "$0"
     elif command -v konsole >/dev/null 2>&1; then
-        exec konsole -e "$0"
+        exec konsole -p tabtitle="$upd_title" -e "$0"
     elif command -v terminator >/dev/null 2>&1; then
-        exec terminator -e "$0"
+        exec terminator -T "$upd_title" -e "$0"
     elif command -v x-terminal-emulator >/dev/null 2>&1; then
-        exec x-terminal-emulator -e "$0"
+        exec x-terminal-emulator -T "$upd_title" -e "$0"
     elif command -v xterm >/dev/null 2>&1; then
-        exec xterm -e "$0"
+        exec xterm -T "$upd_title" -e "$0"
     else
         echo "No terminal emulator found to run the update in." >&2
         echo "Install one (e.g. alacritty, kitty, foot) or run this manually:" >&2

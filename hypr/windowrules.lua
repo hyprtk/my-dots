@@ -79,3 +79,27 @@ hl.window_rule({
     size = "800 600",
 })
 
+-- Updates module: installupdates.sh relaunches itself in a terminal tagged
+-- app-id/class "hyprtk-updates" (title "Hyprtk Updates") — float it instead of
+-- tiling it full-screen. Two rules: class for Wayland-native app-ids, title for
+-- terminals that only set the window title.
+hl.window_rule({
+    name = "windowrule-updates",
+    match = {
+        class = "hyprtk-updates",
+    },
+    float = true,
+    center = true,
+    size = "1000 650",
+})
+
+hl.window_rule({
+    name = "windowrule-updates-title",
+    match = {
+        title = "^(Hyprtk Updates)$",
+    },
+    float = true,
+    center = true,
+    size = "1000 650",
+})
+
