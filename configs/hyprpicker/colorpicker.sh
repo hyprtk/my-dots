@@ -57,4 +57,3 @@ prevColors=$(head -n $((limit - 1)) "$loc/colors")
 echo "$color" >"$loc/colors"
 echo "$prevColors" >>"$loc/colors"
 sed -i '/^$/d' "$loc/colors"
-pkill -RTMIN+1 waybar

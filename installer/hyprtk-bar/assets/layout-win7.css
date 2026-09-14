@@ -1,0 +1,224 @@
+/* hyprtk-menu — Windows 7 layout
+   Aero glass: blue-tinted translucent surfaces, classic Win7 feel.
+   All colors come from the pywal palette + semantic tokens.
+   Scoped under .layout-win7. */
+
+@define-color win7_blue @color4;
+@define-color win7_blue_dark alpha(@color4, 0.6);
+
+/* ── Overall panel ── */
+.layout-win7 .menu {
+    border-radius: 16px;
+    border: 2px solid alpha(@color4, 0.5);
+}
+
+/* ── Left pane: user + apps ── */
+.layout-win7 .win7-left {
+    background-color: alpha(@background, 0.45);
+    border-right: 1px solid alpha(@color4, 0.35);
+}
+
+/* User profile bar */
+.layout-win7 .win7-profile {
+    padding: 10px 12px;
+    border-bottom: 1px solid alpha(@color4, 0.25);
+    background-color: alpha(@color4, 0.06);
+}
+.layout-win7 .win7-avatar {
+    -gtk-icon-style: regular;
+}
+.layout-win7 .win7-username {
+    color: @foreground;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* Favorites in win7 */
+.layout-win7 .favorites {
+    border-radius: 0;
+    background-color: transparent;
+    border: none;
+    margin: 4px 8px;
+    padding: 4px;
+}
+.layout-win7 .favorites label {
+    color: @win7_blue;
+    font-size: 11px;
+}
+.layout-win7 .fav-btn {
+    border-radius: 3px;
+    padding: 3px;
+}
+.layout-win7 .fav-btn:hover {
+    background-color: alpha(@color4, 0.15);
+    border-color: transparent;
+}
+
+/* App list in win7 (left pane) */
+.layout-win7 .app-list-scroll {
+    background-color: transparent;
+}
+.layout-win7 .app-list {
+    background-color: transparent;
+}
+.layout-win7 .app-row {
+    border-radius: 0;
+    padding: 4px 10px;
+    margin: 0;
+}
+.layout-win7 .app-row:hover {
+    background-color: alpha(@color4, 0.12);
+}
+.layout-win7 .app-row:selected {
+    background-color: @win7_blue;
+    border: none;
+}
+.layout-win7 .app-row:selected .app-name,
+.layout-win7 .app-row:selected .app-desc {
+    color: #ffffff;
+}
+.layout-win7 .app-name {
+    color: @foreground;
+    font-size: 12px;
+}
+.layout-win7 .app-desc {
+    color: alpha(@foreground, 0.65);
+    font-size: 10px;
+}
+
+/* All Programs row */
+.layout-win7 .win7-allprograms {
+    border-top: 1px solid alpha(@color4, 0.2);
+    padding: 6px 12px;
+}
+.layout-win7 .win7-allprograms:hover {
+    background-color: alpha(@color4, 0.12);
+}
+.layout-win7 .win7-allprograms-label {
+    color: @foreground;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* ── Right pane: places + search ── */
+.layout-win7 .win7-right {
+    background-color: alpha(@color4, 0.08);
+}
+
+/* Places list */
+.layout-win7 .win7-places {
+    background-color: transparent;
+}
+.layout-win7 .win7-place-row {
+    padding: 5px 12px;
+    border-radius: 0;
+    margin: 0;
+}
+.layout-win7 .win7-place-row:hover {
+    background-color: alpha(@color4, 0.18);
+}
+.layout-win7 .win7-place-icon {
+    -gtk-icon-style: regular;
+    color: @win7_blue;
+}
+.layout-win7 .win7-place-label {
+    color: @foreground;
+    font-size: 12px;
+}
+
+/* Search at bottom-right */
+.layout-win7 .win7-search {
+    margin: 0;
+    border-radius: 0;
+    background-color: alpha(@background, 0.55);
+    border: 1px solid alpha(@color4, 0.5);
+    border-top: 1px solid alpha(@color4, 0.35);
+    color: @foreground;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+.layout-win7 .win7-search:focus {
+    border-color: @win7_blue;
+    background-color: alpha(@background, 0.65);
+}
+.layout-win7 .win7-search selection {
+    background-color: @win7_blue;
+    color: #ffffff;
+}
+
+/* ── Power bar (bottom) ── */
+.layout-win7 .win7-bottom {
+    background-color: alpha(@color4, 0.10);
+    border-top: 1px solid alpha(@color4, 0.35);
+}
+.layout-win7 .menu-footer,
+.layout-win7 .win7-footer {
+    padding: 4px 8px;
+}
+.layout-win7 .menu-user,
+.layout-win7 .win7-user {
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+.layout-win7 .menu-user:hover,
+.layout-win7 .win7-user:hover {
+    background-color: alpha(@color4, 0.18);
+}
+.layout-win7 .menu-avatar,
+.layout-win7 .win7-avatar {
+    -gtk-icon-style: regular;
+}
+.layout-win7 .menu-username,
+.layout-win7 .win7-username {
+    color: @foreground;
+    font-size: 12px;
+    font-weight: bold;
+}
+.layout-win7 .powerbar {
+    border-radius: 0 0 16px 16px;
+    border-top: none;
+    background-color: transparent;
+    padding: 4px 8px;
+}
+.layout-win7 .power-title {
+    color: alpha(@foreground, 0.7);
+    font-size: 11px;
+    font-style: italic;
+}
+.layout-win7 .menu-settings-btn,
+.layout-win7 .menu-settings-btn,
+.layout-win7 .resize-grip {
+    border-radius: 3px;
+    background-color: alpha(@color4, 0.18);
+    border: 1px solid alpha(@color4, 0.4);
+}
+.layout-win7 .menu-settings-btn:hover,
+.layout-win7 .menu-settings-btn:hover,
+.layout-win7 .resize-grip:hover {
+    background-color: @win7_blue;
+    border-color: @win7_blue_dark;
+}
+.layout-win7 .power-btn {
+    border-radius: 3px;
+    background-color: alpha(@color4, 0.18);
+    border: 1px solid alpha(@color4, 0.4);
+}
+.layout-win7 .power-btn:hover {
+    background-color: @win7_blue;
+    border-color: @win7_blue_dark;
+}
+.layout-win7 .power-btn.power-danger {
+    border-color: alpha(@color1, 0.6);
+}
+.layout-win7 .power-btn.power-danger:hover {
+    background-color: alpha(@color1, 0.9);
+    border-color: @color1;
+}
+
+/* ── Scrollbar overrides ── */
+.layout-win7 scrollbar slider {
+    background-color: alpha(@win7_blue, 0.4);
+}
+.layout-win7 scrollbar slider:hover {
+    background-color: @win7_blue;
+}

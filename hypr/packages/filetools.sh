@@ -1,19 +1,33 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── filetools ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+case "$HYPRTK_PM" in
+pacman)
+    PKGS=(thunar mousepad)
+    AUR=(thunar-shares-plugin)
+    ;;
+apt)
+    PKGS=(thunar mousepad thunar-shares-plugin)
+    ;;
+dnf)
+    PKGS=(thunar mousepad thunar-shares-plugin)
+    ;;
+zypper)
+    PKGS=(thunar mousepad thunar-shares-plugin)
+    ;;
+xbps)
+    PKGS=(thunar mousepad)
+    ;;
+apk)
+    PKGS=(thunar mousepad)
+    ;;
+esac
 
-print_subsection_header "File Tools"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " File Tools"
-
-# Install or update pacman packages
-_installOrUpdatePacman thunar
-_installOrUpdatePacman mousepad
-
-echo ""
-
-# Install or update yay packages
-_installOrUpdateYay thunar-shares-plugin
-echo ""
+pkg_install "${PKGS[@]}"
+aur_install "${AUR[@]}"

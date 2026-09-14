@@ -1,7 +1,9 @@
 #!/bin/bash
-# ── GTK Theme Generator ───────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#
+#  
+# by hyprtk (Kori Tk) (2026)
+# -----------------------------------------------------   
 
 source "$HOME/.cache/wal/colors.sh"
 
@@ -10,9 +12,10 @@ background=${background:1}
 foreground="$color14"
 foreground=${foreground:1}
 
-oomoxconf="/tmp/autotheme"
+oomoxconf="$(mktemp)"
+trap 'rm -f -- "$oomoxconf"' EXIT
 
-cat << HEREDOC > $oomoxconf
+cat << HEREDOC > "$oomoxconf"
 NAME="autotheme"
 BG=$background
 FG=$foreground
@@ -26,19 +29,20 @@ BTN_BG=$background
 BTN_FG=$foreground
 HEREDOC
 
-oomox-cli $oomoxconf
+oomox-cli "$oomoxconf"
 icon.sh "#$foreground"
 
 sed -i 's/-/_/g' ~/.gtkrc-2.0
 . ~/.gtkrc-2.0 2>&1
 rm ~/.gtkrc-2.0
 
-gtk_theme_name=oomox-$(basename $oomoxconf)
+gtk_theme_name="oomox-$(basename "$oomoxconf")"
 gtk_icon_theme_name=acyl
 gtkvars=(theme-name icon-theme-name font-name cursor-theme-name cursor-theme-size toolbar-style toolbar-icon-size button-images menu-images enable-event-sounds enable-input-feedback-sounds xft-antialias xft-hinting xft-hintstyle xft-rgba)
 
 for i in "${gtkvars[@]}"; do
-    value="$(eval echo \$`echo gtk-$i | sed 's/-/_/g'`)"
+    varname="gtk_${i//-/_}"
+    value="${!varname:-}"
     echo "gtk-$i=\"$value\"" >> ~/.gtkrc-2.0
 done
 

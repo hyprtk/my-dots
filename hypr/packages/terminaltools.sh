@@ -1,28 +1,16 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── terminaltools ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+PKGS=(eza micro xfce4-terminal btop alacritty kitty starship ranger nano neovim fastfetch)
+AUR=()
+[ "$HYPRTK_PM" = pacman ] && AUR=(fastfetch)
 
-print_subsection_header "Term Tools"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " Terminal Tools"
-
-# Install or update pacman packages
-_installOrUpdatePacman eza
-_installOrUpdatePacman micro
-_installOrUpdatePacman xfce4-terminal
-_installOrUpdatePacman btop
-_installOrUpdatePacman alacritty
-_installOrUpdatePacman kitty
-_installOrUpdatePacman starship
-_installOrUpdatePacman ranger
-_installOrUpdatePacman nano
-_installOrUpdatePacman figlet
-_installOrUpdatePacman neovim
-
-echo ""
-
-# Install or update yay packages
-_installOrUpdateYay fastfetch
+pkg_install "${PKGS[@]}"
+aur_install "${AUR[@]}"
 echo ""

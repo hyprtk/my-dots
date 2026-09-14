@@ -1,13 +1,17 @@
 #!/bin/bash
+# Snapper + btrfs snapshot setup. Distro-aware package install; snap-pac (the
+# pacman hook) only exists on Arch, so it is installed there alone.
+. "$(dirname "${BASH_SOURCE[0]}")/pkgmanager.sh"
 
 # Ensure the script is run as root
-if [ "$EUID" -ne 0 ]; then 
+if [ "$(id -u)" -ne 0 ]; then
   echo "Please run as root"
   exit
 fi
 
-echo "Installing snapper and snap-pac..."
-pacman -S --needed snapper snap-pac
+echo "Installing snapper ..."
+pkg_install snapper
+[ "$HYPRTK_PM" = pacman ] && pkg_install snap-pac
 
 # 1. Create the initial configuration for root
 # This will likely fail if /etc/snapper/configs/root exists, so we ignore errors
@@ -25,12 +29,10 @@ mount -a # Ensure fstab is clean or mount manually
 btrfs subvolume create /.snapshots
 
 # 3. Set permissions
-# Ensure root can access it (and your user if you add them to the group)
 chmod 750 /.snapshots
 chown :root /.snapshots
 
 # 4. Configure Snapshot Retention (Optional but recommended)
-# This prevents your disk from filling up indefinitely
 echo "Updating retention policies in /etc/snapper/configs/root..."
 sed -i 's/TIMELINE_LIMIT_HOURLY="10"/TIMELINE_LIMIT_HOURLY="5"/' /etc/snapper/configs/root
 sed -i 's/TIMELINE_LIMIT_DAILY="10"/TIMELINE_LIMIT_DAILY="7"/' /etc/snapper/configs/root
@@ -46,5 +48,5 @@ systemctl enable --now snapper-cleanup.timer
 echo "-------------------------------------------------------"
 echo "Setup Complete!"
 echo "Your root snapshots are stored in /.snapshots (as a subvolume)."
-echo "Snap-pac will now automatically snapshot before/after pacman operations."
+echo "Snap-pac (where available) will now snapshot before/after package operations."
 echo "-------------------------------------------------------"

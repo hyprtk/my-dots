@@ -1,0 +1,84 @@
+/*  -----------------------------------------------------
+    hyprtk-liquid-glass — Apple "Liquid Glass" port
+    Cool-tinted translucent glass with a bright specular
+    rim; pywal (mauve) accents.
+    -----------------------------------------------------  */
+window {
+    background-color:            rgba(28, 32, 46, 0.45);
+    border-color:                rgba(255, 255, 255, 0.14);
+}
+
+inputbar {
+    text-color:                  rgba(238, 241, 248, 0.95);
+    border-color:                rgba(255, 255, 255, 0.12);
+    background-color:            rgba(255, 255, 255, 0.07);
+}
+
+textbox-prompt-colon {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+}
+
+entry {
+    text-color:                  rgba(238, 241, 248, 0.95);
+}
+
+mode-switcher {
+    text-color:                  rgba(238, 241, 248, 0.95);
+}
+
+button {
+    background-color:            rgba(255, 255, 255, 0.07);
+    text-color:                  rgba(238, 241, 248, 0.95);
+    border-color:                rgba(255, 255, 255, 0.12);
+}
+
+button selected {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255, 255, 255, 0.30);
+}
+
+element {
+    background-color:            rgba(255, 255, 255, 0.07);
+    border-color:                rgba(255, 255, 255, 0.12);
+}
+
+element normal.normal,
+element normal.urgent,
+element normal.active {
+    text-color:                  rgba(238, 241, 248, 0.95);
+}
+
+element selected.normal {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255, 255, 255, 0.30);
+}
+
+element selected.urgent,
+element selected.active {
+    text-color:                  rgba(238, 241, 248, 0.95);
+}
+
+element alternate.normal,
+element alternate.urgent,
+element alternate.active {
+    text-color:                  rgba(238, 241, 248, 0.95);
+}
+
+message {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255, 255, 255, 0.12);
+}
+
+textbox {
+    text-color:                  rgba(238, 241, 248, 0.95);
+}
+
+error-message {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                @color5;
+}

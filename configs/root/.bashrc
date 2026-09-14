@@ -27,7 +27,6 @@ alias ts='~/hyprtk/installer/scripts/snapshot.sh'
 alias matrix='cmatrix'
 alias wifi='nmtui'
 alias od='~/private/onedrive.sh'
-alias rw='~/hyprtk/configs/waybar/launch.sh'
 alias winclass="xprop | grep 'CLASS'"
 alias dot="cd ~/hyprtk"
 
@@ -57,7 +56,6 @@ alias gcheck="git checkout"
 alias wallp='~/hyprtk/installer/scripts/updatewal.sh'
 alias ChatGPT='python ~/mychatgpt/mychatgpt.py'
 alias chat='python ~/mychatgpt/mychatgpt.py'
-alias ascii='~/hyprtk/installer/scripts/figlet.sh'
 
 # -----------------------------------------------------
 # VIRTUAL MACHINE
@@ -71,8 +69,6 @@ alias vmstop='virsh --connect qemu:///system destroy win11'
 # EDIT CONFIG FILES
 # -----------------------------------------------------
 
-alias confh='nvim ~/hyprtk/hypr/hyprland.lua'
-alias confw='nvim ~/hyprtk/configs/waybar/themes/hyprtk/config'
 alias confb='nvim ~/hyprtk/configs/root/.bashrc'
 
 # -----------------------------------------------------
@@ -87,7 +83,24 @@ alias notes='vim ~/notes.txt'
 
 alias update-grub='~/hyprtk/installer/scripts/update-grub.sh'
 alias setkb='setxkbmap gb;echo "Keyboard set back to gb."'
-alias update='sudo pacman -Syu --noconfirm && yay -Syu --noconfirm'
+# Distro-aware system update
+update() {
+  if command -v pacman >/dev/null 2>&1; then
+    sudo pacman -Syu --noconfirm && { command -v yay >/dev/null 2>&1 && yay -Syu --noconfirm; }
+  elif command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update && sudo apt-get upgrade -y
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf upgrade -y
+  elif command -v zypper >/dev/null 2>&1; then
+    sudo zypper --non-interactive update
+  elif command -v xbps-install >/dev/null 2>&1; then
+    sudo xbps-install -Su
+  elif command -v apk >/dev/null 2>&1; then
+    sudo apk update && sudo apk upgrade
+  else
+    echo "Unknown package manager"
+  fi
+}
 
 # -----------------------------------------------------
 # SCREEN RESOLUTINS

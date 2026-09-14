@@ -1,0 +1,54 @@
+/* hyprtk-menu — Whisker layout
+   The default look: frosted glass pills, category sidebar, recents pane.
+   Scoped under .layout-whisker so it only applies when active. */
+
+.layout-whisker .menu {
+    border-radius: 16px;
+}
+
+.layout-whisker .search {
+    border-radius: 10px;
+    padding: 9px 14px;
+}
+
+.layout-whisker .cat-row {
+    border-radius: 8px;
+    padding: 6px 14px;
+}
+
+.layout-whisker .app-row {
+    border-radius: 10px;
+    padding: 6px 10px;
+}
+
+.layout-whisker .favorites {
+    border-radius: 12px;
+}
+
+.layout-whisker .powerbar {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.layout-whisker .menu-user {
+    padding: 4px 8px;
+    border-radius: 8px;
+}
+.layout-whisker .menu-user:hover {
+    background-color: alpha(@accent_alt, 0.12);
+}
+.layout-whisker .menu-avatar {
+    -gtk-icon-style: regular;
+}
+.layout-whisker .menu-username {
+    color: @text;
+    font-size: 12px;
+}
+
+.layout-whisker .menu-settings-btn,
+.layout-whisker .menu-settings-btn,
+.layout-whisker .resize-grip {
+    border-radius: 8px;
+}

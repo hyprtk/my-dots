@@ -1,19 +1,34 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── webtools ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+case "$HYPRTK_PM" in
+pacman)
+    PKGS=(chromium)
+    AUR=(brave-bin github-desktop-bin)
+    ;;
+apt)
+    PKGS=(chromium)
+    ;;
+dnf)
+    PKGS=(chromium)
+    ;;
+zypper)
+    PKGS=(chromium)
+    ;;
+xbps)
+    PKGS=(chromium)
+    ;;
+apk)
+    PKGS=(chromium)
+    ;;
+esac
 
-print_subsection_header "WebTools"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo ""
-
-# Install or update pacman packages
-_installOrUpdatePacman chromium
-
-echo ""
-
-# Install or update yay packages
-_installOrUpdateYay brave-bin
-_installOrUpdateYay github-desktop-bin
+pkg_install "${PKGS[@]}"
+aur_install "${AUR[@]}"
 echo ""

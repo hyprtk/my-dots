@@ -1,0 +1,411 @@
+/* hyprtk-menu — pywal glass theme
+   Colors come from the pywal palette (color0-15, background, foreground)
+   injected by theme.py, plus semantic tokens below. The active waybar-theme
+   profile overrides the tokens at the end of the generated CSS. */
+
+/* Scope the universal font + scrollbar rules to the menu root: this stylesheet
+   is registered screen-wide at APPLICATION priority, so an unqualified `*` /
+   `scrollbar` would leak Cantarell (and a restyled scrollbar) into the bar's
+   own windows and every other GTK app. */
+.menu-root * {
+    font-family: "Cantarell", "Noto Sans", sans-serif;
+}
+
+/* ── Semantic tokens (default = hyprtk dark frosted) ───────────────────── */
+@define-color panel_bg alpha(@background, 0.92);
+@define-color panel_border alpha(@color5, 0.35);
+@define-color text @foreground;
+@define-color muted alpha(@foreground, 0.6);
+@define-color selected_text #ffffff;
+@define-color accent @color5;
+@define-color accent_alt @color6;
+@define-color surface alpha(@color6, 0.07);
+@define-color selected_bg alpha(@color5, 0.28);
+@define-color selected_border alpha(@color5, 0.5);
+@define-color input_bg alpha(@color6, 0.08);
+@define-color input_border alpha(@color6, 0.25);
+
+.menu-root {
+    background-color: transparent;
+}
+
+/* Main frosted glass panel */
+.menu {
+    background-color: @panel_bg;
+    border: 2px solid @panel_border;
+    border-radius: 16px;
+}
+
+/* The GTK theme paints buttons/entries with its own background-image and
+   shadow, which sit ON TOP of any background-color we set — so buttons looked
+   light/off-theme (pinned tiles, plasma tabs, "All apps"/"More" pills). Reset
+   them inside the menu so only the palette colours show. */
+.menu button,
+.menu entry {
+    background-image: none;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+/* Search entry */
+.search {
+    margin: 12px 12px 4px 12px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    border: 1px solid @input_border;
+    background-color: @input_bg;
+    color: @text;
+    font-size: 14px;
+}
+.search:focus {
+    border-color: @accent_alt;
+    background-color: @input_bg;
+}
+.search selection {
+    background-color: @accent;
+    color: @accent_fg;
+}
+
+/* Sidebar */
+.sidebar-scroll {
+    background-color: alpha(@accent, 0.05);
+}
+.sidebar {
+    background-color: transparent;
+}
+.cat-row {
+    padding: 6px 14px;
+    border-radius: 8px;
+    margin: 2px 6px;
+}
+.cat-label {
+    color: @text;
+    font-size: 13px;
+}
+.cat-row:hover {
+    background-color: @surface;
+}
+.cat-row.selected {
+    background-color: @selected_bg;
+    border: 1px solid @selected_border;
+}
+.cat-row.selected .cat-label {
+    color: @selected_text;
+    font-weight: bold;
+}
+
+/* Center pane */
+.center-pane {
+    background-color: transparent;
+}
+
+/* Favorites row */
+.favorites {
+    margin: 6px 10px 0 10px;
+    padding: 8px;
+    background-color: @surface;
+    border: 1px solid alpha(@accent, 0.25);
+    border-radius: 12px;
+}
+.favorites label {
+    color: @accent_alt;
+    font-size: 11px;
+    font-weight: bold;
+}
+.fav-btn {
+    border-radius: 8px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 4px;
+    margin: 2px;
+}
+.fav-btn:hover {
+    background-color: @surface;
+    border-color: alpha(@accent_alt, 0.4);
+}
+
+/* App list */
+.app-list-scroll {
+    background-color: transparent;
+}
+.app-list {
+    background-color: transparent;
+    margin: 4px;
+}
+.app-row {
+    padding: 6px 10px;
+    border-radius: 10px;
+    margin: 1px 4px;
+    background-color: transparent;
+}
+.app-row:hover {
+    background-color: @surface;
+}
+.app-row:selected {
+    background-color: @selected_bg;
+    border: 1px solid @selected_border;
+    border-radius: 10px;
+}
+.app-icon {
+    -gtk-icon-shadow: none;
+}
+.app-name {
+    color: @text;
+    font-size: 13px;
+}
+.app-row:selected .app-name {
+    color: @selected_text;
+}
+.app-desc {
+    color: @muted;
+    font-size: 11px;
+}
+.app-row:selected .app-desc {
+    color: alpha(@selected_text, 0.7);
+}
+
+/* Pane dividers (drag to resize columns) */
+paned > separator {
+    background-color: alpha(@color8, 0.35);
+    min-width: 2px;
+    min-height: 2px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    -gtk-icon-source: none;
+}
+paned.horizontal > separator {
+    min-width: 2px;
+}
+paned.horizontal > separator:hover {
+    background-color: @accent_alt;
+}
+
+/* Recents pane */
+.recents-pane {
+    background-color: alpha(@accent_alt, 0.05);
+}
+.pane-title {
+    color: @muted;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 10px 12px 4px 12px;
+}
+.clear-btn {
+    border-radius: 6px;
+    padding: 2px 9px;
+    margin: 8px 10px 4px 0;
+    font-size: 10px;
+    color: @muted;
+    background-color: alpha(@color1, 0.12);
+    border: 1px solid alpha(@color1, 0.3);
+}
+.clear-btn:hover {
+    background-color: alpha(@color1, 0.28);
+    color: @selected_text;
+}
+.recents-list {
+    background-color: transparent;
+}
+
+/* Power bar */
+.powerbar {
+    background-color: @panel_bg;
+    border-top: 1px solid alpha(@color8, 0.35);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    padding: 8px 12px;
+}
+.power-title {
+    color: @muted;
+    font-size: 12px;
+    font-style: italic;
+}
+.menu-settings-btn {
+    border-radius: 8px;
+    padding: 4px 10px;
+    background-color: @input_bg;
+    border: 1px solid @input_border;
+}
+.menu-settings-btn:hover {
+    background-color: @selected_bg;
+    border-color: @accent_alt;
+}
+.menu-settings-icon {
+    color: @accent_alt;
+}
+.menu-settings-btn:hover .menu-settings-icon {
+    color: @selected_text;
+}
+
+/* ── Settings window (floating) ─────────────────────────── */
+.settings-window {
+    background-color: transparent;
+}
+.settings-window .settings-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid alpha(@accent, 0.2);
+    background-color: alpha(@color6, 0.05);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+}
+.settings-window .settings-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: @text;
+}
+.settings-window .settings-content {
+    padding: 16px 18px;
+}
+.settings-content .settings-label {
+    color: @text;
+    font-size: 13px;
+}
+.settings-content .settings-section {
+    color: @text;
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+.settings-theme-list {
+    padding: 4px 6px;
+}
+.settings-radio {
+    color: @text;
+    font-size: 13px;
+}
+.settings-monitor {
+    border: 1px solid alpha(@accent, 0.35);
+    border-radius: 8px;
+    padding: 12px;
+    background-color: alpha(@background, 0.4);
+}
+.settings-monitor .settings-pos-radio {
+    color: @accent_alt;
+}
+.settings-monitor .settings-pos-cell {
+    padding: 2px;
+}
+.settings-monitor .settings-pos-label {
+    color: alpha(@text, 0.8);
+    font-size: 10px;
+}
+.settings-content .settings-combo {
+    min-width: 150px;
+}
+.settings-window .settings-buttons {
+    padding: 12px 16px;
+    border-top: 1px solid alpha(@accent, 0.2);
+}
+.settings-window .settings-cancel {
+    background-color: @input_bg;
+    border: 1px solid @input_border;
+    border-radius: 8px;
+    padding: 6px 16px;
+}
+.settings-window .settings-apply {
+    background-color: @accent;
+    color: @selected_text;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 20px;
+}
+.settings-window .settings-apply:hover {
+    background-color: @accent_alt;
+}
+.power-btn {
+    border-radius: 8px;
+    padding: 6px;
+    min-width: 28px;
+    min-height: 28px;
+    background-color: @surface;
+    border: 1px solid alpha(@accent, 0.25);
+}
+.power-btn:hover {
+    background-color: @selected_bg;
+    border-color: @accent;
+}
+.power-btn .power-icon {
+    color: @text;
+}
+.power-btn:hover .power-icon {
+    color: @selected_text;
+}
+.power-btn.power-danger {
+    border-color: alpha(@color1, 0.35);
+}
+.power-btn.power-danger:hover {
+    background-color: alpha(@color1, 0.85);
+    border-color: @color1;
+}
+.power-btn.power-danger:hover .power-icon {
+    color: #ffffff;
+}
+
+/* Power confirmation dialog */
+.confirm-dialog {
+    background-color: @panel_bg;
+    border: 1px solid @panel_border;
+    border-radius: 14px;
+}
+.confirm-dialog .titlebar {
+    background-color: transparent;
+}
+.confirm-dialog label {
+    color: @text;
+}
+.confirm-dialog button {
+    border-radius: 8px;
+    padding: 6px 14px;
+    /* Reset the GTK theme's button `background-image` gradient, which would
+       otherwise paint the buttons light regardless of the palette. */
+    background-image: none;
+    box-shadow: none;
+    text-shadow: none;
+    background-color: @surface;
+    border: 1px solid @input_border;
+}
+.confirm-dialog button:hover {
+    background-color: @selected_bg;
+}
+.confirm-dialog button.confirm-accept {
+    background-color: alpha(@color1, 0.85);
+    border-color: @color1;
+    color: #ffffff;
+}
+.confirm-dialog button.confirm-accept:hover {
+    background-color: @color1;
+}
+
+/* Corner resize grip */
+.resize-grip {
+    border-radius: 6px;
+    padding: 3px 8px;
+    background-color: @input_bg;
+    border: 1px solid @input_border;
+}
+.resize-grip:hover {
+    background-color: @selected_bg;
+    border-color: @accent_alt;
+}
+.resize-grip-icon {
+    color: @muted;
+    font-size: 13px;
+}
+.resize-grip:hover .resize-grip-icon {
+    color: @selected_text;
+}
+
+/* Scrollbars */
+.menu-root scrollbar {
+    background-color: transparent;
+}
+.menu-root scrollbar slider {
+    background-color: alpha(@accent, 0.35);
+    border-radius: 6px;
+    min-width: 6px;
+    min-height: 6px;
+}
+.menu-root scrollbar slider:hover {
+    background-color: @accent;
+}

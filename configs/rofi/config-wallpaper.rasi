@@ -114,7 +114,7 @@ button {
     border-color:                 rgba(255,255,255,0.07);
 }
 button selected {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
 }
 
@@ -165,17 +165,17 @@ element normal.active {
 }
 
 element selected.normal {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
 }
 
 element selected.urgent {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
 }
 
 element selected.active {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
 }
 
@@ -190,7 +190,7 @@ element alternate.urgent {
 }
 
 element alternate.active {
-    background-color:            @color11;
+    background-color:            @color5;
     text-color:                  @foreground;
 }
 

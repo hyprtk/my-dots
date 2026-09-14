@@ -1,7 +1,8 @@
 #!/bin/bash
-# ── Reset Sudo Attempts ───────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#  
+# by hyprtk (Kori Tk) (2026)
+# ----------------------------------------------------- 
 echo ""
 echo "Sudo Attempts that are Locked"
 faillock --user $(whoami)  

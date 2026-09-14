@@ -1,17 +1,17 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── sddm-check ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+if [ "${1:-}" = "--list" ]; then printf 'sddm\n'; exit 0; fi
 
-print_subsection_header "sddm check"
-
-sh ~/hyprtk/installer/scripts/rm-dm-managers.sh
+bash "$_PKGDIR/../../installer/scripts/rm-dm-managers.sh"
 echo ""
 if [ ! -d /etc/sddm.conf.d/ ]; then
-    sudo mkdir /etc/sddm.conf.d
+    hyprtk_run_root mkdir -p /etc/sddm.conf.d
     echo "Folder /etc/sddm.conf.d created."
 fi
-sudo cp ~/hyprtk/configs/sddm/sddm.conf /etc/sddm.conf.d/
+hyprtk_run_root cp "$_PKGDIR/../../configs/sddm/sddm.conf" /etc/sddm.conf.d/
 echo "File /etc/sddm.conf.d/sddm.conf updated."
 echo ""

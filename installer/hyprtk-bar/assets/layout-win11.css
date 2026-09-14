@@ -1,0 +1,218 @@
+/* hyprtk-menu — Windows 11 layout
+   Flat acrylic: soft rounded corners, generous spacing, centered-feel search,
+   "Recommended"-style recents emphasis.
+   Scoped under .layout-win11. */
+
+@define-color win11_bg alpha(@background, 0.78);
+@define-color win11_accent alpha(@color6, 0.85);
+@define-color win11_hover alpha(@color6, 0.12);
+
+.layout-win11 .menu {
+    border-radius: 16px;
+    border: 2px solid alpha(@foreground, 0.15);
+}
+
+/* ── Search (pill-shaped, centered) ── */
+.layout-win11 .search,
+.layout-win11 .win11-search {
+    border-radius: 999px;
+    padding: 10px 18px;
+    margin: 16px 24px 8px 24px;
+    font-size: 14px;
+    background-color: alpha(@foreground, 0.06);
+    border: 1px solid alpha(@foreground, 0.1);
+}
+.layout-win11 .search:focus,
+.layout-win11 .win11-search:focus {
+    border-color: @win11_accent;
+    background-color: alpha(@foreground, 0.08);
+}
+.layout-win11 .search selection,
+.layout-win11 .win11-search selection {
+    background-color: @win11_accent;
+    color: #ffffff;
+}
+
+/* ── Section headers (Pinned, Recommended) ── */
+.layout-win11 .win11-section-header {
+    padding: 8px 16px 2px 16px;
+}
+.layout-win11 .win11-section-header .pane-title {
+    color: @text;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 0;
+}
+
+/* ── All apps button ── */
+.layout-win11 .win11-allapps-btn {
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 11px;
+    color: @color6;
+    background-color: transparent;
+    border: none;
+}
+.layout-win11 .win11-allapps-btn:hover {
+    background-color: @win11_hover;
+}
+
+/* ── Pinned grid ── */
+.layout-win11 .win11-pinned {
+    margin: 4px 12px;
+    padding: 8px;
+    background-color: alpha(@foreground, 0.04);
+    border: 1px solid alpha(@foreground, 0.08);
+    border-radius: 8px;
+}
+
+/* Individual tile */
+.layout-win11 .win11-tile {
+    min-width: 72px;
+    min-height: 72px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    background-color: transparent;
+}
+.layout-win11 .win11-tile-btn {
+    border-radius: 6px;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    min-width: 72px;
+    min-height: 72px;
+}
+.layout-win11 .win11-tile-btn:hover {
+    background-color: @win11_hover;
+}
+.layout-win11 .win11-tile-icon {
+    -gtk-icon-shadow: none;
+}
+.layout-win11 .win11-tile-label {
+    color: @text;
+    font-size: 10px;
+    min-width: 72px;
+}
+
+/* ── Recommended section ── */
+.layout-win11 .win11-recommended {
+    background-color: alpha(@foreground, 0.03);
+    border-top: 1px solid alpha(@foreground, 0.06);
+    margin: 0 12px;
+}
+.layout-win11 .win11-more-btn {
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 11px;
+    color: @color6;
+    background-color: transparent;
+    border: none;
+}
+.layout-win11 .win11-more-btn:hover {
+    background-color: @win11_hover;
+}
+
+/* Recents list items */
+.layout-win11 .recents-list .app-row {
+    border-radius: 6px;
+    padding: 5px 10px;
+    margin: 1px 4px;
+}
+.layout-win11 .recents-list .app-row:hover {
+    background-color: @win11_hover;
+}
+.layout-win11 .recents-list .app-row:selected {
+    background-color: @win11_hover;
+    border: 1px solid alpha(@color6, 0.4);
+}
+
+/* ── Win11 app list (search / "All apps") ── */
+.layout-win11 .win11-app-list {
+    margin: 8px 16px;
+}
+.layout-win11 .win11-app-list .app-row {
+    border-radius: 8px;
+    padding: 7px 12px;
+    margin: 2px 6px;
+}
+.layout-win11 .win11-app-list .app-row:hover {
+    background-color: @win11_hover;
+}
+.layout-win11 .win11-app-list .app-row:selected {
+    background-color: @win11_hover;
+    border: 1px solid alpha(@color6, 0.4);
+}
+.layout-win11 .win11-app-list .app-desc {
+    color: alpha(@text, 0.6);
+}
+
+/* ── Footer (user + power) ── */
+.layout-win11 .menu-footer,
+.layout-win11 .win11-footer {
+    padding: 6px 12px;
+    border-top: 1px solid alpha(@foreground, 0.08);
+}
+.layout-win11 .menu-user,
+.layout-win11 .win11-user {
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+.layout-win11 .menu-user:hover,
+.layout-win11 .win11-user:hover {
+    background-color: @win11_hover;
+}
+.layout-win11 .menu-avatar,
+.layout-win11 .win11-avatar {
+    -gtk-icon-style: regular;
+}
+.layout-win11 .menu-username,
+.layout-win11 .win11-username {
+    color: @text;
+    font-size: 12px;
+}
+
+/* ── Power bar in footer ── */
+.layout-win11 .powerbar {
+    border-radius: 0;
+    padding: 4px;
+    border-top: none;
+    background-color: transparent;
+}
+.layout-win11 .menu-settings-btn,
+.layout-win11 .menu-settings-btn,
+.layout-win11 .resize-grip {
+    border-radius: 999px;
+    padding: 4px 10px;
+    background-color: alpha(@foreground, 0.06);
+    border: 1px solid alpha(@foreground, 0.1);
+}
+.layout-win11 .menu-settings-btn:hover,
+.layout-win11 .menu-settings-btn:hover,
+.layout-win11 .resize-grip:hover {
+    background-color: @win11_hover;
+    border-color: @win11_accent;
+}
+.layout-win11 .power-btn {
+    border-radius: 999px;
+    background-color: alpha(@foreground, 0.06);
+    border: 1px solid alpha(@foreground, 0.1);
+}
+.layout-win11 .power-btn:hover {
+    background-color: @win11_hover;
+    border-color: @win11_accent;
+}
+.layout-win11 .power-btn.power-danger {
+    border-color: alpha(@color1, 0.5);
+}
+.layout-win11 .power-btn.power-danger:hover {
+    background-color: alpha(@color1, 0.9);
+    border-color: @color1;
+}
+
+/* ── Scrollbar overrides ── */
+.layout-win11 scrollbar slider {
+    background-color: alpha(@color6, 0.3);
+}
+.layout-win11 scrollbar slider:hover {
+    background-color: @color6;
+}

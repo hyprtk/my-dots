@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# ── Keyboard State ────────────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#
+#  
+# by hyprtk (Kori Tk) (2026)
+# ----------------------------------------------------- 
 
 # Tiny, low-CPU Caps Lock indicator for Waybar.
 # Prints a JSON line only when the state changes.

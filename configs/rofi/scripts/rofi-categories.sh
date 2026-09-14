@@ -49,5 +49,5 @@ fi
 
 rm -f "$state_file"
 if [ -n "$ROFI_INFO" ]; then
-    coproc ( eval "$ROFI_INFO" > /dev/null 2>&1 )
+    coproc ( sh -c "$ROFI_INFO" > /dev/null 2>&1 )
 fi

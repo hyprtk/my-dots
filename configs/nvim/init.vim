@@ -7,7 +7,7 @@
 "░██    ░░███░░██████░░██████   ░░██   ░██ ███ ░██ ░██
 "░░      ░░░  ░░░░░░  ░░░░░░     ░░    ░░ ░░░  ░░  ░░
 "                                     
-" by Kori Tk (2026)
+" by hyprtk (Kori Tk) (2026)
 " ----------------------------------------------------- 
 
 set nocompatible            " disable compatibility to old-time vi

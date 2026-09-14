@@ -1,50 +1,58 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── hyprland ─────────────────────────────────────────────────────────
+# Core compositor + the Wayland/GTK plumbing the dotfiles rely on.
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+case "$HYPRTK_PM" in
+pacman)
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xorg-xhost
+          nwg-look mission-center curl imagemagick jq bc brightnessctl playerctl
+          libadwaita gtk3 gtk-layer-shell gtk4 desktop-file-utils python python-pip
+          python-virtualenv python-gobject wob hyprsunset)
+    AUR=(awww swaylock-effects gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
+         gvfs-smb 7zip unzip unrar)
+    ;;
+apt)
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist x11-xserver-utils
+          nwg-look mission-center curl imagemagick jq bc brightnessctl playerctl
+          libadwaita-1-0 libgtk-3-0 gtk-layer-shell libgtk-4-1 desktop-file-utils
+          python3 python3-pip python3-venv python3-gi wob hyprsunset swaylock
+          gvfs-backends 7zip unzip unrar)
+    ;;
+dnf)
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist
+          xorg-x11-server-utils nwg-look mission-center curl ImageMagick jq bc
+          brightnessctl playerctl libadwaita gtk3 gtk-layer-shell gtk4
+          desktop-file-utils python3 python3-pip python3-virtualenv python3-gobject
+          wob hyprsunset swaylock gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
+          gvfs-smb p7zip unzip unrar)
+    ;;
+zypper)
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+          mission-center curl ImageMagick jq bc brightnessctl playerctl libadwaita-1-0
+          gtk3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
+          python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs
+          gvfs-backends p7zip unzip unrar)
+    ;;
+xbps)
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+          mission-center curl ImageMagick jq bc brightnessctl playerctl libadwaita
+          gtk+3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
+          python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs gvfs-afc
+          gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb p7zip unzip unrar)
+    ;;
+apk)
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+          curl imagemagick jq bc brightnessctl playerctl libadwaita gtk+3.0
+          gtk-layer-shell gtk4.0 desktop-file-utils python3 py3-pip py3-virtualenv
+          py3-gobject3 wob swaylock gvfs 7zip unzip unrar)
+    ;;
+esac
 
-print_subsection_header "Hyprland"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " Hyprland "
-
-# Install or update pacman packages
-_installOrUpdatePacman hyprland
-_installOrUpdatePacman xdg-desktop-portal-wlr
-_installOrUpdatePacman swayidle
-_installOrUpdatePacman swappy
-_installOrUpdatePacman cliphist
-_installOrUpdatePacman xorg-xhost
-_installOrUpdatePacman nwg-look
-_installOrUpdatePacman mission-center
-_installOrUpdatePacman curl
-_installOrUpdatePacman imagemagick
-_installOrUpdatePacman jq
-_installOrUpdatePacman bc
-_installOrUpdatePacman brightnessctl
-_installOrUpdatePacman playerctl
-_installOrUpdatePacman libadwaita
-_installOrUpdatePacman gtk-layer-shell
-_installOrUpdatePacman python
-_installOrUpdatePacman python-pip
-_installOrUpdatePacman python-virtualenv
-_installOrUpdatePacman python-gobject
-_installOrUpdatePacman gtk4
-_installOrUpdatePacman wob
-
-echo ""
-
-# Install or update yay packages
-_installOrUpdateYay awww
-_installOrUpdateYay swaylock-effects
-_installOrUpdateYay gvfs-afc
-_installOrUpdateYay gvfs-goa
-_installOrUpdateYay gvfs-gphoto2
-_installOrUpdateYay gvfs-mtp
-_installOrUpdateYay gvfs-nfs
-_installOrUpdateYay gvfs-smb
-_installOrUpdateYay 7zip
-_installOrUpdateYay unzip
-_installOrUpdateYay unrar
-_installOrUpdateYay waybar-git
-
+pkg_install "${PKGS[@]}"
+aur_install "${AUR[@]}"

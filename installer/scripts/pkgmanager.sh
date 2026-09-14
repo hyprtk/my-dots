@@ -1,0 +1,182 @@
+#!/bin/bash
+# ── hyprtk multi-distro package-manager abstraction ─────────────────────────
+# Sourced (never executed) by every hypr/packages/*.sh script, by
+# installer/scripts/library.sh, and by the top-level 1-install.sh. It detects
+# the host package manager and provides install / remove / query / AUR wrappers
+# so the dotfiles install on any Linux distribution — the same portability model
+# as hyprtk-bar/install.sh.
+#
+# Supported families:
+#   Arch (pacman, +AUR via yay/paru)   Debian/Ubuntu (apt)
+#   Fedora/RHEL (dnf)                  openSUSE (zypper)
+#   Void (xbps)                        Alpine (apk)
+#   Gentoo (emerge — lists only)       NixOS (nix — declarative)
+# Unknown managers degrade gracefully: nothing is installed, the caller is told
+# which packages to add manually.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Detection ───────────────────────────────────────────────────────────────
+hyprtk_detect_pm() {
+    command -v pacman       >/dev/null 2>&1 && { echo pacman; return; }
+    command -v apt-get      >/dev/null 2>&1 && { echo apt;    return; }
+    command -v dnf          >/dev/null 2>&1 && { echo dnf;    return; }
+    command -v zypper       >/dev/null 2>&1 && { echo zypper; return; }
+    command -v xbps-install >/dev/null 2>&1 && { echo xbps;   return; }
+    command -v apk          >/dev/null 2>&1 && { echo apk;    return; }
+    command -v emerge       >/dev/null 2>&1 && { echo emerge; return; }
+    command -v nix          >/dev/null 2>&1 && { echo nix;    return; }
+    echo none
+}
+
+HYPRTK_PM="${HYPRTK_PM:-$(hyprtk_detect_pm)}"
+export HYPRTK_PM
+
+# Human-readable name for the detected manager.
+hyprtk_pm_name() {
+    case "$HYPRTK_PM" in
+        pacman) echo "Arch (pacman)" ;;
+        apt)    echo "Debian/Ubuntu (apt)" ;;
+        dnf)    echo "Fedora/RHEL (dnf)" ;;
+        zypper) echo "openSUSE (zypper)" ;;
+        xbps)   echo "Void (xbps)" ;;
+        apk)    echo "Alpine (apk)" ;;
+        emerge) echo "Gentoo (emerge)" ;;
+        nix)    echo "NixOS (nix)" ;;
+        *)      echo "unknown" ;;
+    esac
+}
+
+# ── Root ────────────────────────────────────────────────────────────────────
+# Run a command as root (directly when already root, else through sudo).
+hyprtk_run_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    else
+        echo "  ✗ need root to manage packages; sudo not found" >&2
+        return 1
+    fi
+}
+
+# ── Query ───────────────────────────────────────────────────────────────────
+# 0 when the named package is installed, 1 otherwise.
+pkg_is_installed() {
+    local p="$1"
+    case "$HYPRTK_PM" in
+        pacman) pacman -Qq "$p" >/dev/null 2>&1 ;;
+        apt)    dpkg -s "$p" >/dev/null 2>&1 ;;
+        dnf|zypper) rpm -q "$p" >/dev/null 2>&1 ;;
+        xbps)   xbps-query "$p" >/dev/null 2>&1 ;;
+        apk)    apk info -e "$p" >/dev/null 2>&1 ;;
+        *)      return 1 ;;
+    esac
+}
+
+# ── Install ─────────────────────────────────────────────────────────────────
+# Install a list of distro-native package names. A single unavailable name would
+# otherwise abort an apt/dnf/pacman transaction, so the batch is attempted first
+# and any failure is retried one package at a time, warning only for the names
+# that are genuinely missing. HYPRTK_DRYRUN=1 just prints the list.
+pkg_install() {
+    [ "$#" -eq 0 ] && return 0
+    local pkgs=("$@")
+    if [ -n "${HYPRTK_DRYRUN:-}" ]; then
+        printf '%s\n' "${pkgs[@]}"
+        return 0
+    fi
+
+    local batch_ok=1
+    case "$HYPRTK_PM" in
+        pacman) hyprtk_run_root pacman -S --noconfirm --needed "${pkgs[@]}" || batch_ok=0 ;;
+        apt)    hyprtk_run_root apt-get install -y "${pkgs[@]}" || batch_ok=0 ;;
+        dnf)    hyprtk_run_root dnf install -y "${pkgs[@]}" || batch_ok=0 ;;
+        zypper) hyprtk_run_root zypper --non-interactive install "${pkgs[@]}" || batch_ok=0 ;;
+        xbps)   hyprtk_run_root xbps-install -Sy "${pkgs[@]}" || batch_ok=0 ;;
+        apk)    hyprtk_run_root apk add --no-cache "${pkgs[@]}" || batch_ok=0 ;;
+        emerge)
+            echo "  ! Gentoo: emerge these, then rerun with --no-deps: ${pkgs[*]}" >&2
+            return 0 ;;
+        nix)
+            echo "  ! NixOS: add these to your configuration: ${pkgs[*]}" >&2
+            return 0 ;;
+        *)
+            echo "  ! No supported package manager — install manually: ${pkgs[*]}" >&2
+            return 0 ;;
+    esac
+    [ "$batch_ok" -eq 1 ] && return 0
+
+    # Batch failed — isolate the offenders, keep the rest installed.
+    local p failed=0
+    for p in "${pkgs[@]}"; do
+        case "$HYPRTK_PM" in
+            pacman) hyprtk_run_root pacman -S --noconfirm --needed "$p" >/dev/null 2>&1 ;;
+            apt)    hyprtk_run_root apt-get install -y "$p" >/dev/null 2>&1 ;;
+            dnf)    hyprtk_run_root dnf install -y "$p" >/dev/null 2>&1 ;;
+            zypper) hyprtk_run_root zypper --non-interactive install "$p" >/dev/null 2>&1 ;;
+            xbps)   hyprtk_run_root xbps-install -Sy "$p" >/dev/null 2>&1 ;;
+            apk)    hyprtk_run_root apk add --no-cache "$p" >/dev/null 2>&1 ;;
+        esac || { echo "  ! package unavailable: $p" >&2; failed=1; }
+    done
+    return "$failed"
+}
+
+# ── Remove ──────────────────────────────────────────────────────────────────
+# Best-effort removal; never fatal (a package that isn't there is fine).
+pkg_remove() {
+    [ "$#" -eq 0 ] && return 0
+    local pkgs=("$@")
+    if [ -n "${HYPRTK_DRYRUN:-}" ]; then
+        printf 'remove %s\n' "${pkgs[*]}"
+        return 0
+    fi
+    case "$HYPRTK_PM" in
+        pacman) hyprtk_run_root pacman -Rns --noconfirm "${pkgs[@]}" 2>/dev/null || true ;;
+        apt)    hyprtk_run_root apt-get remove -y "${pkgs[@]}" 2>/dev/null || true ;;
+        dnf)    hyprtk_run_root dnf remove -y "${pkgs[@]}" 2>/dev/null || true ;;
+        zypper) hyprtk_run_root zypper --non-interactive remove "${pkgs[@]}" 2>/dev/null || true ;;
+        xbps)   hyprtk_run_root xbps-remove -Ry "${pkgs[@]}" 2>/dev/null || true ;;
+        apk)    hyprtk_run_root apk del "${pkgs[@]}" 2>/dev/null || true ;;
+        *)      : ;;
+    esac
+    return 0
+}
+
+# ── AUR (Arch only) ─────────────────────────────────────────────────────────
+aur_helper() {
+    command -v yay  >/dev/null 2>&1 && { echo yay;  return; }
+    command -v paru >/dev/null 2>&1 && { echo paru; return; }
+    echo ""
+}
+
+aur_available() { [ "$HYPRTK_PM" = pacman ] && [ -n "$(aur_helper)" ]; }
+
+# Install Arch User Repository packages. On any non-Arch family (or with no AUR
+# helper) this is a warning, not a failure — each caller supplies the distro
+# equivalents in its own PKGS list.
+aur_install() {
+    [ "$#" -eq 0 ] && return 0
+    local pkgs=("$@")
+    if [ -n "${HYPRTK_DRYRUN:-}" ]; then
+        printf '%s\n' "${pkgs[@]}"
+        return 0
+    fi
+    if [ "$HYPRTK_PM" != pacman ]; then
+        echo "  ! AUR-only packages skipped on $HYPRTK_PM: ${pkgs[*]}" >&2
+        return 0
+    fi
+    local h
+    h="$(aur_helper)"
+    if [ -z "$h" ]; then
+        echo "  ! no AUR helper (yay/paru) found — install manually: ${pkgs[*]}" >&2
+        return 0
+    fi
+    "$h" -S --noconfirm --needed "${pkgs[@]}" || {
+        local p
+        for p in "${pkgs[@]}"; do
+            "$h" -S --noconfirm --needed "$p" >/dev/null 2>&1 \
+                || echo "  ! AUR package unavailable: $p" >&2
+        done
+    }
+    return 0
+}

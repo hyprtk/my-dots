@@ -1,0 +1,82 @@
+/*  -----------------------------------------------------
+    hyprtk-pywal — Dynamic pywal frosted glass
+    All colors come from ~/.cache/wal/colors-rofi-pywal.rasi,
+    so the whole theme re-tints live on wallpaper change.
+    -----------------------------------------------------  */
+window {
+    background-color:            @background;
+    border-color:                rgba(255,255,255,0.08);
+}
+
+inputbar {
+    text-color:                  @foreground;
+    border-color:                rgba(255,255,255,0.07);
+    background-color:            @background;
+}
+
+textbox-prompt-colon {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+}
+
+entry {
+    text-color:                  @foreground;
+}
+
+mode-switcher {
+    text-color:                  @foreground;
+}
+
+button {
+    background-color:            @background;
+    text-color:                  @foreground;
+    border-color:                rgba(255,255,255,0.07);
+}
+
+button selected {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+}
+
+element {
+    background-color:            @background;
+    border-color:                rgba(255,255,255,0.07);
+}
+
+element normal.normal,
+element normal.urgent,
+element normal.active {
+    text-color:                  @foreground;
+}
+
+element selected.normal {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+}
+
+element selected.urgent,
+element selected.active {
+    text-color:                  @foreground;
+}
+
+element alternate.normal,
+element alternate.urgent,
+element alternate.active {
+    text-color:                  @foreground;
+}
+
+message {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255,255,255,0.07);
+}
+
+textbox {
+    text-color:                  @foreground;
+}
+
+error-message {
+    background-color:            rgba(220,80,80,0.30);
+    text-color:                  #ffffff;
+    border-color:                rgba(255,100,100,0.30);
+}

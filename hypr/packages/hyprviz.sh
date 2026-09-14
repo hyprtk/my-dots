@@ -1,16 +1,21 @@
 #!/bin/bash
-
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
-
-print_subsection_header "HyprViz"
+# ── hyprviz ─────────────────────────────────────────────────────────
+# hyprviz-bin is an AUR package, so it only builds on Arch.
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
 echo ""
 echo " Hyprland Configuration Tool "
 echo ""
-cd $HOME/Downloads/yay-git/src/
-git clone https://aur.archlinux.org/hyprviz-bin.git
-cd hyprviz-bin
-makepkg -si
+if [ "$HYPRTK_PM" != pacman ]; then
+    echo "  ! hyprviz-bin is Arch/AUR only — skipping." >&2
+    echo "    Build from source: https://github.com/hyprviz/hyprviz" >&2
+    exit 0
+fi
+build="$HOME/Downloads/hyprviz"
+mkdir -p "$build"
+if git clone https://aur.archlinux.org/hyprviz-bin.git "$build/hyprviz-bin" && \
+   [ -d "$build/hyprviz-bin" ]; then
+    ( cd "$build/hyprviz-bin" && makepkg -si --noconfirm )
+fi
 echo ""

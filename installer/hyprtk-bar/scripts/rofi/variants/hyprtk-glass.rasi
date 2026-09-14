@@ -1,0 +1,82 @@
+/*  -----------------------------------------------------
+    hyprtk-glass — Transparent glass (pywal accents)
+    -----------------------------------------------------  */
+window {
+    background-color:            transparent;
+    border-color:                rgba(255,255,255,0.12);
+}
+
+inputbar {
+    text-color:                  rgba(200,200,210,0.95);
+    border-color:                rgba(255,255,255,0.12);
+    background-color:            transparent;
+}
+
+textbox-prompt-colon {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+}
+
+entry {
+    text-color:                  rgba(200,200,210,0.95);
+}
+
+mode-switcher {
+    text-color:                  rgba(200,200,210,0.95);
+}
+
+button {
+    background-color:            transparent;
+    text-color:                  rgba(200,200,210,0.95);
+    border-color:                rgba(255,255,255,0.12);
+}
+
+button selected {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255,255,255,0.30);
+}
+
+element {
+    background-color:            transparent;
+    border-color:                rgba(255,255,255,0.12);
+}
+
+element normal.normal,
+element normal.urgent,
+element normal.active {
+    text-color:                  rgba(200,200,210,0.95);
+}
+
+element selected.normal {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255,255,255,0.30);
+}
+
+element selected.urgent,
+element selected.active {
+    text-color:                  rgba(200,200,210,0.95);
+}
+
+element alternate.normal,
+element alternate.urgent,
+element alternate.active {
+    text-color:                  rgba(200,200,210,0.95);
+}
+
+message {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                rgba(255,255,255,0.12);
+}
+
+textbox {
+    text-color:                  rgba(200,200,210,0.95);
+}
+
+error-message {
+    background-color:            @color5;
+    text-color:                  #ffffff;
+    border-color:                @color5;
+}

@@ -1,11 +1,5 @@
+# ── fonts ─────────────────────────────────────────────────────────
 #!/bin/bash
-
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
-
-print_subsection_header "Fonts"
-
 echo ""
 echo ""
 echo "-> Install fonts"
@@ -27,8 +21,9 @@ while true; do
             else
                 mkdir ~/.local/share/fonts
             fi
-            sudo cp -r ~/hyprtk/assets/fonts/* /usr/share/fonts
-            sudo cp -r ~/.local/share/fonts/* /usr/share/fonts
+            _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+            sudo cp -r "$_PKGDIR/../../assets/fonts/"* /usr/share/fonts 2>/dev/null || true
+            sudo cp -r ~/.local/share/fonts/* /usr/share/fonts 2>/dev/null || true
             echo "System Fonts Installed."
         break;;
         * ) echo "Please answer yes or no.";;

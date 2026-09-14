@@ -1,0 +1,133 @@
+@import "colors.css";
+
+/* =========================================================
+   Hyprtk — Liquid Glass
+   Port of the Apple "Liquid Glass" aesthetic: a highly
+   translucent, cool-tinted glass slab with a bright specular
+   rim along the top edge, a soft inner under-glow and a deep
+   drop shadow. Neutral glass tint; the accent stays pywal
+   (mauve) so it matches the rest of the desktop.
+   ========================================================= */
+
+* {
+    font-family: "Fira Sans Semibold", FontAwesome, Roboto, Helvetica, Arial, sans-serif;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+}
+
+/* ── Bar (the glass slab) ─────────────────────────── */
+window#waybar {
+    background: rgba(28, 32, 46, 0.38);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    color: rgba(238, 241, 248, 0.95);
+    /* Deep anchor shadow + specular top rim + faint inner under-glow. */
+    box-shadow: 0 14px 48px rgba(0, 0, 0, 0.60),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* ── Workspaces ───────────────────────────────────── */
+#workspaces {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+}
+
+#workspaces button {
+    font-size: 16px;
+    padding: 2px 10px 2px 10px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 7px;
+    min-width: 24px;
+    font-weight: 500;
+    color: rgba(238, 241, 248, 0.92);
+}
+
+#workspaces button:hover {
+    background: rgba(255, 255, 255, 0.13);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+}
+
+/* Active workspace: frosted highlight with a specular glow. */
+#workspaces button.active {
+    color: @foreground;
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                0 0 16px rgba(255, 255, 255, 0.16);
+}
+
+#workspaces button.urgent {
+    color: @red;
+    background: rgba(255, 80, 100, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+#workspaces button.empty {
+    color: rgba(238, 241, 248, 0.45);
+}
+
+/* ── Clock ────────────────────────────────────────── */
+#clock {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 1px 10px 0px 10px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 7px;
+    color: rgba(238, 241, 248, 0.95);
+    letter-spacing: 0.5px;
+}
+
+#clock:hover {
+    color: #ffffff;
+}
+
+/* ── Module pill base ─────────────────────────────── */
+#mpris,
+#network,
+#pulseaudio,
+#disk,
+#cpu,
+#memory,
+#battery,
+#tray,
+#custom-appmenu, #custom-hyprtk-menu,
+#custom-terminal,
+#custom-filemanager,
+#custom-browser,
+#custom-cliphist,
+#custom-screenshot,
+#custom-wf-recorder,
+#custom-keybindings,
+#custom-kbstate,
+#custom-wallpaper,
+#custom-waybarthemes,
+#custom-iconthemes,
+#custom-sddmgrub,
+#custom-exit,
+#custom-updates,
+#custom-chatgpt,
+#custom-calculator {
+    font-size: 16px;
+    margin: 6px 6px 6px 0px;
+    padding: 2px 10px 2px 10px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 7px;
+    color: rgba(238, 241, 248, 0.92);
+}
+
+/* ── Tray ─────────────────────────────────────────── */
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+    background: rgba(255, 100, 100, 0.14);
+    border-color: rgba(255, 100, 100, 0.22);
+}

@@ -1,25 +1,23 @@
 #!/bin/bash
-
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
-
-print_subsection_header "Matuwall"
+# ── matuwall ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
 echo ""
 sleep 2
 echo " Matuwall Installer "
-echo ""    
+echo ""
 echo "Installing Matuwall wallpaper picker..."
-echo ""    
+echo ""
 git clone https://github.com/naurissteins/Matuwall.git ~/.local/share/Matuwall
 cd ~/.local/share/Matuwall
-/usr/bin/python -m venv --system-site-packages .venv
-source .venv/bin/activate
+python3 -m venv --system-site-packages .venv
+. .venv/bin/activate
 pip install --upgrade pip
 pip install .
 mkdir -p ~/.local/bin
 ln -sf "$PWD/.venv/bin/matuwall" ~/.local/bin/matuwall
-cd -
+deactivate 2>/dev/null || true
+cd - >/dev/null
 echo " Matuwall installed! "
 sleep 2

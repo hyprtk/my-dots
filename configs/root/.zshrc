@@ -1,1 +1,2 @@
-/home/hyprtk/Projects/AI-Projects/hyprtk-merged/.zshrc
+# Zsh configuration - placeholder
+# Will be populated during installation

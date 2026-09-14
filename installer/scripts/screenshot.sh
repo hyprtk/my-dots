@@ -1,25 +1,28 @@
 #!/bin/bash
-# ── Screenshot ────────────────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#                                                      
+#  
+# by hyprtk (Kori Tk) (2026)
+# ----------------------------------------------------- 
 prompt='Screenshot'
 mesg="DIR: ~/Pictures/Screenshots"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SAVE_DIR=$(cat "$SCRIPT_DIR/settings/screenshot-folder")
-SAVE_FILENAME=$(cat "$SCRIPT_DIR/settings/screenshot-filename")
-screenshot_folder="$SAVE_DIR"
-NAME="$SAVE_FILENAME"
+SAVE_DIR=$(cat ~/hyprtk/installer/scripts/settings/screenshot-folder)
+SAVE_FILENAME=$(cat ~/hyprtk/installer/scripts/settings/screenshot-filename)
+
+# Expand a leading ~ explicitly; never eval settings content.
+screenshot_folder="${SAVE_DIR/#\~/$HOME}"
+# The stored filename is a strftime template (e.g. screenshot_%Y%m%d_%H%M%S.png).
+NAME="$(date +"$SAVE_FILENAME")"
+[[ -n "$NAME" ]] || NAME="screenshot_$(date +%Y%m%d_%H%M%S).png"
 
 # Notifications
-if [ -f "$SCRIPT_DIR/../../hypr/scripts/notification-handler" ]; then
-    source "$SCRIPT_DIR/../../hypr/scripts/notification-handler"
-fi
+source "$HOME/hyprtk/scripts/notification-handler"
 APP_NAME="Screen Capture"
 NOTIFICATION_ICON="camera-photo-symbolic"
 
 # Screenshot Editor
-export GRIMBLAST_EDITOR="$(cat "$SCRIPT_DIR/settings/screenshot-editor")"
+export GRIMBLAST_EDITOR="$(cat "$HOME/hyprtk/scripts/settings/screenshot-editor")"
 
 # Example for keybindings
 # bind = SUPER, p, exec, grimblast save active
@@ -235,10 +238,10 @@ timer() {
 # take shots
 takescreenshot() {
     sleep 1
-    grimblast --notify "$option_chosen" "$option_type_screenshot" $NAME
-    if [ -f $HOME/$NAME ]; then
-        if [ -d $screenshot_folder ]; then
-            mv $HOME/$NAME $screenshot_folder/
+    grimblast --notify "$option_chosen" "$option_type_screenshot" "$NAME"
+    if [ -f "$HOME/$NAME" ]; then
+        if [ -d "$screenshot_folder" ]; then
+            mv "$HOME/$NAME" "$screenshot_folder/"
         fi
     fi
 }
@@ -247,10 +250,10 @@ takescreenshot_timer() {
     sleep 1
     timer
     sleep 1
-    grimblast --notify "$option_chosen" "$option_type_screenshot" $NAME
-    if [ -f $HOME/$NAME ]; then
-        if [ -d $screenshot_folder ]; then
-            mv $HOME/$NAME $screenshot_folder/
+    grimblast --notify "$option_chosen" "$option_type_screenshot" "$NAME"
+    if [ -f "$HOME/$NAME" ]; then
+        if [ -d "$screenshot_folder" ]; then
+            mv "$HOME/$NAME" "$screenshot_folder/"
         fi
     fi
 }
@@ -278,9 +281,7 @@ case ${chosen} in
         ;;
 esac
 
-# Move any stray screenshots in current directory
-shopt -s nullglob
-for f in screenshot*.png; do
-    mv "$f" ~/Pictures/Screenshots/ 2>/dev/null || true
-done
-shopt -u nullglob
+if ls screenshot*.png >/dev/null 2>&1; then
+    mkdir -p ~/Pictures/Screenshots
+    mv -- screenshot*.png ~/Pictures/Screenshots
+fi

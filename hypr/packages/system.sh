@@ -1,56 +1,77 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── system ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+case "$HYPRTK_PM" in
+pacman)
+    PKGS=(sddm blueman pacman-contrib fzf font-manager awesome-terminal-fonts
+          ttf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd exa
+          python-pip python-psutil python-rich python-click xdg-desktop-portal-gtk
+          xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp
+          pcp-gui gtk4-layer-shell hyprpicker)
+    AUR=(bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
+         pamac-all libpamac-full pamac-cli tumbler-extra-thumbnailers)
+    ;;
+apt)
+    PKGS=(sddm blueman fzf font-manager fonts-font-awesome fonts-fira-code eza
+          python3-pip python3-psutil python3-rich python3-click python3-venv
+          xdg-desktop-portal-gtk xdg-user-dirs xdg-user-dirs-gtk os-prober
+          policykit-1-gnome gnome-keyring gtk4-layer-shell hyprpicker)
+    ;;
+dnf)
+    PKGS=(sddm blueman fzf font-manager fontawesome-fonts fira-code-fonts eza
+          python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
+          xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
+          gtk4-layer-shell hyprpicker)
+    ;;
+zypper)
+    PKGS=(sddm blueman fzf font-manager fontawesome-fonts fira-code-fonts eza
+          python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
+          xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
+          gtk4-layer-shell hyprpicker)
+    ;;
+xbps)
+    PKGS=(sddm blueman fzf font-manager font-awesome fira-code eza python3-pip
+          python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
+          xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
+          gtk4-layer-shell hyprpicker)
+    ;;
+apk)
+    PKGS=(sddm blueman fzf font-manager font-awesome fira-code eza py3-pip
+          py3-psutil py3-rich py3-click xdg-desktop-portal-gtk xdg-user-dirs
+          xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring gtk4-layer-shell
+          hyprpicker)
+    ;;
+esac
 
-print_subsection_header "System"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo ""
 echo " System Packages "
 echo ""
-
-# Install or update pacman packages
-_installOrUpdatePacman sddm
-_installOrUpdatePacman blueman
-_installOrUpdatePacman pacman-contrib
-_installOrUpdatePacman fzf
-_installOrUpdatePacman font-manager
-_installOrUpdatePacman awesome-terminal-fonts
-_installOrUpdatePacman ttf-font-awesome
-_installOrUpdatePacman ttf-fira-sans
-_installOrUpdatePacman ttf-fira-code
-_installOrUpdatePacman ttf-firacode-nerd
-_installOrUpdatePacman exa
-_installOrUpdatePacman python-pip
-_installOrUpdatePacman python-psutil
-_installOrUpdatePacman python-rich
-_installOrUpdatePacman python-click
-_installOrUpdatePacman xdg-desktop-portal-gtk
-_installOrUpdatePacman xdg-user-dirs
-_installOrUpdatePacman xdg-user-dirs-gtk
-_installOrUpdatePacman os-prober
-_installOrUpdatePacman polkit-gnome
-_installOrUpdatePacman gnome-keyring
-_installOrUpdatePacman pcp
-_installOrUpdatePacman pcp-gui
-_installOrUpdatePacman gtk4-layer-shell
-_installOrUpdatePacman hyprpicker
-
-# Install pcp-pmda packages
-sudo pacman -S $(pacman -Ssq 'pcp-pmda-*') --noconfirm
-
+pkg_install "${PKGS[@]}"
+aur_install "${AUR[@]}"
 echo ""
 
-# Install or update yay packages
-_installOrUpdateYay bibata-cursor-theme
-_installOrUpdateYay trizen
-_installOrUpdateYay sublime-text-4
-_installOrUpdateYay sddm-theme-sugar-candy-git
-_installOrUpdateYay pacseek
-_installOrUpdateYay tumbler-extra-thumbnailers
+# Performance Co-Pilot PMDA modules are Arch-only.
+if [ "$HYPRTK_PM" = pacman ]; then
+    # shellcheck disable=SC2046
+    pkg_install $(pacman -Ssq 'pcp-pmda-*' 2>/dev/null) || true
+fi
 
-echo ""
-print_subsection_header "Papyrus Folders Install"
-wget -qO- https://git.io/papirus-folders-install | env PREFIX=$HOME/.local sh
+# papirus-folders CLI — bundled with the dotfiles; fall back to the upstream
+# installer fetched to a temp file (never a blind pipe-to-shell) off-tree.
+if [ ! -x "$_PKGDIR/../../installer/standalone/papirus-folders" ]; then
+    tmp="$(mktemp)"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL --max-time 60 https://git.io/papirus-folders-install -o "$tmp" 2>/dev/null || true
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "$tmp" --timeout=60 https://git.io/papirus-folders-install 2>/dev/null || true
+    fi
+    [ -s "$tmp" ] && env PREFIX="$HOME/.local" bash "$tmp" || \
+        echo "  ! papirus-folders install skipped (no network / fetch failed)" >&2
+    rm -f -- "$tmp"
+fi
 echo ""

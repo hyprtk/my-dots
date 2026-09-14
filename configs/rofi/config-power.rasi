@@ -48,7 +48,7 @@ mainbox {
     padding:                     15px;
     border:                      0px solid;
     border-radius:               0px;
-    border-color:                @color11;
+    border-color:                @color5;
     background-color:            transparent;
     children:                    [ "message", "listview" ];
 }
@@ -71,7 +71,7 @@ inputbar {
     padding:                     0px;
     border:                      0px;
     border-radius:               0px;
-    border-color:                @color11;
+    border-color:                @color5;
     background-color:            transparent;
     text-color:                  #ffffff;
     children:                    [ "textbox-prompt-colon", "prompt"];
@@ -94,7 +94,7 @@ prompt {
     enabled:                     true;
     padding:                     12px;
     border-radius:               0px;
-    background-color:            @color11;
+    background-color:            @color5;
     text-color:                  #ffffff;
 }
 
@@ -145,7 +145,7 @@ listview {
     padding:                     0px;
     border:                      0px solid;
     border-radius:               0px;
-    border-color:                @color11;
+    border-color:                @color5;
     background-color:            transparent;
     text-color:                  #ffffff;
     cursor:                      "default";
@@ -173,7 +173,7 @@ element-text {
     horizontal-align:            0.5;
 }
 element selected.normal {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
 }
 

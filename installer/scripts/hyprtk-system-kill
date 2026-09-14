@@ -1,0 +1,28 @@
+#!/bin/bash
+# ── hyprtk-system-kill ────────────────────────────────────────────────────
+# Passwordless sudo helper for hyprtk-bar's system monitor: terminate a
+# SYSTEM-owned process (root or another user) on behalf of the desktop user.
+#
+# The bar's monitor calls this via `sudo -n` for pids it cannot kill directly
+# (anything not owned by the desktop user). Own-process kills use plain `kill`
+# and never reach here. setup-sudoers.sh grants NOPASSWD for this exact path.
+#
+# Safety: the pid must be a positive integer and the signal must be one of the
+# two explicit strings the bar sends (-TERM / -KILL). Nothing else is accepted,
+# so a config/scripting mistake can't turn this into an arbitrary kill.
+# ──────────────────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+PID="${1:-}"
+SIGNAL="${2:--TERM}"
+
+case "$PID" in
+    ''|*[!0-9]*) echo "error: invalid pid '$PID'" >&2; exit 2 ;;
+esac
+case "$SIGNAL" in
+    -TERM|-KILL) ;;
+    *) echo "error: invalid signal '$SIGNAL'" >&2; exit 2 ;;
+esac
+
+exec kill "$SIGNAL" "$PID"

@@ -1,24 +1,34 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── systemtools ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+case "$HYPRTK_PM" in
+pacman)
+    PKGS=(timeshift file-roller gparted xfce4-power-manager rofi cockpit)
+    AUR=(gnome-disk-utility)
+    ;;
+apt)
+    PKGS=(timeshift file-roller gparted xfce4-power-manager rofi cockpit gnome-disk-utility)
+    ;;
+dnf)
+    PKGS=(timeshift file-roller gparted xfce4-power-manager rofi cockpit gnome-disk-utility)
+    ;;
+zypper)
+    PKGS=(timeshift file-roller gparted xfce4-power-manager rofi cockpit gnome-disk-utility)
+    ;;
+xbps)
+    PKGS=(timeshift file-roller gparted xfce4-power-manager rofi cockpit gnome-disk-utility)
+    ;;
+apk)
+    PKGS=(file-roller gparted xfce4-power-manager rofi cockpit gnome-disk-utility)
+    ;;
+esac
 
-print_subsection_header "Sys Tools"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " System Tools "
-
-# Install or update pacman packages
-_installOrUpdatePacman timeshift
-_installOrUpdatePacman file-roller
-_installOrUpdatePacman gparted
-_installOrUpdatePacman xfce4-power-manager
-_installOrUpdatePacman rofi
-_installOrUpdatePacman dunst
-_installOrUpdatePacman cockpit
-
-echo ""
-
-# Install or update yay packages
-_installOrUpdateYay gnome-disk-utility
+pkg_install "${PKGS[@]}"
+aur_install "${AUR[@]}"
 echo ""

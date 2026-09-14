@@ -156,7 +156,7 @@ element normal.active {
 }
 
 element selected.normal {
-    background-color:            @color4;
+    background-color:            @color5;
 }
 
 element selected.urgent {
@@ -214,7 +214,7 @@ error-message {
     padding:                     12px;
     border:                      0px solid;
     border-radius:               0px;
-    border-color:                @color11;
+    border-color:                @color5;
 }
 
 @import                          "variant.rasi"

@@ -1,0 +1,77 @@
+{
+  "position": "bottom",
+  "height": 42,
+  "radius": 12,
+  "opacity": 0.95,
+  "use_pywal": true,
+  "monitors": "primary",
+  "theme": {
+    "background": "#1a1b26",
+    "foreground": "#c0caf5",
+    "accent": "#7aa2f7",
+    "hover": "rgba(255, 255, 255, 0.08)",
+    "running": "#7aa2f7"
+  },
+  "center": {
+    "start_button": true,
+    "start_glyph": "\uf015",
+    "start_command": "~/.local/bin/hyprtk-bar-menu-toggle.sh",
+    "pinned": [
+      {
+        "class": "Brave",
+        "command": "brave",
+        "icon": "brave"
+      },
+      {
+        "class": "Alacritty",
+        "command": "alacritty",
+        "icon": "alacritty"
+      },
+      {
+        "class": "thunar",
+        "command": "thunar",
+        "icon": "system-file-manager"
+      }
+    ]
+  },
+  "workspaces": {
+    "enabled": true,
+    "show_empty": true,
+    "max": 5
+  },
+  "clock": {
+    "enabled": true,
+    "format": "%H:%M",
+    "date_format": "%a %d %b",
+    "calendar": true
+  },
+  "sysmon": {
+    "enabled": true,
+    "interval": 2,
+    "disk_path": "/"
+  },
+  "tray": {
+    "enabled": true,
+    "icon_size": 20
+  },
+  "quicksettings": {
+    "enabled": true
+  },
+  "notifications": {
+    "enabled": true,
+    "max_stored": 50,
+    "default_timeout": 5000
+  },
+  "window": {
+    "enabled": true,
+    "max_length": 40,
+    "width": 220
+  },
+  "font": {
+    "family": "",
+    "size": 16,
+    "icon_size": 0
+  },
+  "gap_in": 6,
+  "gap_out": 6
+}

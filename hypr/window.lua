@@ -1,16 +1,16 @@
--- ── Window Rules (colors from pywal) ──────────────────
--- by Kori Tk (2026)
--- Reads colors from ~/.cache/wal/colors-hyprland.lua
--- ─────────────────────────────────────────────────────
+-- window.lua
+-- Reads colors from ~/.cache/wal/colors-hyprland.lua and applies them to Hyprland's border settings.
+-- No fallback values are provided; missing variables will cause errors.
 
 local function load_colors_from_file(filename)
     local colors = {}
     local file, err = io.open(filename, "r")
     if not file then
-        return nil, "Could not open " .. filename .. ": " .. (err or "unknown error")
+        error("Could not open " .. filename .. ": " .. err)
     end
 
     for line in file:lines() do
+        -- Match lines like:  local color0 = "rgb(212c4f)"
         local name, value = line:match('^%s*local%s+(%w+)%s*=%s*"rgb%((%x+)%)"%s*$')
         if name and value then
             colors[name] = "rgb(" .. value .. ")"
@@ -20,27 +20,22 @@ local function load_colors_from_file(filename)
     return colors
 end
 
+-- Build the full path to the colors file
 local home = os.getenv("HOME")
-if not home then
+local colors_path = home and home .. "/.cache/wal/colors-hyprland.lua"
+if not colors_path then
     error("HOME environment variable not set")
 end
 
-local colors_path = home .. "/.cache/wal/colors-hyprland.lua"
-local colors, err = load_colors_from_file(colors_path)
-if not colors then
-    -- Fallback to sensible defaults if pywal colors not available
-    colors = {
-        color11 = "rgb(c2c4c7)",
-        color4 = "rgb(136,192,208)",
-        color7 = "rgb(a5adc8)",
-        color1 = "rgb(243,139,168)",
-    }
-end
+-- Load the colors (will error if file is missing or unreadable)
+local colors = load_colors_from_file(colors_path)
 
-local active_color1 = colors.color11 or "rgb(c2c4c7)"
-local active_color2 = colors.color4 or "rgb(136,192,208)"
-local inactive_color1 = colors.color7 or "rgb(a5adc8)"
-local inactive_color2 = colors.color1 or "rgb(243,139,168)"
+-- Choose which color variables to use for borders.
+-- These names must exist in the colors file; no fallback is provided.
+local active_color1 = colors.color11
+local active_color2 = colors.color4
+local inactive_color1 = colors.color7
+local inactive_color2 = colors.color1
 
 hl.config({
     general = {

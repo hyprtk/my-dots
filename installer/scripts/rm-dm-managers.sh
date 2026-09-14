@@ -1,53 +1,54 @@
 #!/bin/bash
-# ── Remove DM Managers ────────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#
+#
+# by hyprtk (Kori Tk) (2026)
+# -----------------------------------------------------
+# Install SDDM and disable any other display manager. Multi-distro: the SDDM
+# package is installed through pkgmanager.sh; the systemctl disables are
+# best-effort (units simply may not exist).
+. "$(dirname "${BASH_SOURCE[0]}")/pkgmanager.sh"
+
 # Install SDDM if not already installed
-sudo pacman -S --noconfirm sddm
+pkg_install sddm
 echo ""
 echo " Removing lightdm "
 # Disable LightDM (and its Plymouth service if present)
-sudo systemctl disable lightdm
-sudo systemctl disable lightdm-plymouth
+hyprtk_run_root systemctl disable lightdm 2>/dev/null
+hyprtk_run_root systemctl disable lightdm-plymouth 2>/dev/null
 echo ""
 echo " Removing gdm "
 echo ""
-# Disable GDM (and its Plymouth service if present)
-sudo systemctl disable gdm
-sudo systemctl disable gdm-plymouth
+hyprtk_run_root systemctl disable gdm 2>/dev/null
+hyprtk_run_root systemctl disable gdm-plymouth 2>/dev/null
 echo ""
 echo " Removing lxdm "
 echo ""
-# Disable LXDM (and its Plymouth service if present)
-sudo systemctl disable lxdm
-sudo systemctl disable lxdm-plymouth
+hyprtk_run_root systemctl disable lxdm 2>/dev/null
+hyprtk_run_root systemctl disable lxdm-plymouth 2>/dev/null
 echo ""
 echo " Removing slim "
 echo ""
-# Disable SLiM (and its Plymouth service if present)
-sudo systemctl disable slim
-sudo systemctl disable slim-plymouth
+hyprtk_run_root systemctl disable slim 2>/dev/null
+hyprtk_run_root systemctl disable slim-plymouth 2>/dev/null
 echo ""
 echo " Removing kdm "
 echo ""
-# Disable KDM (and its Plymouth service if present)
-sudo systemctl disable kdm
-sudo systemctl disable kdm-plymouth
+hyprtk_run_root systemctl disable kdm 2>/dev/null
+hyprtk_run_root systemctl disable kdm-plymouth 2>/dev/null
 echo ""
 echo " Removing ly "
 echo ""
-# Disable Ly (and its Plymouth service if present)
-sudo systemctl disable ly
-sudo systemctl disable ly-plymouth
+hyprtk_run_root systemctl disable ly 2>/dev/null
+hyprtk_run_root systemctl disable ly-plymouth 2>/dev/null
 echo ""
 echo " Enabling sddm "
 echo ""
-# Enable SDDM
-sudo systemctl enable sddm
+hyprtk_run_root systemctl enable sddm 2>/dev/null
 
 echo ""
 # Optional: Force symlink replacement if needed (e.g., on EndeavourOS)
-sudo systemctl enable sddm --force
+hyprtk_run_root systemctl enable sddm --force 2>/dev/null
 
 echo ""
-echo "Switched to SDDM. Reboot to apply changes."   
+echo "Switched to SDDM. Reboot to apply changes."

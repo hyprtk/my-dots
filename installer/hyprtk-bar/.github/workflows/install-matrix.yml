@@ -1,0 +1,75 @@
+# Cross-distro install matrix.
+#
+# Proves `install.sh` installs the bar cleanly on every supported distro
+# family: it runs the dry-run (detection + dependency report), then a real
+# `--no-extras` install (core typelibs + PyGObject via the package manager +
+# the --system-site-packages venv) and finally imports GTK/GtkLayerShell in the
+# installed venv — the same check the installer's own self-test performs.
+#
+# Gentoo (emerge) and NixOS (flake) are handled separately — they are not
+# package-manager-detectable in a throwaway container.
+name: install-matrix
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: arch
+            image: archlinux:latest
+            bootstrap: pacman -Sy --noconfirm git
+          - distro: debian-bookworm
+            image: debian:bookworm
+            bootstrap: apt-get update && apt-get install -y git
+          - distro: ubuntu-noble
+            image: ubuntu:24.04
+            bootstrap: apt-get update && apt-get install -y git
+          - distro: fedora
+            image: fedora:latest
+            bootstrap: dnf install -y git
+          - distro: opensuse-tumbleweed
+            image: opensuse/tumbleweed
+            bootstrap: zypper --non-interactive install git
+          - distro: void
+            image: voidlinux/voidlinux:latest
+            bootstrap: xbps-install -Sy git
+          - distro: alpine
+            image: alpine:latest
+            # Alpine has no bash by default (install.sh needs it), and git for checkout.
+            bootstrap: apk add --no-cache git bash
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Bootstrap (${{ matrix.distro }})
+        run: ${{ matrix.bootstrap }}
+
+      - uses: actions/checkout@v4
+
+      - name: Dry run
+        run: ./install.sh --dry-run
+
+      - name: Install (core deps, no extras)
+        run: ./install.sh --no-extras
+
+      - name: Bundled pywal16 (wal) self-test
+        run: |
+          test -x "$HOME/.local/share/hyprtk-bar/venv/bin/wal"
+          "$HOME/.local/bin/wal" -v
+
+      - name: Import self-test
+        run: |
+          "$HOME/.local/share/hyprtk-bar/venv/bin/python3" - <<'PY'
+          import gi
+          gi.require_version("Gtk", "3.0")
+          gi.require_version("GtkLayerShell", "0.1")
+          from gi.repository import Gtk, GtkLayerShell
+          import hyprtk_bar
+          print("hyprtk-bar imports OK")
+          PY

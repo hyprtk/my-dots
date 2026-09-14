@@ -1,23 +1,38 @@
 #!/bin/bash
+# hyprtk-pkglist
+# ── printers ─────────────────────────────────────────────────────────
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+case "$HYPRTK_PM" in
+pacman)
+    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer cups-browsed
+          libusb ipp-usb xdg-utils colord logrotate)
+    ;;
+apt)
+    PKGS=(cups cups-pdf cups-filters libnss-mdns system-config-printer libusb-1.0-0
+          ipp-usb xdg-utils colord logrotate)
+    ;;
+dnf)
+    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer libusb ipp-usb
+          xdg-utils colord logrotate)
+    ;;
+zypper)
+    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer libusb-1_0-0
+          ipp-usb xdg-utils colord logrotate)
+    ;;
+xbps)
+    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer libusb ipp-usb
+          xdg-utils colord logrotate)
+    ;;
+apk)
+    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer libusb ipp-usb
+          xdg-utils colord logrotate)
+    ;;
+esac
 
-print_subsection_header "Printer"
+if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " Printer Packages "
-
-# Install or update yay packages
-_installOrUpdateYay cups
-_installOrUpdateYay cups-pdf
-_installOrUpdateYay cups-filters
-_installOrUpdateYay nss-mdns
-_installOrUpdateYay system-config-printer
-_installOrUpdateYay cups-browsed
-_installOrUpdateYay libusb
-_installOrUpdateYay ipp-usb
-_installOrUpdateYay xdg-utils
-_installOrUpdateYay colord
-_installOrUpdateYay logrotate
+pkg_install "${PKGS[@]}"
 echo ""

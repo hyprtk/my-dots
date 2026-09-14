@@ -1,71 +1,34 @@
-# Hyprtk — Hyprland Desktop Environment
+<div align="center">
 
-A complete, opinionated Hyprland desktop setup for Arch-based distributions. One script installs everything: compositor config, status bar, theming, wallpaper management, and 40+ utility scripts.
+# hyprtk dots
 
-<p align="center">
-<img src="https://github.com/hyprtk/dotfiles/blob/main/assets/thumbnails/arch1-thumb.png" width="48%">
-<img src="https://github.com/hyprtk/dotfiles/blob/main/assets/thumbnails/arch2-thumb.png" width="48%">
-</p>
+A single installer for a fully themed **Hyprland (Wayland)** desktop on **any Linux distribution** — with **XFCE (Xorg)** kept as a safety net.
 
-**Supported distros:** Arch Linux, ArchBang, Archcraft, Archman, BlueStar, CachyOS, EndeavourOS, Garuda, Kiro, Manjaro, RebornOS
+**Any distro. One install. One pywal-powered theme.**
 
----
-
-## Features
-
-<table>
-<tr>
-<td width="50%">
-
-### Core Desktop
-
-- **Hyprland** — dynamic tiling compositor with animations, blur, shadows
-- **Waybar** — status bar with 14 theme variants
-- **Rofi** — application launcher with 7 theme variants
-- **Alacritty** — GPU-accelerated terminal
-- **Thunar** — file manager with custom actions
-
-</td>
-<td width="50%">
-
-### Dynamic Theming
-
-- **pywal16** — color scheme from wallpapers
-- **14 Waybar themes** — dark, light, aero, clear, inverse, negative, reverse
-- **7 Rofi themes** — matching Waybar aesthetic
-- **Papirus icons** — 25 custom color variants
-- **matuwall** — GTK4 wallpaper picker
-
-</td>
-</tr>
-<tr>
-<td>
-
-### Scripts & Tools
-
-- **49 utility scripts** — screenshot, recording, clipboard, volume, brightness
-- **theme-gui** — GTK4 theme manager (wallpapers, colors, icons)
-- **hyprlogout** — custom logout menu
-- **wf-recorder** — screen recording with notifications
-
-</td>
-<td>
-
-### System Integration
-
-- **SDDM** — login screen with theme support
-- **GRUB** — custom splash screen
-- **NVIDIA** — optional driver config (nvidia.lua)
-- **XFCE4** — fallback desktop environment
-- **Oh My Zsh + Starship** — shell prompt and plugins
-
-</td>
-</tr>
-</table>
+`Arch` · `Archbang` · `Archcraft` · `Archman` · `BSLX` · `CachyOS` · `EndeavourOS` · `Garuda` · `Kiro` · `Manjaro` · `RebornOS` · `Debian/Ubuntu` · `Fedora/RHEL` · `openSUSE` · `Void` · `Alpine` · `Gentoo` · `NixOS`
 
 ---
 
-## Quick Start
+[Install](#install) · [Features](#features) · [Portability](#portability) · [Keybindings](#keybindings) · [Applications](#applications) · [Gallery](#gallery)
+
+</div>
+
+---
+
+## What is this?
+
+A curated, consistent desktop configuration that replaces the default look and feel of Arch Linux with a polished Hyprland setup. One wallpaper drives every colour on screen via **pywal16** (bundled) — hyprtk-bar, rofi, the app menu, the lock screen and even your icons all stay in sync.
+
+- **Wayland first** — Hyprland with a floating/split hybrid workflow
+- **Xorg fallback** — XFCE stays installed as a safety net
+- **Auto-detected distro** — the installer detects your OS and package manager (pacman/apt/dnf/zypper/xbps/apk) and applies the right tweaks
+- **No manual colour config** — pywal generates a full palette from your wallpaper
+- **No AUR dependency for pywal** — pywal16 is bundled inside hyprtk-bar (`vendor/pywal16`), so colours work out of the box
+
+## Install
+
+> Back up your existing `~/.config` before running.
 
 ```bash
 git clone https://github.com/hyprtk/dotfiles.git ~/hyprtk
@@ -73,222 +36,118 @@ cd ~/hyprtk
 sh ./1-install.sh
 ```
 
-> **Backup your existing `~/.config` before installing.**
+The installer is a guided `gum` TUI: it detects your distro, then asks about
+package groups, dotfiles and services before installing everything.
 
-<details>
-<summary><b>Installation details</b></summary>
+> Every system is different — results can vary. Review the prompts before accepting.
 
-The installer will:
-1. Detect your distro automatically
-2. Present a TUI selector (gum) to choose your distribution
-3. Install 147 packages via pacman/yay
-4. Configure Hyprland, Waybar, Rofi, and all utilities
-5. Set up SDDM, GRUB splash, and NVIDIA drivers (if selected)
+## Portability
 
-**Requirements:** Arch-based distro, internet connection, ~2GB disk space
-</details>
+The installer works across distribution families via a single package-manager
+abstraction (`installer/scripts/pkgmanager.sh`): **Arch** (pacman + AUR),
+**Debian/Ubuntu** (apt), **Fedora/RHEL** (dnf), **openSUSE** (zypper), **Void**
+(xbps) and **Alpine** (apk), with **Gentoo** and **NixOS** supported as
+manual/declarative installs. Arch-only features (AUR packages, `mkinitcpio`
+splash, os-release branding) are skipped with a warning elsewhere. See
+[`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 
----
+## Features
 
-## Tech Stack
-
-<table>
-<tr>
-<td width="50%">
-
-| Category | Components |
-|----------|------------|
-| Compositor | Hyprland (Lua) |
-| Status Bar | Waybar (14 themes) |
-| Launcher | Rofi (7 themes) |
-| Terminal | Alacritty |
-| Shell | Zsh + Starship |
-| File Manager | Thunar + GVFS |
-| Wallpaper | matuwall + swww |
-
-</td>
-<td width="50%">
-
-| Category | Components |
-|----------|------------|
-| Theming | pywal16 + theme-gui |
-| Icons | Papirus (25 variants) |
-| Screen Lock | swaylock-effects |
-| Screenshots | grim + slurp + swappy |
-| Recording | wf-recorder |
-| Clipboard | cliphist + wl-clipboard |
-| Display Manager | SDDM |
-
-</td>
-</tr>
-</table>
-
----
+| Area | What you get |
+| --- | --- |
+| **Terminal** | Alacritty + starship prompt |
+| **Editor** | Neovim (Vim fallback) |
+| **App launcher** | Rofi (plus the in-bar start menu) |
+| **Status bar** | hyprtk-bar — pywal-themed taskbar with built-in menus |
+| **Theming** | pywal16 (bundled), live, from your wallpaper |
+| **Wallpaper** | Matuwall film-strip picker + rofi list + random |
+| **Screenshots** | grim & slurp |
+| **Screen recording** | wf-recorder |
+| **Clipboard** | cliphist |
+| **Screen lock** | swaylock-effects |
+| **Logout** | hyprlogout |
+| **Files** | Thunar |
+| **Icons** | Papirus (recolored to match the theme) |
+| **Cursor** | Bibata Modern Ice |
+| **Browser** | Brave / Chromium |
+| **VMs** | QEMU/KVM, VMware |
 
 ## Keybindings
 
-All keybinds use `SUPER` (Windows key) as the modifier.
+`Super` = the Windows key.
 
-<table>
-<tr>
-<td width="50%">
-
-### Core
+### Apps & windows
 
 | Key | Action |
-|-----|--------|
-| `SUPER + Return` | Terminal |
-| `SUPER + Q` | Close window |
-| `SUPER + M` | Fullscreen |
-| `SUPER + F` | File manager |
-| `SUPER + B` | Browser |
-| `SUPER + D` | App menu |
-| `SUPER + V` | Toggle float |
-| `SUPER + X` | Exit |
-| `SUPER + R` | Reload config |
-| `SUPER + C` | Color picker |
-
-### Wallpapers & Theming
-
-| Key | Action |
-|-----|--------|
-| `SUPER + W` | Wallpaper picker |
-| `SUPER + Shift + W` | Random wallpaper |
-| `SUPER + Ctrl + W` | Wallpaper selector |
-| `SUPER + Ctrl + T` | Switch Waybar theme |
-
-</td>
-<td width="50%">
-
-### Screenshots & Recording
-
-| Key | Action |
-|-----|--------|
-| `SUPER + Print` | Screenshot |
-| `SUPER + P` | Screenshot |
-| `SUPER + Shift + Print` | Start recording |
-| `SUPER + Alt + Print` | Stop recording |
+| --- | --- |
+| `Super + Return` | Terminal (Alacritty) |
+| `Super + Space` | Start menu (in-bar) |
+| `Super + Q` | Close window |
+| `Super + D` | App menu (rofi) |
+| `Super + F` | File manager (Thunar) |
+| `Super + B` / `Super + Ctrl + B` | Brave / Chromium |
+| `Super + X` | Exit session |
+| `Super + M` | Toggle fullscreen |
+| `Super + V` | Float / resize / center window |
+| `Super + J` / `Super + K` | Toggle / swap split |
 
 ### Workspaces
 
 | Key | Action |
-|-----|--------|
-| `SUPER + 1-5` | Switch workspace |
-| `SUPER + Shift + 1-5` | Move to workspace |
-| `SUPER + Scroll` | Cycle workspaces |
+| --- | --- |
+| `Super + 1..0` | Switch to workspace |
+| `Super + Shift + 1..0` | Move window to workspace |
 
-### Applications
+### Wallpaper & themes
 
 | Key | Action |
-|-----|--------|
-| `SUPER + Ctrl + Q` | Logout menu |
-| `SUPER + Ctrl + C` | Clipboard history |
-| `SUPER + Ctrl + F` | File manager |
-| `SUPER + Shift + P` | Passthrough (VMs) |
+| --- | --- |
+| `Super + W` | Matuwall wallpaper picker |
+| `Super + Shift + W` | Random wallpaper |
+| `Super + Ctrl + W` | Wallpaper list (rofi) |
+| `Super + Ctrl + T` | Switch waybar theme |
+| `Super + Shift + B` | Reload waybar |
 
-</td>
-</tr>
-</table>
+### Media & system
 
-Full keybindings reference: [`cheatsheet.md`](cheatsheet.md)
+| Key | Action |
+| --- | --- |
+| `Super + Print` / `Super + P` | Screenshot |
+| `Super + Shift + Print` | Start screen recording |
+| `Super + Alt + Print` | Stop screen recording |
+| `Super + C` | Color picker (hyprpicker) |
+| `Super + Ctrl + Q` | Power menu (hyprlogout) |
+| `Super + R` | Reload Hyprland config |
 
----
+## Applications
 
-## Waybar Themes
+All system theming (wallpaper, pywal, rofi, icons, swaylock, SDDM/GRUB) now lives in **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar. The **start menu** and **arc menu** are both built into **hyprtk-bar** — no separate apps:
 
-14 theme variants organized by position (top/bottom) and style:
+| Feature | What it does | Open with |
+| --- | --- | --- |
+| **Start menu** | Whisker/Win7/Win11/Plasma app menu — search, favorites, recents, power buttons | `Super + Space` or the start button |
+| **Arc menu** | FAB in a screen corner that fans its items out on click | `Super + Ctrl + M` (or the FAB) |
 
-<table>
-<tr>
-<td width="50%">
+Both are configured from the bar settings dialogue (*Menu* and *Arc Menu* tabs) and follow the bar's theme + pywal.
 
-| Theme | Style |
-|-------|-------|
-| hyprtk-top/bottom | Dark frosted |
-| hyprtk-aero-top/bottom | Aero glass |
-| hyprtk-clear-top/bottom | Transparent |
-| hyprtk-light-top/bottom | Light frosted |
+## Gallery
 
-</td>
-<td width="50%">
+| | | |
+| --- | --- | --- |
+| ![Arch](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/arch1.png) | ![Arch](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/arch2.png) | ![Arch](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/arch3.png) |
+| ![Archbang](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archbang1.png) | ![Archbang](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archbang2.png) | ![Archbang](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archbang3.png) |
+| ![Archcraft](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archcraft1.png) | ![Archcraft](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archcraft2.png) | ![Archcraft](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archcraft3.png) |
+| ![Archman](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archman1.png) | ![Archman](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archman2.png) | ![Archman](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archman3.png) |
+| ![BSLX](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/bslx1.png) | ![BSLX](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/bslx2.png) | ![BSLX](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/bslx3.png) |
+| ![CachyOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/cachy1.png) | ![CachyOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/cachy2.png) | ![CachyOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/cachy3.png) |
+| ![EndeavourOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/endeavour1.png) | ![EndeavourOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/endeavour2.png) | ![EndeavourOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/endeavour3.png) |
+| ![Garuda](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/garuda1.png) | ![Garuda](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/garuda2.png) | ![Garuda](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/garuda3.png) |
+| ![Kiro](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/kiro1.png) | ![Kiro](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/kiro2.png) | ![Kiro](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/kiro3.png) |
+| ![Manjaro](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/manjaro1.png) | ![Manjaro](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/manjaro2.png) | ![Manjaro](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/manjaro3.png) |
+| ![RebornOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/reborn1.png) | ![RebornOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/reborn2.png) | ![RebornOS](https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/reborn3.png) |
 
-| Theme | Style |
-|-------|-------|
-| hyprtk-inverse-top/bottom | Inverse |
-| hyprtk-reverse-top/bottom | Reverse |
-| hyprtk-negative-top/bottom | Negative |
-
-</td>
-</tr>
-</table>
-
-Switch themes at runtime with `SUPER + Ctrl + T` or from theme-gui.
-
----
-
-## Project Structure
-
-```
-hyprtk/
-├── 1-install.sh              # Main installer
-├── hypr/                     # Hyprland config (Lua)
-│   ├── keybindings.lua       # Keybindings
-│   ├── autostart.lua         # Autostart apps
-│   ├── scripts/              # 17 utility scripts
-│   └── packages/             # Package scripts
-├── configs/                  # 36 dotfile dirs
-│   ├── waybar/               # 14 themes
-│   ├── rofi/                 # 7 themes
-│   ├── theme-gui/            # GTK4 theme manager
-│   └── ...                   # 33 more configs
-├── installer/                # Install support
-│   ├── scripts/              # 49 utility scripts
-│   ├── standalone/           # Standalone binaries
-│   └── os-release/           # Distro detection
-├── assets/                   # Screenshots, fonts, wallpapers
-├── CHANGELOG
-├── LICENSE                   # GPL-2.0
-└── cheatsheet.md             # Keybinding reference
-```
-
----
-
-## Screenshots
-
-<details>
-<summary><b>Click to expand distro screenshots (12 distros)</b></summary>
-
-<table>
-<tr>
-<td><b>Arch Linux</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/arch1.png?raw=true" width="100%"></td>
-<td><b>ArchBang</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archbang1.png?raw=true" width="100%"></td>
-<td><b>Archcraft</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archcraft1.png?raw=true" width="100%"></td>
-</tr>
-<tr>
-<td><b>Archman</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/archman1.png?raw=true" width="100%"></td>
-<td><b>BlueStar</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/bslx1.png?raw=true" width="100%"></td>
-<td><b>CachyOS</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/cachy1.png?raw=true" width="100%"></td>
-</tr>
-<tr>
-<td><b>EndeavourOS</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/endeavour1.png?raw=true" width="100%"></td>
-<td><b>Garuda</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/garuda1.png?raw=true" width="100%"></td>
-<td><b>Kiro</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/kiro1.png?raw=true" width="100%"></td>
-</tr>
-<tr>
-<td><b>Manjaro</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/manjaro1.png?raw=true" width="100%"></td>
-<td><b>RebornOS</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/reborn1.png?raw=true" width="100%"></td>
-<td><b>Dev Dots</b><br><img src="https://github.com/hyprtk/dotfiles/blob/main/assets/screenshots/mydots1.png?raw=true" width="100%"></td>
-</tr>
-</table>
-
-</details>
-
----
-
-## Credits
-
-Built by [Kori Tk](https://github.com/hyprtk) — inspired by the Hyprland community and projects like ml4w, JaKooLit.
+More screenshots per distro live in [`assets/screenshots/`](https://github.com/hyprtk/dotfiles/tree/main/assets/screenshots).
 
 ## License
 
-GPL-2.0 — see [LICENSE](LICENSE) for details.
+[GPL-2.0](LICENSE)

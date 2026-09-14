@@ -38,3 +38,9 @@ fi
 export PATH=$PATH:/var/lib/snapd/snap/bin
 export PATH="$HOME/.local/bin:$PATH"
 (cat ~/.cache/wal/sequences &)
+
+# opencode
+export PATH=/home/hyprtk/.opencode/bin:$PATH
+alias oc='opencode'
+
+[ -f "$HOME/.local/share/../bin/env" ] && . "$HOME/.local/share/../bin/env"

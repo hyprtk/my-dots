@@ -1,260 +1,86 @@
 #!/bin/bash
-# Library of helper functions for the unified installer
+#
+#
+# by hyprtk (Kori Tk) (2026)
+# -----------------------------------------------------
+# Multi-distro package helpers. The package layer now delegates to
+# installer/scripts/pkgmanager.sh (pacman/apt/dnf/zypper/xbps/apk/…), while the
+# historic _isInstalled* / _installPackages* names are kept so existing callers
+# (1-install.sh, installupdates.sh) keep working.
 
-# Get the directory of this script (uses LIB_DIR to avoid clobbering caller's SCRIPT_DIR)
-LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$LIB_DIR/colors.sh"
-source "$LIB_DIR/headers.sh"
-source "$LIB_DIR/distro-detection.sh"
+# shellcheck source=installer/scripts/pkgmanager.sh
+. "$(dirname "${BASH_SOURCE[0]}")/pkgmanager.sh"
 
 # ------------------------------------------------------
-# Function: Is package installed
+# Is package installed  (echoes 0 == true / 1 == false)
 # ------------------------------------------------------
 _isInstalledPacman() {
-    local package="$1"
-    local check
-    check="$(sudo pacman -Qs --color always "${package}" 2>/dev/null | grep "local" | grep "${package} ")"
-    if [ -n "${check}" ]; then
+    if pkg_is_installed "$1"; then
         echo 0
-        return
+    else
+        echo 1
     fi
-    echo 1
-    return
 }
 
+# Historical AUR check — now just "is the package installed", so it works on any
+# package manager. AUR-only packages simply report not-installed off Arch.
 _isInstalledYay() {
-    local package="$1"
-    local check
-    check="$(yay -Qs --color always "${package}" 2>/dev/null | grep "local" | grep "${package} ")"
-    if [ -n "${check}" ]; then
-        echo 0
-        return
-    fi
-    echo 1
-    return
+    _isInstalledPacman "$1"
 }
 
 # ------------------------------------------------------
-# Function: Install all pacman packages if not installed
+# Install all packages that are not already present
 # ------------------------------------------------------
 _installPackagesPacman() {
     local toInstall=()
-
+    local pkg
     for pkg in "$@"; do
-        if [[ $(_isInstalledPacman "${pkg}") == 0 ]]; then
+        if pkg_is_installed "$pkg"; then
             echo "${pkg} is already installed."
             continue
         fi
-
-        toInstall+=("${pkg}")
+        toInstall+=("$pkg")
     done
 
-    if [[ "${toInstall[@]}" == "" ]]; then
-        return 0
+    if [ "${#toInstall[@]}" -eq 0 ]; then
+        return
     fi
 
-    printf "Packages not installed:\n%s\n" "${toInstall[@]}"
-    sudo pacman --noconfirm -S "${toInstall[@]}"
+    printf "Packages not installed:\n%s\n" "${toInstall[*]}"
+    pkg_install "${toInstall[@]}"
+}
+
+# Repository-equivalent of the old AUR helper path. Callers that need real AUR
+# packages use pkgmanager's aur_install directly.
+_installPackagesYay() {
+    _installPackagesPacman "$@"
 }
 
 # ------------------------------------------------------
-# Function: Install or update pacman package
-# ------------------------------------------------------
-_installOrUpdatePacman() {
-    local package="$1"
-
-    if [[ $(_isInstalledPacman "${package}") == 0 ]]; then
-        echo "${package} is already installed. Checking for updates...";
-        if pacman -Qu "${package}" > /dev/null 2>&1; then
-            echo "Updating ${package}...";
-            sudo pacman --noconfirm -S "${package}" || true
-        else
-            echo "${package} is up to date.";
-        fi
-        return 0
-    fi
-
-    echo "Installing ${package}...";
-    sudo pacman --noconfirm -S "${package}" || true
-}
-
-# ------------------------------------------------------
-# Function: Install or update yay package
-# ------------------------------------------------------
-_installOrUpdateYay() {
-    local package="$1"
-
-    if [[ $(_isInstalledYay "${package}") == 0 ]]; then
-        echo "${package} is already installed. Checking for updates...";
-        if yay -Qu "${package}" > /dev/null 2>&1; then
-            echo "Updating ${package}...";
-            yay --noconfirm -S "${package}" || true
-        else
-            echo "${package} is up to date.";
-        fi
-        return 0
-    fi
-
-    echo "Installing ${package}...";
-    yay --noconfirm -S "${package}" || true
-}
-
-# ------------------------------------------------------
-# Function: Check and install/update hyprviz
-# ------------------------------------------------------
-_checkAndInstallHyprviz() {
-    echo "Checking hyprviz-bin..."
-    if [[ $(_isInstalledYay "hyprviz-bin") == 0 ]]; then
-        echo "hyprviz-bin is already installed. Checking for updates..."
-        yay --noconfirm -S hyprviz-bin || true
-        return 0
-    fi
-
-    echo "Installing hyprviz-bin..."
-    if [ -f "$HOME/hyprtk/hypr/packages/hyprviz.sh" ]; then
-        sh "$HOME/hyprtk/hypr/packages/hyprviz.sh"
-    else
-        echo "Warning: hyprviz.sh not found. Skipping hyprviz installation."
-        return 0
-    fi
-}
-
-# ------------------------------------------------------
-# Function: Check and install/update matuwall
-# ------------------------------------------------------
-_checkAndInstallMatuwall() {
-    echo "Checking Matuwall..."
-    if [ -d "$HOME/.local/share/Matuwall" ]; then
-        echo "Matuwall is already installed. Checking for updates..."
-        cd "$HOME/.local/share/Matuwall" || return 0
-        git pull 2>/dev/null || true
-        if [ -f .venv/bin/activate ]; then
-            source .venv/bin/activate
-            pip install --upgrade pip 2>/dev/null || true
-            pip install . 2>/dev/null || true
-        fi
-        cd - >/dev/null 2>&1 || true
-        return 0
-    fi
-
-    echo "Installing Matuwall..."
-    if [ -f "$HOME/hyprtk/hypr/packages/matuwall.sh" ]; then
-        sh "$HOME/hyprtk/hypr/packages/matuwall.sh"
-    else
-        echo "Warning: matuwall.sh not found. Skipping Matuwall installation."
-        return 0
-    fi
-}
-
-# ------------------------------------------------------
-# Function: Check and install/update oh-my-zsh
-# ------------------------------------------------------
-_checkAndInstallOhMyZsh() {
-    echo "Checking oh-my-zsh..."
-
-    # Skip if already installed
-    if [ -d "$HOME/.oh-my-zsh" ]; then
-        echo "oh-my-zsh is already installed. Skipping."
-        return 0
-    fi
-
-    echo "Installing oh-my-zsh..."
-    if command -v curl > /dev/null 2>&1; then
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended 2>&1 || {
-            echo "Warning: oh-my-zsh installation failed. Continuing..."
-            return 0
-        }
-    else
-        echo "Warning: curl not found. Skipping oh-my-zsh installation."
-        return 0
-    fi
-    echo "oh-my-zsh installed successfully."
-    return 0
-}
-
-# ------------------------------------------------------
-# Function: Check and install zsh plugin
-# ------------------------------------------------------
-_installZshPlugin() {
-    local plugin_name="$1"
-    local plugin_url="$2"
-    local plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/${plugin_name}"
-
-    echo "Checking ${plugin_name}..."
-
-    # Skip if oh-my-zsh not installed
-    if [ ! -d "$HOME/.oh-my-zsh" ]; then
-        echo "Warning: oh-my-zsh not installed. Skipping ${plugin_name}."
-        return 0
-    fi
-
-    # Skip if plugin already installed
-    if [ -d "$plugin_dir" ]; then
-        echo "${plugin_name} is already installed. Skipping."
-        return 0
-    fi
-
-    echo "Installing ${plugin_name}..."
-    if command -v git > /dev/null 2>&1; then
-        git clone "$plugin_url" "$plugin_dir" 2>&1 || {
-            echo "Warning: Failed to install ${plugin_name}. Continuing..."
-            return 0
-        }
-    else
-        echo "Warning: git not found. Skipping ${plugin_name} installation."
-        return 0
-    fi
-    echo "${plugin_name} installed successfully."
-    return 0
-}
-
-# ------------------------------------------------------
-# Create symbolic links (non-interactive)
+# Create symbolic links
 # ------------------------------------------------------
 _installSymLink() {
-    local name="$1"
-    local symlink="$2"
-    local linksource="$3"
-    local linktarget="$4"
+    name="$1"
+    symlink="$2";
+    linksource="$3";
+    linktarget="$4";
 
-    # Remove existing symlink, directory, or file
     if [ -L "${symlink}" ]; then
-        rm -f "${symlink}" || true
-    elif [ -d "${symlink}" ]; then
-        rm -rf "${symlink}" || true
+        rm -f -- "${symlink}"
+        ln -s "${linksource}" "${linktarget}"
+        echo "Symlink ${linksource} -> ${linktarget} created."
+    elif [ -d "${symlink}" ] && [ ! -L "${symlink}" ]; then
+        # Only reachable for a real directory; never use a trailing slash on
+        # rm -rf (GNU rm would follow a symlink-to-dir and delete its target).
+        rm -rf -- "${symlink}"
+        ln -s "${linksource}" "${linktarget}"
+        echo "Symlink for directory ${linksource} -> ${linktarget} created."
     elif [ -f "${symlink}" ]; then
-        rm -f "${symlink}" || true
-    fi
-
-    # Create parent directory if needed
-    local parent_dir
-    parent_dir="$(dirname "${linktarget}")"
-    mkdir -p "${parent_dir}" 2>/dev/null || true
-
-    # Create the symlink
-    if ln -s "${linksource}" "${linktarget}" 2>/dev/null; then
-        if type gum_log &>/dev/null; then
-            gum_log "Symlink ${name}: ${linksource} -> ${linktarget}" success
-        else
-            echo -e "  ${COLOR_GREEN}✓${COLOR_RESET} Symlink ${COLOR_CYAN}${name}${COLOR_RESET} created."
-        fi
+        rm -f -- "${symlink}"
+        ln -s "${linksource}" "${linktarget}"
+        echo "Symlink to file ${linksource} -> ${linktarget} created."
     else
-        if type gum_log &>/dev/null; then
-            gum_log "Failed to create symlink ${name}" warning
-        else
-            echo -e "  ${COLOR_YELLOW}⚠${COLOR_RESET} Failed to create symlink ${name}"
-        fi
-    fi
-}
-
-# ------------------------------------------------------
-# Confirmation prompt (non-interactive, always proceeds)
-# ------------------------------------------------------
-_confirmPrompt() {
-    local message="$1"
-    if type gum_log &>/dev/null; then
-        gum_log "$message" info
-    else
-        echo -e "${COLOR_BOLD_CYAN}→${COLOR_RESET} $message"
+        ln -s "${linksource}" "${linktarget}"
+        echo "New symlink ${linksource} -> ${linktarget} created."
     fi
 }

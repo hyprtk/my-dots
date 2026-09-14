@@ -1,81 +1,102 @@
 #!/bin/bash
+# ── graphics-card ─────────────────────────────────────────────────────────
+# Installs the GPU driver stack per family. The initramfs / GRUB tweaks below
+# are guarded: they only run where the tooling actually exists.
+_PKGDIR="$(cd "$(dirname "$0")" && pwd)"
+. "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-# Source library for package functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../../installer/scripts/library.sh"
+# Regenerate the boot image with whichever initramfs tool this distro ships.
+regen_initramfs() {
+    if command -v mkinitcpio >/dev/null 2>&1 && [ -f /etc/mkinitcpio.conf ]; then
+        hyprtk_run_root mkinitcpio -P >/dev/null 2>&1 || true
+    elif command -v update-initramfs >/dev/null 2>&1; then
+        hyprtk_run_root update-initramfs -u >/dev/null 2>&1 || true
+    elif command -v dracut >/dev/null 2>&1; then
+        hyprtk_run_root dracut --force >/dev/null 2>&1 || true
+    fi
+}
 
-print_section_header "Graphics Card Detection"
+# Add a module to /etc/mkinitcpio.conf MODULES line when it is still empty.
+add_mkinitcpio_module() {
+    [ -f /etc/mkinitcpio.conf ] || return 0
+    hyprtk_run_root sed -i "s/MODULES=()/MODULES=($1)/" /etc/mkinitcpio.conf 2>/dev/null || true
+}
 
-echo -e "${COLOR_WHITE}Which Graphics Card do you have?${COLOR_RESET}"
+echo "
+#########################################################
+#                                                       #
+#            Which Graphics Card do you have?           #
+#                                                       #
+#########################################################
+
+1) Intel
+2) AMD
+3) Nvidia
+Defaults to AMD if you choose
+something else
+"
 echo ""
-echo -e "${COLOR_CYAN}1) Intel${COLOR_RESET}"
-echo -e "${COLOR_CYAN}2) AMD${COLOR_RESET}"
-echo -e "${COLOR_CYAN}3) Nvidia${COLOR_RESET}"
-echo -e "${COLOR_CYAN}4) Virtualization (QEMU/virt & VMware)${COLOR_RESET}"
-echo -e "${COLOR_YELLOW}Defaults to AMD if you choose something else${COLOR_RESET}"
-echo ""
-read -p "Enter your choice (1-4): " GRAPHICSCARD
+read -r GRAPHICSCARD
 
-case $GRAPHICSCARD in
+case "$GRAPHICSCARD" in
 1)
-  print_subsection_header "Installing Intel Graphics Drivers"
-  _installOrUpdatePacman xf86-video-intel
-  _installOrUpdatePacman mesa
-  _installOrUpdatePacman vulkan-intel
-  ;;
-2)
-  print_subsection_header "Installing AMD Graphics Drivers"
-  _installOrUpdatePacman xf86-video-amdgpu
-  _installOrUpdatePacman mesa
-  _installOrUpdatePacman vulkan-radeon
-  _installOrUpdatePacman vdpauinfo
-  _installOrUpdatePacman corectrl
-  _installOrUpdatePacman libvdpau
-  sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf
-  update_initramfs_config "/etc/mkinitcpio.conf" "/boot/initramfs-custom.img"
-  ;;
+    case "$HYPRTK_PM" in
+        pacman) PKGS=(xf86-video-intel mesa vulkan-intel) ;;
+        apt)    PKGS=(mesa-vulkan-drivers intel-media-va-driver-non-free i965-va-driver) ;;
+        dnf)    PKGS=(mesa-dri-drivers mesa-vulkan-drivers intel-media-driver) ;;
+        zypper) PKGS=(Mesa Mesa-libva intel-media-driver) ;;
+        xbps)   PKGS=(mesa-dri mesa-vulkan-intel intel-video-accel) ;;
+        apk)    PKGS=(mesa-vulkan-intel mesa-dri-gallium intel-media-driver) ;;
+    esac
+    pkg_install "${PKGS[@]}"
+    ;;
+2|*)
+    case "$HYPRTK_PM" in
+        pacman) PKGS=(xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau) ;;
+        apt)    PKGS=(mesa-vulkan-drivers mesa-va-drivers libvdpau-va-gl1) ;;
+        dnf)    PKGS=(mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers) ;;
+        zypper) PKGS=(Mesa Mesa-libva) ;;
+        xbps)   PKGS=(mesa-dri mesa-vulkan-radeon mesa-va-drivers) ;;
+        apk)    PKGS=(mesa-vulkan-radeon mesa-va-gallium mesa-dri-gallium) ;;
+    esac
+    pkg_install "${PKGS[@]}"
+    add_mkinitcpio_module amdgpu
+    regen_initramfs
+    ;;
 3)
-  print_subsection_header "Installing Nvidia Graphics Drivers"
-  sudo sed -i 's|^GRUB_CMDLINE_LINUX="\(.*\)"|GRUB_CMDLINE_LINUX="\1 nvidia_drm.modeset=1 rd.driver.blacklist=nouveau modprob.blacklist=nouveau"|' /etc/default/grub
-  sudo sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/!b; /nvidia_drm.modeset/!s/"$/ nvidia_drm.modeset=1"/' /etc/default/grub || true
-  sudo grub-mkconfig -o /boot/grub/grub.cfg
-  sudo sed -i 's/MODULES=()/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
-  echo -e "options nvidia-drm modeset=1" | sudo tee -a /etc/modprobe.d/nvidia.conf
-  _installOrUpdatePacman nvidia-open-dkms
-  _installOrUpdatePacman nvidia-utils
-  _installOrUpdatePacman nvidia-settings
-  _installOrUpdatePacman qt5-wayland
-  _installOrUpdatePacman qt5ct
-  _installOrUpdatePacman qt6-wayland
-  _installOrUpdatePacman qt6ct
-  _installOrUpdatePacman libva
-  _installOrUpdateYay libva-nvidia-driver-git
-  update_initramfs_config "/etc/mkinitcpio.conf" "/boot/initramfs-custom.img"
-  ;;
-4)
-  print_subsection_header "Installing Virtualization Guest Drivers"
-  echo -e "${COLOR_WHITE}Installing virtualization guest drivers (QEMU/virt & VMware)...${COLOR_RESET}"
-  _installOrUpdatePacman qemu-guest-agent
-  _installOrUpdatePacman spice-vdagent
-  _installOrUpdatePacman xf86-video-qxl
-  _installOrUpdatePacman mesa
-  _installOrUpdateYay xf86-video-vmware
-  _installOrUpdateYay open-vm-tools
-  sudo systemctl enable --now qemu-guest-agent 2>/dev/null || true
-  sudo systemctl enable --now spice-vdagentd 2>/dev/null || true
-  sudo systemctl enable --now vmtoolsd 2>/dev/null || true
-  ;;
-*)
-  print_subsection_header "Installing AMD Graphics Drivers (Default)"
-  _installOrUpdatePacman xf86-video-amdgpu
-  _installOrUpdatePacman mesa
-  _installOrUpdatePacman vulkan-radeon
-  _installOrUpdatePacman vdpauinfo
-  _installOrUpdatePacman corectrl
-  _installOrUpdatePacman libvdpau
-  sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf
-  update_initramfs_config "/etc/mkinitcpio.conf" "/boot/initramfs-custom.img"
-  ;;
+    case "$HYPRTK_PM" in
+        pacman)
+            PKGS=(nvidia-open-dkms nvidia-utils nvidia-settings qt5-wayland qt5ct
+                  qt6-wayland qt6ct libva)
+            AUR=(libva-nvidia-driver-git)
+            ;;
+        apt)    PKGS=(nvidia-driver nvidia-settings libva2 libva-drm2) ;;
+        dnf)    PKGS=(akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-settings) ;;
+        zypper) PKGS=(nvidia-open-driver-G06-signed-kmp-default nvidia-settings) ;;
+        xbps)   PKGS=(nvidia nvidia-settings) ;;
+        apk)    PKGS=(nvidia nvidia-settings) ;;
+    esac
+    # Kernel command line: only when this machine boots GRUB.
+    if [ -f /etc/default/grub ] && command -v grub-mkconfig >/dev/null 2>&1; then
+        hyprtk_run_root sed -i \
+            's/GRUB_CMDLINE_LINUX="[^"]*"/GRUB_CMDLINE_LINUX="rootfstype=ext4 nvidia_drm.modeset=1 rd.driver.blacklist=nouveau modprobe.blacklist=nouveau"/' \
+            /etc/default/grub 2>/dev/null || true
+        hyprtk_run_root grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+    fi
+    add_mkinitcpio_module 'nvidia nvidia_modeset nvidia_uvm nvidia_drm'
+    echo "options nvidia-drm modeset=1" | hyprtk_run_root tee /etc/modprobe.d/nvidia.conf >/dev/null 2>&1 || true
+    pkg_install "${PKGS[@]}"
+    aur_install "${AUR[@]}"
+    regen_initramfs
+    ;;
 esac
 
-print_success_box "Graphics Card Drivers Installed"
+echo ""
+clear
+echo "
+#########################################################
+#                                                       #
+#         Your Graphics Card has been installed         #
+#                                                       #
+#########################################################
+"

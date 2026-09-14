@@ -1,7 +1,9 @@
 #!/bin/bash
-# ── Screenshot Detect ─────────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#                                                      
+#  
+# by hyprtk (Kori Tk) (2026)
+# ----------------------------------------------------- 
 
 # Define the scripts to run
 NVIDIA_SCRIPT="$HOME/hyprtk/installer/scripts/screenshot.sh"

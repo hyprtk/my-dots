@@ -1,57 +1,65 @@
 #!/bin/sh
-# ── Updates ───────────────────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
-# Requires pacman-contrib trizen
-# ----------------------------------------------------- 
-# Define threshholds for color indicators
-# ----------------------------------------------------- 
+#
+#
+# by hyprtk (Kori Tk) (2026)
+# -----------------------------------------------------
+# Pending-update count, distro-agnostic. Detects the package manager and emits
+# the waybar-style JSON the hyprtk-bar updates module reads. Every query is
+# read-only (no sudo, no index/cache writes), so it is safe on a timer.
+#
+# Output contract: {"text": "<n>", "alt": "<n>", "tooltip": "<n> Updates", "class": "green|yellow|red"}
+# -----------------------------------------------------
 
-threshhold_green=0
-threshhold_yellow=25
-threshhold_red=100
+thresh_yellow=25
+thresh_red=100
 
-# ----------------------------------------------------- 
-# Calculate available updates pacman and aur (with trizen)
-# ----------------------------------------------------- 
+detect_pm() {
+    command -v pacman       >/dev/null 2>&1 && { echo pacman; return; }
+    command -v apt-get      >/dev/null 2>&1 && { echo apt;    return; }
+    command -v dnf          >/dev/null 2>&1 && { echo dnf;    return; }
+    command -v zypper       >/dev/null 2>&1 && { echo zypper; return; }
+    command -v xbps-install >/dev/null 2>&1 && { echo xbps;   return; }
+    command -v apk          >/dev/null 2>&1 && { echo apk;    return; }
+    command -v emerge       >/dev/null 2>&1 && { echo emerge; return; }
+    command -v nix          >/dev/null 2>&1 && { echo nix;    return; }
+    echo none
+}
 
-if ! updates_arch=$(checkupdates 2> /dev/null | wc -l ); then
-    updates_arch=0
-fi
+pending_count() {
+    case "$1" in
+        pacman)
+            arch=0; aur=0
+            command -v checkupdates >/dev/null 2>&1 && \
+                arch=$(checkupdates 2>/dev/null | wc -l)
+            if command -v yay >/dev/null 2>&1; then
+                aur=$(yay -Qua 2>/dev/null | wc -l)
+            elif command -v paru >/dev/null 2>&1; then
+                aur=$(paru -Qua 2>/dev/null | wc -l)
+            fi
+            echo $((arch + aur))
+            ;;
+        apt)    apt-get -s upgrade 2>/dev/null | grep -c '^Inst ' ;;
+        dnf)    dnf -q check-update 2>/dev/null | grep -Ec '\.[a-zA-Z0-9_]+$' ;;
+        zypper) zypper -n list-updates 2>/dev/null | grep -Ec '^\s*[vp]\s+\|' ;;
+        xbps)   xbps-install -Sun 2>/dev/null | grep -c ' update ' ;;
+        apk)    apk list --upgradeable 2>/dev/null | wc -l ;;
+        emerge) emerge --pretend --update --deep --newuse @world 2>/dev/null | grep -c 'ebuild' ;;
+        nix)    echo 0 ;;
+        *)      echo 0 ;;
+    esac
+}
 
-if ! updates_aur=$(trizen -Su --aur --quiet | wc -l); then
-    updates_aur=0
-fi
-
-updates=$(("$updates_arch" + "$updates_aur"))
-
-# ----------------------------------------------------- 
-# Testing
-# ----------------------------------------------------- 
-
-# Overwrite updates with numbers for testing
-# updates=100
-
-# test JSON output
-# printf '{"text": "0", "alt": "0", "tooltip": "0 Updates", "class": "red"}'
-# exit
-
-# ----------------------------------------------------- 
-# Output in JSON format for Waybar Module custom-updates
-# ----------------------------------------------------- 
+PM="$(detect_pm)"
+updates="$(pending_count "$PM" | tr -dc '0-9')"
+[ -n "$updates" ] || updates=0
 
 css_class="green"
+[ "$updates" -gt "$thresh_yellow" ] && css_class="yellow"
+[ "$updates" -gt "$thresh_red" ] && css_class="red"
 
-if [ "$updates" -gt $threshhold_yellow ]; then
-    css_class="yellow"
-fi
-
-if [ "$updates" -gt $threshhold_red ]; then
-    css_class="red"
-fi
-
-if [ "$updates" -gt $threshhold_green ]; then
-    printf '{"text": "%s", "alt": "%s", "tooltip": "%s Updates", "class": "%s"}' "$updates" "$updates" "$updates" "$css_class"
+if [ "$updates" -gt 0 ]; then
+    printf '{"text": "%s", "alt": "%s", "tooltip": "%s Updates", "class": "%s"}\n' \
+        "$updates" "$updates" "$updates" "$css_class"
 else
-    printf '{"text": "0", "alt": "0", "tooltip": "0 Updates", "class": "green"}'
+    printf '{"text": "0", "alt": "0", "tooltip": "0 Updates", "class": "green"}\n'
 fi

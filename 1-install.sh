@@ -1,38 +1,57 @@
-#!/usr/bin/env bash
-# Unified Hyprland & XFCE Installer
-# Merges all 11 distro-specific installers into one
-# by Kori Tk (2026)
+#!/bin/bash
+# ── Unified hyprtk installer (gum TUI) ────────────────────────────────────
+# Merges the installers of all 11 supported distros (arch, archbang, archcraft,
+# archman, bslx, cachy, endeavour, garuda, kiro, manjaro, reborn).
+# Per-distro hooks live in installer/steps/<distro>.sh and are sourced here.
+# Uses gum for TUI. Password entry remains functional via native sudo prompts.
+# ──────────────────────────────────────────────────────────────────────────
 
-set -e
-
-# ============================================================================
-# COLOR DEFINITIONS
-# ============================================================================
+# ── Color variables ────────────────────────────────────────────────────────
 MAGENTA='\033[35m'
 CYAN='\033[0;36m'
 WHITE='\033[0;37m'
 RED='\033[1;31m'
 YELLOW='\033[1;33m'
-GREEN='\033[0;32m'
-BOLD_MAGENTA='\033[1;35m'
-BOLD_CYAN='\033[1;36m'
-BOLD_WHITE='\033[1;37m'
-BOLD_GREEN='\033[1;32m'
-BOLD_RED='\033[1;31m'
-BOLD_YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# ============================================================================
-# SCRIPT DIRECTORY & GUM SETUP
-# ============================================================================
+# ── Script directory detection ─────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Gum paths - standalone first, then system
-GUM="$SCRIPT_DIR/installer/standalone/gum"
+# _spin/_run run commands through a `bash -c` subshell; an install path with
+# spaces or shell metacharacters would be re-parsed as code there. Refuse it
+# up front rather than let it become injection.
+case "$SCRIPT_DIR" in
+    *[![:alnum:]_/.+-]*)
+        echo -e "${RED}  ✗ ${WHITE}Install path contains spaces or special characters:${NC}" >&2
+        echo -e "${RED}  ✗ ${WHITE}  $SCRIPT_DIR${NC}" >&2
+        echo -e "${RED}  ✗ ${WHITE}Move the repo to a path like ~/hyprtk and re-run.${NC}" >&2
+        exit 1
+        ;;
+esac
 
-gum() {
-    "$GUM" "$@"
+# ── Installation log ──────────────────────────────────────────────────────
+LOG_FILE="$SCRIPT_DIR/install.log"
+log() {
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $1" >> "$LOG_FILE"
 }
+
+# Initialize log
+: > "$LOG_FILE"
+log "=== hyprtk installation started ==="
+log "Script directory: $SCRIPT_DIR"
+
+# ── Package-manager abstraction ────────────────────────────────────────────
+# Detect the host package manager up front (pacman/apt/dnf/zypper/xbps/apk/…).
+# The distro hooks run inside _spin subshells, so export SCRIPT_DIR (used to
+# locate pkgmanager.sh) and the detected manager.
+# shellcheck source=installer/scripts/pkgmanager.sh
+. "$SCRIPT_DIR/installer/scripts/pkgmanager.sh"
+export SCRIPT_DIR HYPRTK_PM
+
+# ── Gum setup ──────────────────────────────────────────────────────────────
+GUM="$SCRIPT_DIR/installer/standalone/gum"
 
 check_gum() {
     if [ -x "$GUM" ]; then
@@ -42,738 +61,731 @@ check_gum() {
         GUM="$(command -v gum)"
         return
     fi
-    gum_log "gum not found. Installing..." warning
-    sudo pacman -S --noconfirm gum || true
-    GUM="$(command -v gum)" || {
-        echo "ERROR: Failed to install gum" >&2
+    echo -e "${CYAN}gum not found. Installing...${NC}"
+    pkg_install gum
+    if command -v gum &>/dev/null; then
+        GUM="$(command -v gum)"
+    else
+        echo -e "${YELLOW}  ! Could not install gum automatically.${NC}"
+        echo -e "${WHITE}    Install it from your distro (or use the bundled copy) and re-run.${NC}"
         exit 1
-    }
+    fi
 }
 
-check_gum
-
-# ============================================================================
-# GUM STYLED FUNCTIONS
-# ============================================================================
-gum_style_header() {
-    local title="$1"
-    gum style \
+# ── Helpers ────────────────────────────────────────────────────────────────
+_box() {
+    $GUM style \
         --border-foreground 5 \
         --border double \
         --align center \
         --padding "1 3" \
         --margin "1 0" \
-        "$(printf '%s' "${BOLD_MAGENTA}${title}${NC}")"
+        "$@"
 }
 
-gum_style_subheader() {
-    local title="$1"
-    gum style \
-        --border-foreground 6 \
-        --border double \
-        --align center \
-        --padding "0 3" \
-        --margin "0 0" \
-        "$(printf '%s' "${BOLD_CYAN}-> ${title}${NC}")"
+_step() {
+    clear
+    _box "$(printf "${CYAN}%s${NC}" "$1")"
+    echo ""
+    log "STEP: $1"
 }
 
-gum_confirm() {
-    local message="$1"
-    if $GUM confirm --affirmative "Yes" --negative "No" "$message"; then
-        return 0
+_ok() {
+    echo -e "${CYAN}  ✓ ${WHITE}$1${NC}"
+    log "OK: $1"
+}
+
+_warn() {
+    echo -e "${YELLOW}  ! ${WHITE}$1${NC}"
+    log "WARN: $1"
+}
+
+_fail() {
+    echo -e "${RED}  ✗ ${WHITE}$1${NC}"
+    log "FAIL: $1"
+}
+
+die() {
+    _fail "$1"
+    log "FATAL: $1"
+    exit 1
+}
+
+# Terminal width, used to keep the spinner's detail line from wrapping (a wrapped
+# title breaks gum's cursor accounting, so the spinner redraws over itself).
+_term_width() {
+    local w
+    w=$(tput cols 2>/dev/null)
+    if [ -n "$w" ] && [ "$w" -gt 0 ] 2>/dev/null; then
+        printf '%s' "$w"
     else
-        return 1
+        printf '80'
     fi
 }
 
-# Wraps gum choose to handle Esc gracefully under set -e
-gum_choose_safe() {
-    $GUM choose "$@" || true
+# Trim a detail string so "  → <detail>" fits on one terminal line.
+_fit_detail() {
+    local detail="$1"
+    local max=$(( $(_term_width) - 6 ))
+    [ "$max" -lt 8 ] && max=8
+    if [ "${#detail}" -gt "$max" ]; then
+        printf '%s…' "${detail:0:$((max - 1))}"
+    else
+        printf '%s' "$detail"
+    fi
 }
 
-gum_spin() {
+# List the package names a hypr/packages/<name>.sh script installs, for the
+# spinner's detail line. New-style scripts support `--list` (they source
+# pkgmanager.sh and print their PKGS/AUR arrays); older scripts fall back to
+# parsing `pacman -S` / `yay -S` lines. Dynamic arguments (command
+# substitutions) and flags are skipped.
+_script_packages() {
+    local script="$1"
+    [ -f "$script" ] || return 0
+    if grep -q 'hyprtk-pkglist' "$script" 2>/dev/null; then
+        bash "$script" --list 2>/dev/null
+        return 0
+    fi
+    awk '
+        { sub(/#.*/, ""); collecting = 0 }
+        {
+            n = split($0, f, /[[:space:]]+/)
+            for (i = 1; i <= n; i++) {
+                tok = f[i]
+                if (collecting) {
+                    if (tok ~ /^[&|;>]+/) { collecting = 0; continue }
+                    gsub(/\\/, "", tok)
+                    gsub(/^[&|;>]+/, "", tok)
+                    if (tok == "" || tok ~ /^-/) continue
+                    if (tok ~ /[()$]/) continue
+                    if (!(tok in seen)) { seen[tok] = 1; out = out tok " " }
+                    continue
+                }
+                if (tok == "-S" || tok == "--sync") collecting = 1
+            }
+        }
+        END { sub(/ $/, "", out); printf "%s", out }
+    ' "$script"
+}
+
+_spin() {
     local title="$1"
-    shift
-    local cmd="$*"
-    $GUM spin --spinner dot --title "$title" -- bash -c "$cmd" || true
+    local cmd="$2"
+    local logfile="$3"
+    local detail="${4:-}"
+    local shown="$title"
+    if [ -n "$detail" ]; then
+        shown="$title"$'\n'"  → $detail"
+    fi
+    log "SPIN: $title${detail:+ | $detail}"
+    $GUM spin --spinner dot --title "$shown" -- bash -c "$cmd >> '$logfile' 2>&1"
+    local rc=$?
+    if [ $rc -ne 0 ]; then
+        log "SPIN FAILED (exit $rc): $title"
+    else
+        log "SPIN OK: $title"
+    fi
+    return $rc
 }
 
-gum_log() {
-    local message="$1"
-    local style="${2:-info}"
-    case $style in
-        success)
-            echo -e "${BOLD_GREEN}✓${NC} $message"
-            ;;
-        warning)
-            echo -e "${BOLD_YELLOW}⚠${NC} $message"
-            ;;
-        error)
-            echo -e "${BOLD_RED}✗${NC} $message"
-            ;;
-        *)
-            echo -e "${BOLD_CYAN}→${NC} $message"
-            ;;
+_run() {
+    local title="$1"
+    local cmd="$2"
+    local logfile="$3"
+    log "RUN: $title"
+    echo -e "${CYAN}  → ${WHITE}$title${NC}"
+    bash -c "$cmd >> '$logfile' 2>&1"
+    local rc=$?
+    if [ $rc -ne 0 ]; then
+        log "RUN FAILED (exit $rc): $title"
+    else
+        log "RUN OK: $title"
+    fi
+    return $rc
+}
+
+# ── Sudo credentials ───────────────────────────────────────────────────────
+# Package steps run inside `gum spin`, which hides the terminal and would bury a
+# native sudo password prompt (the install then looks like it hangs on yay).
+# Ask for the password up front — visibly — then keep the cached credential
+# alive in the background so a long build can't expire the timestamp mid-spin.
+SUDO_KEEPALIVE_PID=""
+_cleanup_keepalive() {
+    if [ -n "$SUDO_KEEPALIVE_PID" ] && kill -0 "$SUDO_KEEPALIVE_PID" 2>/dev/null; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    fi
+}
+trap _cleanup_keepalive EXIT
+
+_sudo_auth() {
+    if sudo -n true 2>/dev/null; then
+        log "SUDO: credentials already valid"
+    else
+        echo -e "${WHITE}  Enter your password to authorise the installation:${NC}"
+        echo ""
+        if ! sudo -v; then
+            die "sudo authentication failed"
+        fi
+        log "SUDO: credentials cached"
+    fi
+
+    if [ -z "$SUDO_KEEPALIVE_PID" ] || ! kill -0 "$SUDO_KEEPALIVE_PID" 2>/dev/null; then
+        ( while true; do sudo -n true 2>/dev/null; sleep 50; done ) &
+        SUDO_KEEPALIVE_PID=$!
+    fi
+}
+
+# ── Preflight ──────────────────────────────────────────────────────────────
+check_gum
+clear
+
+_box \
+    "$(printf "${CYAN}HYPRTK DOTFILES${NC}")" \
+    "$(printf "${CYAN}Hyprland Desktop Environment Installer${NC}")" \
+    "" \
+    "$(printf "${RED}DISCLAIMER${NC}")" \
+    "$(printf "${WHITE}Installing these dotfiles may alter your system${NC}")" \
+    "$(printf "${WHITE}configuration. A clean install is recommended for${NC}")" \
+    "$(printf "${WHITE}best results.${NC}")"
+
+echo ""
+echo -e "${WHITE}  You will be asked for your Root password to proceed.${NC}"
+echo ""
+
+# ── Distro detection ──────────────────────────────────────────────────────
+DISTRO=""
+DISTRO_NAME=""
+DISTRO_VERSION=""
+
+_detect_distro() {
+    local distro_id="" distro_name="" distro_version="" distro_pretty="" distro_like=""
+
+    if [ -f /etc/os-release ]; then
+        distro_id=$(grep -E '^ID=' /etc/os-release | head -1 | cut -d= -f2 | tr -d '"')
+        distro_name=$(grep -E '^NAME=' /etc/os-release | head -1 | cut -d= -f2 | tr -d '"')
+        distro_version=$(grep -E '^VERSION_ID=' /etc/os-release | head -1 | cut -d= -f2 | tr -d '"')
+        distro_pretty=$(grep -E '^PRETTY_NAME=' /etc/os-release | head -1 | cut -d= -f2 | tr -d '"')
+        distro_like=$(grep -E '^ID_LIKE=' /etc/os-release | head -1 | cut -d= -f2 | tr -d '"')
+    fi
+
+    # Handle "Hyprtk on (Arch Linux)" format — extract the distro name
+    local clean_name="${distro_pretty:-$distro_name}"
+    clean_name="${clean_name#Hyprtk on }"
+    clean_name="${clean_name#Hyprtk on }"
+    clean_name="${clean_name#(}"
+    clean_name="${clean_name%)}"
+    clean_name=$(echo "$clean_name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    # ── Arch-family (keeps the per-distro hooks in installer/steps/) ──────
+    DISTRO=""
+    case "$distro_id" in
+        arch)                  DISTRO=arch ;;
+        archbang)              DISTRO=archbang ;;
+        archcraft)             DISTRO=archcraft ;;
+        archman)               DISTRO=archman ;;
+        bluestar|bslx)         DISTRO=bslx ;;
+        cachyos|cachy)         DISTRO=cachy ;;
+        endeavour|endeavouros) DISTRO=endeavour ;;
+        garuda)                DISTRO=garuda ;;
+        kiro)                  DISTRO=kiro ;;
+        manjaro)               DISTRO=manjaro ;;
+        reborn|rebornos)       DISTRO=reborn ;;
+    esac
+
+    # ── Other families (generic: no per-distro hooks) ────────────────────
+    if [ -z "$DISTRO" ]; then
+        case "$distro_id" in
+            debian|ubuntu|linuxmint|pop|elementary|zorin|kali|raspbian|devuan|mx|neon|deepin|parrot|pureos) DISTRO=debian ;;
+            fedora|rhel|centos|rocky|almalinux|ol|amzn|oracle) DISTRO=fedora ;;
+            opensuse*|suse|sles|sled|tumbleweed) DISTRO=suse ;;
+            void)    DISTRO=void ;;
+            alpine)  DISTRO=alpine ;;
+            gentoo|funtoo|calculate) DISTRO=gentoo ;;
+            nixos)   DISTRO=nixos ;;
+        esac
+    fi
+
+    # ID_LIKE fallback for derivatives not named above.
+    if [ -z "$DISTRO" ] && [ -n "$distro_like" ]; then
+        case "$distro_like" in
+            *arch*)            DISTRO=arch ;;
+            *debian*|*ubuntu*) DISTRO=debian ;;
+            *fedora*|*rhel*)   DISTRO=fedora ;;
+            *suse*)            DISTRO=suse ;;
+            *void*)            DISTRO=void ;;
+            *alpine*)          DISTRO=alpine ;;
+            *gentoo*)          DISTRO=gentoo ;;
+            *nix*)             DISTRO=nixos ;;
+        esac
+    fi
+
+    DISTRO_NAME="${clean_name:-${distro_name:-Linux}}"
+    DISTRO_VERSION="${distro_version:-N/A}"
+}
+
+# Map the internal distro key to a package-manager family. The 11 Arch-based
+# distros share the pacman family; the generic keys are already families.
+_distro_family() {
+    case "$1" in
+        arch|archbang|archcraft|archman|bslx|cachy|endeavour|garuda|kiro|manjaro|reborn) echo arch ;;
+        debian) echo debian ;;
+        fedora) echo fedora ;;
+        suse)   echo suse ;;
+        void)   echo void ;;
+        alpine) echo alpine ;;
+        gentoo) echo gentoo ;;
+        nixos)  echo nix ;;
+        *)      echo unknown ;;
     esac
 }
 
-# ============================================================================
-# SOURCE LIBRARY SCRIPTS
-# ============================================================================
-source "$SCRIPT_DIR/installer/scripts/library.sh"
+_detect_distro
+DISTRO_FAMILY="$(_distro_family "$DISTRO")"
 
-# ============================================================================
-# DISTRO SELECTION TUI
-# ============================================================================
-gum style \
-    --border-foreground 5 \
-    --border double \
-    --align center \
-    --padding "1 3" \
-    --margin "1 0" \
-    "$(printf '%s' "${CYAN}HYPRTK DOTFILES${NC}")" \
-    "$(printf '%s' "${CYAN}Hyprland Desktop Environment Installer${NC}")" \
-    "" \
-    "$(printf '%s' "${RED}DISCLAIMER${NC}")" \
-    "$(printf '%s' "${WHITE}Installing these dotfiles may alter your system${NC}")" \
-    "$(printf '%s' "${WHITE}configuration. A clean install is recommended for${NC}")" \
-    "$(printf '%s' "${WHITE}best results.${NC}")"
-
-gum style --foreground 5 --bold --padding "1 0" "Select your distribution:"
-
-DISTROS=(
-    "1) Arch Linux"
-    "2) ArchBANG Linux"
-    "3) Archcraft Linux"
-    "4) Archman Linux"
-    "5) BlueStar Linux"
-    "6) CachyOS"
-    "7) EndeavourOS"
-    "8) Garuda Linux"
-    "9) Kiro Linux (ArcoLinux Rebrand)"
-    "10) Manjaro Linux"
-    "11) My Personal Dotfiles"
-    "12) RebornOS"
-    "13) Exit"
-)
-
-SELECTED=$(gum_choose_safe \
-    --height=13 \
-    --cursor.foreground=5 \
-    --selected.foreground=0 \
-    --selected.background=5 \
-    --item.foreground=6 \
-    "${DISTROS[@]}")
-
-if [[ -z "$SELECTED" || "$SELECTED" == "13) Exit" ]]; then
-    printf '\033[1A\033[K'
-    gum_log "Installation cancelled." warning
-    exit 0
+# Show detection result if found
+if [ -n "$DISTRO" ]; then
+    _box \
+        "$(printf "${CYAN}DISTRO DETECTED${NC}")" \
+        "" \
+        "$(printf "${WHITE}Name:     ${CYAN}%s${NC}" "$DISTRO_NAME")" \
+        "$(printf "${WHITE}ID:       ${CYAN}%s${NC}" "$DISTRO")" \
+        "$(printf "${WHITE}Family:   ${CYAN}%s${NC}" "$DISTRO_FAMILY")" \
+        "$(printf "${WHITE}Manager:  ${CYAN}%s${NC}" "$(hyprtk_pm_name)")" \
+        "$(printf "${WHITE}Version:  ${CYAN}%s${NC}" "$DISTRO_VERSION")"
+    echo ""
+    log "Distro detected: $DISTRO_NAME ($DISTRO/$DISTRO_FAMILY) v$DISTRO_VERSION"
 fi
 
-DOTS="${SELECTED%%)*}"
+# Manual selection if auto-detect failed
+if [ -z "$DISTRO" ]; then
+    _warn "Could not auto-detect distro from /etc/os-release"
+    echo ""
 
-if ! gum confirm --prompt.foreground=5 "Proceed with installation?"; then
-    gum_log "Installation cancelled." warning
-    exit 0
-fi
+    DISTROS=(
+        "Arch Linux"
+        "ArchBANG Linux"
+        "Archcraft Linux"
+        "Archman Linux"
+        "BlueStar Linux"
+        "CachyOS"
+        "EndeavourOS"
+        "Garuda Linux"
+        "Kiro Linux"
+        "Manjaro Linux"
+        "RebornOS"
+        "Debian / Ubuntu"
+        "Fedora / RHEL"
+        "openSUSE"
+        "Void Linux"
+        "Alpine Linux"
+        "Gentoo"
+        "NixOS"
+        "Other / unknown"
+    )
 
-# Map selection to distro ID
-case $DOTS in
-    1)  DISTRO_ID="arch" ;;
-    2)  DISTRO_ID="archbang" ;;
-    3)  DISTRO_ID="archcraft" ;;
-    4)  DISTRO_ID="archman" ;;
-    5)  DISTRO_ID="bslx" ;;
-    6)  DISTRO_ID="cachy" ;;
-    7)  DISTRO_ID="endeavour" ;;
-    8)  DISTRO_ID="garuda" ;;
-    9)  DISTRO_ID="kiro" ;;
-    10) DISTRO_ID="manjaro" ;;
-    11) DISTRO_ID="my" ;;
-    12) DISTRO_ID="reborn" ;;
-    *)  DISTRO_ID="arch" ;;
-esac
+    $GUM style --foreground 5 --bold --padding "1 0" "Select your distribution:"
 
-# ============================================================================
-# COPY DISTRO-SPECIFIC OS-RELEASE
-# ============================================================================
-gum_log "Setting up distro: $DISTRO_ID" info
-
-if [ -f "$SCRIPT_DIR/installer/os-release/os-release-$DISTRO_ID" ]; then
-    cp "$SCRIPT_DIR/installer/os-release/os-release-$DISTRO_ID" "$SCRIPT_DIR/installer/os-release/os-release"
-    gum_log "os-release configured for $DISTRO_ID" success
-else
-    gum_log "os-release file not found for $DISTRO_ID, using default" warning
-fi
-
-# ============================================================================
-# MAIN INSTALLATION FUNCTION
-# ============================================================================
-main() {
-    gum_style_header "HYPRTK INSTALLER"
-    
-    DISTRO_NAME=$(get_distro_name "$DISTRO_ID")
-    gum_log "Distribution: $DISTRO_NAME" success
-    
-    if ! is_supported_distro "$DISTRO_ID"; then
-        gum_log "Unsupported distribution: $DISTRO_NAME" error
-        gum_log "Supported: Arch, Garuda, CachyOS, Manjaro, EndeavourOS, Archcraft, Archman, ArchBang, BSLX, Kiro, RebornOS" info
-        exit 1
-    fi
-    
-    gum_style_header "WELCOME"
-    gum_log "Installing both Hyprland and XFCE environments" info
-    gum_log "If you choose No on either, the installer will fail" info
-    gum_log "You will be asked for Root password to proceed" info
-    
-    gum_style_subheader "Removing leftover Packages"
-    get_distro_removal_command "$DISTRO_ID"
-    
-    gum_style_subheader "Starting Installation Process"
-    
-    gum_style_subheader "Load Installation Libraries"
-    sh "$SCRIPT_DIR/installer/scripts/set-timezone.sh"
-    
-    gum_style_subheader "Install Yay"
-    if sudo pacman -Qs yay > /dev/null ; then
-        gum_log "yay is installed" success
-    else
-        gum_log "yay is not installed, installing now!" warning
-        _installOrUpdatePacman "base-devel"
-        local yay_dir="$HOME/Downloads/yay-git"
-        rm -rf "$yay_dir" 2>/dev/null || true
-        if git clone https://aur.archlinux.org/yay-git.git "$yay_dir"; then
-            (
-                cd "$yay_dir" || exit 1
-                makepkg -si --noconfirm || {
-                    gum_log "yay build failed" error
-                    cd "$SCRIPT_DIR" || exit 1
-                    exit 1
-                }
-            )
-            cd "$SCRIPT_DIR" || exit 1
-        else
-            gum_log "Failed to clone yay" error
-            exit 1
-        fi
-        if command -v yay &>/dev/null; then
-            gum_log "yay installed successfully" success
-        else
-            gum_log "yay installation failed" error
-            exit 1
-        fi
-    fi
-    
-    gum_confirm "DO YOU WANT TO START THE INSTALLATION NOW?" || exit 1
-    
-    # ============================================================================
-    # GRAPHICS CARD DETECTION
-    # ============================================================================
-    gum_style_subheader "Graphics Card Detection"
-    
-    GRAPHICSCARD=$(gum_choose_safe \
-        --header "Which Graphics Card do you have?" \
+    SELECTED=$($GUM choose \
+        --height=19 \
         --cursor.foreground=5 \
         --selected.foreground=0 \
         --selected.background=5 \
         --item.foreground=6 \
-        "1) Intel" \
-        "2) AMD" \
-        "3) Nvidia" \
-        "4) Virtualization (QEMU/virt & VMware)")
-    
-    case "$GRAPHICSCARD" in
-        *"Intel"*)
-            gum_style_subheader "Installing Intel Graphics Drivers"
-            _installOrUpdatePacman xf86-video-intel
-            _installOrUpdatePacman mesa
-            _installOrUpdatePacman vulkan-intel
-            ;;
-        *"AMD"*)
-            gum_style_subheader "Installing AMD Graphics Drivers"
-            _installOrUpdatePacman xf86-video-amdgpu
-            _installOrUpdatePacman mesa
-            _installOrUpdatePacman vulkan-radeon
-            _installOrUpdatePacman vdpauinfo
-            _installOrUpdatePacman corectrl
-            _installOrUpdatePacman libvdpau
-            sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf || true
-            update_initramfs_config "/etc/mkinitcpio.conf" "/boot/initramfs-custom.img"
-            ;;
-        *"Nvidia"*)
-            gum_style_subheader "Installing Nvidia Graphics Drivers"
-            # Add nvidia params to GRUB_CMDLINE_LINUX (matches any existing value)
-            sudo sed -i 's|^GRUB_CMDLINE_LINUX="\(.*\)"|GRUB_CMDLINE_LINUX="\1 nvidia_drm.modeset=1 rd.driver.blacklist=nouveau modprob.blacklist=nouveau"|' /etc/default/grub || true
-            sudo sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/!b; /nvidia_drm.modeset/!s/"$/ nvidia_drm.modeset=1"/' /etc/default/grub || true
-            sudo grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
-            sudo sed -i 's/MODULES=()/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf || true
-            echo -e "options nvidia-drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null || true
-            _installOrUpdatePacman nvidia-open-dkms
-            _installOrUpdatePacman nvidia-utils
-            _installOrUpdatePacman nvidia-settings
-            _installOrUpdatePacman qt5-wayland
-            _installOrUpdatePacman qt5ct
-            _installOrUpdatePacman qt6-wayland
-            _installOrUpdatePacman qt6ct
-            _installOrUpdatePacman libva
-            _installOrUpdateYay libva-nvidia-driver-git
-            update_initramfs_config "/etc/mkinitcpio.conf" "/boot/initramfs-custom.img"
-            ;;
-        *"Virtualization"*)
-            gum_style_subheader "Installing Virtualization Guest Drivers"
-            _installOrUpdatePacman qemu-guest-agent
-            _installOrUpdatePacman spice-vdagent
-            _installOrUpdatePacman xf86-video-qxl
-            _installOrUpdatePacman mesa
-            _installOrUpdateYay xf86-video-vmware
-            _installOrUpdateYay open-vm-tools
-            sudo systemctl enable --now qemu-guest-agent 2>/dev/null || true
-            sudo systemctl enable --now spice-vdagentd 2>/dev/null || true
-            sudo systemctl enable --now vmtoolsd 2>/dev/null || true
-            ;;
-        *)
-            gum_style_subheader "Installing AMD Graphics Drivers (Default)"
-            _installOrUpdatePacman xf86-video-amdgpu
-            _installOrUpdatePacman mesa
-            _installOrUpdatePacman vulkan-radeon
-            _installOrUpdatePacman vdpauinfo
-            _installOrUpdatePacman corectrl
-            _installOrUpdatePacman libvdpau
-            sudo sed -i 's/MODULES=()/MODULES=(amdgpu)/' /etc/mkinitcpio.conf || true
-            update_initramfs_config "/etc/mkinitcpio.conf" "/boot/initramfs-custom.img"
-            ;;
-    esac
-    
-    gum_confirm "DO YOU WANT TO INSTALL THE CORE APPS NOW?" || exit 1
-    
-    # ============================================================================
-    # HYPRLAND PACKAGES
-    # ============================================================================
-    gum_style_subheader "Installing Hyprland"
-    
-    _installOrUpdatePacman hyprland
-    _installOrUpdatePacman xdg-desktop-portal-wlr
-    _installOrUpdatePacman swayidle
-    _installOrUpdatePacman swappy
-    _installOrUpdatePacman cliphist
-    _installOrUpdatePacman xorg-xhost
-    _installOrUpdatePacman nwg-look
-    _installOrUpdatePacman mission-center
-    _installOrUpdatePacman curl
-    _installOrUpdatePacman imagemagick
-    _installOrUpdatePacman jq
-    _installOrUpdatePacman bc
-    _installOrUpdatePacman brightnessctl
-    _installOrUpdatePacman playerctl
-    _installOrUpdatePacman libadwaita
-    _installOrUpdatePacman gtk-layer-shell
-    _installOrUpdatePacman python
-    _installOrUpdatePacman python-pip
-    _installOrUpdatePacman python-virtualenv
-    _installOrUpdatePacman python-gobject
-    _installOrUpdatePacman gtk4
-    _installOrUpdatePacman wob
-    
-    _installOrUpdateYay awww
-    _installOrUpdateYay swaylock-effects
-    _installOrUpdateYay 7zip
-    _installOrUpdateYay unrar
-    _installOrUpdateYay waybar-git
-    
-    gum_log "Hyprland packages installed" success
-    
-    # ============================================================================
-    # XFCE4 PACKAGES
-    # ============================================================================
-    gum_style_subheader "Installing XFCE4"
-    
-    _installOrUpdatePacman xfce4
-    _installOrUpdatePacman xfce4-goodies
-    _installOrUpdatePacman parole
-    
-    _installOrUpdateYay tumbler-extra-thumbnailers
-    
-    gum_log "XFCE4 packages installed" success
-    
-    # ============================================================================
-    # FILE TOOLS
-    # ============================================================================
-    gum_style_subheader "Installing File Tools"
-    
-    _installOrUpdatePacman thunar
-    _installOrUpdatePacman mousepad
-    
-    _installOrUpdateYay thunar-shares-plugin
-    
-    gum_log "File tools installed" success
-    
-    # ============================================================================
-    # WEB TOOLS
-    # ============================================================================
-    gum_style_subheader "Installing Web Tools"
-    
-    _installOrUpdatePacman chromium
-    
-    _installOrUpdateYay brave-bin
-    _installOrUpdateYay github-desktop-bin
-    
-    gum_log "Web tools installed" success
-    
-    # ============================================================================
-    # PRINTERS
-    # ============================================================================
-    gum_style_subheader "Installing Printer Support"
-    
-    _installOrUpdatePacman cups
-    _installOrUpdatePacman cups-pdf
-    _installOrUpdatePacman cups-filters
-    _installOrUpdatePacman nss-mdns
-    _installOrUpdatePacman libusb
-    _installOrUpdatePacman xdg-utils
-    _installOrUpdatePacman colord
-    _installOrUpdatePacman logrotate
-    _installOrUpdateYay system-config-printer
-    _installOrUpdateYay cups-browsed
-    _installOrUpdateYay ipp-usb
-    
-    gum_log "Printer support installed" success
-    
-    # ============================================================================
-    # NETWORK
-    # ============================================================================
-    gum_style_subheader "Installing Network Packages"
-    
-    _installOrUpdatePacman networkmanager
-    _installOrUpdatePacman network-manager-applet
-    _installOrUpdatePacman git
-    _installOrUpdatePacman freerdp
-    _installOrUpdatePacman gvfs
-    _installOrUpdatePacman gvfs-afc
-    _installOrUpdatePacman gvfs-dnssd
-    _installOrUpdatePacman gvfs-goa
-    _installOrUpdatePacman gvfs-gphoto2
-    _installOrUpdatePacman gvfs-mtp
-    _installOrUpdatePacman gvfs-nfs
-    _installOrUpdatePacman gvfs-onedrive
-    _installOrUpdatePacman gvfs-smb
-    _installOrUpdatePacman gvfs-wsdd
-    _installOrUpdatePacman unzip
-    _installOrUpdatePacman ntfs-3g
-    _installOrUpdatePacman samba
-    
-    gum_log "Network packages installed" success
-    
-    # ============================================================================
-    # MEDIA
-    # ============================================================================
-    gum_style_subheader "Installing Media Packages"
-    
-    _installOrUpdatePacman xclip
-    _installOrUpdatePacman pamixer
-    _installOrUpdatePacman wf-recorder
-    _installOrUpdatePacman pavucontrol
-    _installOrUpdatePacman tumbler
-    _installOrUpdatePacman vlc
-    _installOrUpdatePacman mpv
-    _installOrUpdatePacman ffmpeg
-    
-    _installOrUpdateYay hyprquickframe-git
-    
-    gum_log "Media packages installed" success
-    
-    # ============================================================================
-    # TERMINAL TOOLS
-    # ============================================================================
-    gum_style_subheader "Installing Terminal Tools"
-    
-    _installOrUpdatePacman eza
-    _installOrUpdatePacman micro
-    _installOrUpdatePacman xfce4-terminal
-    _installOrUpdatePacman btop
-    _installOrUpdatePacman alacritty
-    _installOrUpdatePacman kitty
-    _installOrUpdatePacman starship
-    _installOrUpdatePacman ranger
-    _installOrUpdatePacman nano
-    _installOrUpdatePacman figlet
-    _installOrUpdatePacman neovim
-    
-    _installOrUpdateYay fastfetch
-    
-    gum_log "Terminal tools installed" success
-    
-    # ============================================================================
-    # SYSTEM TOOLS
-    # ============================================================================
-    gum_style_subheader "Installing System Tools"
-    
-    _installOrUpdatePacman timeshift
-    _installOrUpdatePacman file-roller
-    _installOrUpdatePacman gparted
-    _installOrUpdatePacman xfce4-power-manager
-    _installOrUpdatePacman rofi
-    _installOrUpdatePacman dunst
-    _installOrUpdatePacman cockpit
-    
-    _installOrUpdateYay gnome-disk-utility
-    
-    gum_log "System tools installed" success
-    
-    # ============================================================================
-    # SYSTEM PACKAGES
-    # ============================================================================
-    gum_style_subheader "Installing System Packages"
-    
-    _installOrUpdatePacman sddm
-    _installOrUpdatePacman blueman
-    _installOrUpdatePacman pacman-contrib
-    _installOrUpdatePacman fzf
-    _installOrUpdatePacman font-manager
-    _installOrUpdatePacman awesome-terminal-fonts
-    _installOrUpdatePacman ttf-font-awesome
-    _installOrUpdatePacman ttf-fira-sans
-    _installOrUpdatePacman ttf-fira-code
-    _installOrUpdatePacman ttf-firacode-nerd
-    _installOrUpdatePacman python-psutil
-    _installOrUpdatePacman python-rich
-    _installOrUpdatePacman python-click
-    _installOrUpdatePacman xdg-desktop-portal-gtk
-    _installOrUpdatePacman xdg-user-dirs
-    _installOrUpdatePacman xdg-user-dirs-gtk
-    _installOrUpdatePacman os-prober
-    _installOrUpdatePacman polkit-gnome
-    _installOrUpdatePacman gnome-keyring
-    _installOrUpdatePacman pcp
-    _installOrUpdatePacman pcp-gui
-    _installOrUpdatePacman gtk4-layer-shell
-    _installOrUpdatePacman hyprpicker
-    
-    # Install pcp-pmda packages (safe expansion)
-    local pcp_pkgs
-    pcp_pkgs=$(pacman -Ssq 'pcp-pmda-*' 2>/dev/null || true)
-    if [[ -n "$pcp_pkgs" ]]; then
-        sudo pacman -S --noconfirm $pcp_pkgs || true
-    fi
-    
-    _installOrUpdateYay bibata-cursor-theme
-    _installOrUpdateYay trizen
-    _installOrUpdateYay sublime-text-4
-    _installOrUpdateYay sddm-theme-sugar-candy-git
-    _installOrUpdateYay pacseek
-    
-    gum_log "System packages installed" success
-    
-    # ============================================================================
-    # 3D PRINTING
-    # ============================================================================
-    gum_style_subheader "Installing 3D Printing"
-    
-    _installOrUpdateYay orca-slicer-bin
-    _installOrUpdateYay bambustudio-bin
-    
-    gum_log "3D printing packages installed" success
-    
-    # ============================================================================
-    # HYPRTK CONFIGURATION
-    # ============================================================================
-    gum_log "Installed required Packages" success
-    
-    gum_style_subheader "Install Pywal16"
-    if [ -f /usr/bin/wal ]; then
-        gum_log "pywal16 already installed" success
-    else
-        _installOrUpdateYay python-pywal16-git
-    fi
-    gum_log "Pywal16 Installed" success
-    
-    gum_style_subheader "Install Theme GUI"
-    if [ -f "$HOME/.local/bin/theme-gui" ]; then
-        gum_log "Theme GUI already installed" success
-    else
-        gum_spin "Installing Theme GUI..." bash "$SCRIPT_DIR/configs/theme-gui/install.sh"
-    fi
-    gum_log "Theme GUI Installed" success
-    
-    gum_style_subheader "Install Wallpapers"
-    sh "$SCRIPT_DIR/hypr/packages/wallpapers.sh"
-    gum_log "Wallpapers Installed" success
-    
-    gum_style_subheader "Install Fonts"
-    sh "$SCRIPT_DIR/hypr/packages/fonts.sh"
-    gum_log "Fonts Installed" success
-    
-    gum_style_subheader "Install Icons Root"
-    gum_spin "Installing Icons..." 'wget -qO- https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh | DESTDIR="/root/.local/share/icons" sh'
-    gum_log "Icons Installed" success
-    
-    gum_style_subheader "Initiating Pywal16"
-    
-    # Copy wallpaper to cache BEFORE running wal
-    cp "$SCRIPT_DIR/assets/Wallpapers/default.png" ~/.cache/current-wallpaper.png 2>/dev/null || true
-    sudo mkdir -p /root/.cache 2>/dev/null || true
-    sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png 2>/dev/null || true
-    
-    if needs_grub_wallpaper "$DISTRO_ID"; then
-        sudo cp ~/.cache/current-wallpaper.png /boot/grub/current-wallpaper.png 2>/dev/null || true
-    fi
-    
-    if uses_cache_wallpaper "$DISTRO_ID"; then
-        wal -i ~/.cache/current-wallpaper.png 2>/dev/null || true
-    else
-        wal -i "$SCRIPT_DIR/assets/Wallpapers/default.png" 2>/dev/null || true
-    fi
-    
-    gum_log "pywal16 initiated" success
-    
-    xdg-user-dirs-update --force 2>/dev/null || true
-    xdg-user-dirs-gtk-update --force 2>/dev/null || true
-    gum_log "Pywal16 Initiated" success
-    
-    gum_style_subheader "Hyprland Configuration"
-    gum_log "by Kori Tk (2026)" info
-    
-    gum_confirm "DO YOU WANT TO START THE INSTALLATION NOW?" || exit 1
-    
-    gum_style_subheader "Launch Thunar to generate xfconf"
-    thunar &
-    local thunar_pid=$!
-    sleep 5
-    kill "$thunar_pid" 2>/dev/null || true
-    wait "$thunar_pid" 2>/dev/null || true
-    
-    gum_style_subheader "Enabling Bluetooth"
-    gum_spin "Enabling Bluetooth..." bash -c "sudo systemctl start bluetooth && sudo systemctl enable bluetooth"
-    
-    gum_style_subheader "Enabling Cockpit"
-    sudo cp "$SCRIPT_DIR/installer/os-release/os-release" /usr/lib/ || true
-    
-    if has_cachyos_branding "$DISTRO_ID"; then
-        sudo cp "$SCRIPT_DIR/installer/os-release/os-release" /run/systemd/propagate/.os-release-stage/ 2>/dev/null || true
-        sudo cp "$SCRIPT_DIR/installer/os-release/os-release" "/run/user/$UID/systemd/propagate/.os-release-stage/" 2>/dev/null || true
-        sudo cp "$SCRIPT_DIR/installer/os-release/cachyos-branding" /usr/share/libalpm/scripts/ || true
-        sudo bash /usr/share/libalpm/scripts/cachyos-branding || true
-    fi
-    
-    sudo cp "$SCRIPT_DIR/configs/User-Management/manage-users.desktop" /usr/share/applications/ || true
-    gum_spin "Enabling Cockpit..." bash -c "sudo systemctl enable --now cockpit.socket && sudo systemctl start cockpit.socket"
-    
-    gum_style_subheader "Enabling Samba"
-    sudo cp "$SCRIPT_DIR/configs/smb/smb.conf" /etc/samba/ || true
-    gum_spin "Enabling Samba..." bash -c "sudo systemctl enable smb nmb && sudo systemctl start smb nmb && sudo systemctl restart smb nmb"
-    gum_log "Please update interfaces in /etc/samba/smb.conf with your IP address" warning
-    
-    gum_style_header "IMPORTANT - NVIDIA Graphics Card"
-    gum_log "If you have NVIDIA, follow instructions in $SCRIPT_DIR/hypr/nvidia.lua" info
-    
-    gum_style_subheader "SDDM & GRUB Configuration"
-    sh "$SCRIPT_DIR/hypr/packages/sddm-check.sh"
-    sh "$SCRIPT_DIR/hypr/packages/sddmgrub.sh"
-    
-    gum_style_subheader "hyprtk Dotfiles Installation"
-    gum_log "by Kori Tk (2026)" info
-    gum_log "Symbolic links will be created to ~/.config/" info
-    
-    gum_confirm "DO YOU WANT TO START THE INSTALLATION NOW?" || exit 1
-    
-    gum_style_subheader "Check .config directory"
-    if [ -d ~/.config ]; then
-        gum_log ".config folder already exists" success
-    else
-        mkdir -p ~/.config
-        gum_log ".config folder created" info
-    fi
-    
-    gum_style_subheader "Create Symbolic Links"
-    
-    _installSymLink alacritty ~/.config/alacritty "$SCRIPT_DIR/configs/alacritty/" ~/.config
-    _installSymLink ranger ~/.config/ranger "$SCRIPT_DIR/configs/ranger/" ~/.config
-    _installSymLink vim ~/.config/vim "$SCRIPT_DIR/configs/vim/" ~/.config
-    _installSymLink nvim ~/.config/nvim "$SCRIPT_DIR/configs/nvim/" ~/.config
-    _installSymLink starship ~/.config/starship.toml "$SCRIPT_DIR/configs/starship/starship.toml" ~/.config/starship.toml
-    _installSymLink rofi ~/.config/rofi "$SCRIPT_DIR/configs/rofi/" ~/.config
-    _installSymLink dunst ~/.config/dunst "$SCRIPT_DIR/configs/dunst/" ~/.config
-    _installSymLink wal ~/.config/wal "$SCRIPT_DIR/configs/wal/" ~/.config
-    _installSymLink btop ~/.config/btop "$SCRIPT_DIR/configs/btop/" ~/.config
-    
-    gum_style_subheader "Re-Initiating Pywal16"
-    
-    if uses_cache_wallpaper "$DISTRO_ID"; then
-        wal -i ~/.cache/current-wallpaper.png 2>/dev/null || true
-    else
-        wal -i "$SCRIPT_DIR/assets/Wallpapers/default.png" 2>/dev/null || true
-    fi
-    
-    gum_log "Pywal16 templates initiated" success
-    
-    gum_style_subheader "Install GTK hyprtk"
-    _installSymLink gtk-3.0 ~/.config/gtk-3.0 "$SCRIPT_DIR/configs/gtk/gtk-3.0/" ~/.config/
-    _installSymLink gtk-4.0 ~/.config/gtk-4.0 "$SCRIPT_DIR/configs/gtk/gtk-4.0/" ~/.config/
-    _installSymLink themes ~/.local/share/themes "$SCRIPT_DIR/assets/themes" ~/.local/share/
-    _installSymLink icons ~/.local/share/icons "$SCRIPT_DIR/configs/papirus-icons/icons" ~/.local/share/
-    
-    gum_style_subheader "Install Xfce hyprtk"
-    _installSymLink xfce4 ~/.config/xfce4 "$SCRIPT_DIR/configs/xfce4" ~/.config/
-    _installSymLink Thunar ~/.config/Thunar "$SCRIPT_DIR/configs/Thunar" ~/.config/
-    _installSymLink Mousepad ~/.config/Mousepad "$SCRIPT_DIR/configs/Mousepad" ~/.config/
-    
-    gum_style_subheader "Install Hyprland hyprtk"
-    
-    if needs_hypr_backup "$DISTRO_ID"; then
-        mv ~/.config/hypr ~/.config/hypr-old 2>/dev/null || true
-    fi
-    
-    _installSymLink hypr ~/.config/hypr "$SCRIPT_DIR/hypr/" ~/.config
-    _installSymLink fastfetch ~/.config/fastfetch "$SCRIPT_DIR/configs/fastfetch/" ~/.config
-    _installSymLink waybar ~/.config/waybar "$SCRIPT_DIR/configs/waybar/" ~/.config
-    _installSymLink swaylock ~/.config/swaylock "$SCRIPT_DIR/configs/swaylock/" ~/.config
-    _installSymLink swappy ~/.config/swappy "$SCRIPT_DIR/configs/swappy/" ~/.config
-    _installSymLink hyprlogout ~/.config/hyprlogout "$SCRIPT_DIR/configs/hyprlogout/" ~/.config
-    _installSymLink waypaper ~/.config/waypaper "$SCRIPT_DIR/configs/waypaper/" ~/.config
-    _installSymLink zshrc ~/.config/zshrc "$SCRIPT_DIR/configs/zshrc/" ~/.config
-    _installSymLink ohmyposh ~/.config/ohmyposh "$SCRIPT_DIR/configs/ohmyposh/" ~/.config
-    _installSymLink matuwall ~/.config/matuwall "$SCRIPT_DIR/configs/matuwall/" ~/.config
-    _installSymLink wob ~/.config/wob "$SCRIPT_DIR/configs/wob/" ~/.config
-    [ -L ~/.local/bin ] && rm -f ~/.local/bin 2>/dev/null || true
-    mkdir -p ~/.local/bin || true
-    
-    gum_style_subheader "Install ZSH"
-    _installOrUpdatePacman zsh
-    _checkAndInstallOhMyZsh
-    
-    gum_style_subheader "Install ZSH Plugins"
-    _installZshPlugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
-    _installZshPlugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
-    _installZshPlugin "fast-syntax-highlighting" "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
-    
-    gum_style_subheader "Update .zshrc"
-    _installSymLink .zshrc ~/.zshrc "$SCRIPT_DIR/.zshrc" ~/.zshrc
-    chsh -s /bin/zsh 2>/dev/null || true
-    gum_log ".zshrc Updated" success
-    _installSymLink standalone ~/.local/bin "$SCRIPT_DIR/installer/standalone/" ~/.local/bin
-    _installSymLink oh-my-zsh ~/.oh-my-zsh/oh-my-zsh.sh "$SCRIPT_DIR/configs/oh-my-zsh/oh-my-zsh.sh" ~/.oh-my-zsh
-    [ -d "$HOME/dotfiles" ] && rm -rf "$HOME/dotfiles" 2>/dev/null || true
-    
-    gum_style_subheader "Setup Root User Config"
-    sudo cp -r "$SCRIPT_DIR/configs/root" / || true
-    gum_log "Copying Config and Themes to ROOT User" info
-    echo -e 'Defaults env_reset,pwfeedback'| sudo tee -a /etc/sudoers >/dev/null || true
-    gum_log "Setup Password Feedback when entering SUDO password" info
-    
-    gum_style_header "Setup Complete"
-    gum_log "Update keyboard layout in $SCRIPT_DIR/hypr/input.lua" warning
-    gum_log "Update screen resolution in $SCRIPT_DIR/hypr/monitors.lua" warning
-    gum_log "Reboot your system and Enjoy!" success
-    
-    gum style \
-        --foreground 6 \
-        --border-foreground 5 \
-        --border double \
-        --padding "1 3" \
-        --margin "1 0" \
-        "Installation complete" \
-        "github.com/hyprtk/dotfiles"
-}
+        "${DISTROS[@]}")
 
-# Run the main function
-main "$@"
+    if [[ -z "$SELECTED" ]]; then
+        echo -e "${MAGENTA}  Installation cancelled.${NC}"
+        log "Installation cancelled by user"
+        exit 0
+    fi
+
+    case "$SELECTED" in
+        "Arch Linux")       DISTRO=arch ;;
+        "ArchBANG Linux")   DISTRO=archbang ;;
+        "Archcraft Linux")  DISTRO=archcraft ;;
+        "Archman Linux")    DISTRO=archman ;;
+        "BlueStar Linux")   DISTRO=bslx ;;
+        "CachyOS")          DISTRO=cachy ;;
+        "EndeavourOS")      DISTRO=endeavour ;;
+        "Garuda Linux")     DISTRO=garuda ;;
+        "Kiro Linux")       DISTRO=kiro ;;
+        "Manjaro Linux")    DISTRO=manjaro ;;
+        "RebornOS")         DISTRO=reborn ;;
+        "Debian / Ubuntu")  DISTRO=debian ;;
+        "Fedora / RHEL")    DISTRO=fedora ;;
+        "openSUSE")         DISTRO=suse ;;
+        "Void Linux")       DISTRO=void ;;
+        "Alpine Linux")     DISTRO=alpine ;;
+        "Gentoo")           DISTRO=gentoo ;;
+        "NixOS")            DISTRO=nixos ;;
+        "Other / unknown")  DISTRO=unknown ;;
+    esac
+    DISTRO_NAME="$SELECTED"
+fi
+
+# Normalise: accept "*-dots" style input
+DISTRO="${DISTRO%-dots}"
+DISTRO_FAMILY="$(_distro_family "$DISTRO")"
+
+# Validate
+case "$DISTRO" in
+    arch|archbang|archcraft|archman|bslx|cachy|endeavour|garuda|kiro|manjaro|reborn|debian|fedora|suse|void|alpine|gentoo|nixos|unknown) ;;
+    *) die "unsupported distro '$DISTRO'" ;;
+esac
+
+_ok "Target distro: $DISTRO_NAME ($DISTRO/$DISTRO_FAMILY)"
+
+# Confirm before proceeding
+if ! $GUM confirm --prompt.foreground=5 "Proceed with $DISTRO installation?"; then
+    echo -e "${MAGENTA}  Installation cancelled.${NC}"
+    log "Installation cancelled by user"
+    exit 0
+fi
+
+# Source distro-specific hooks
+STEPS="$SCRIPT_DIR/installer/steps/$DISTRO.sh"
+if [ -f "$STEPS" ]; then
+    source "$STEPS"
+    # Export hooks + DISTRO so they are visible to the bash -c subshells used
+    # by _spin (several install_os_release hooks reference $DISTRO).
+    export DISTRO
+    export -f pre_install install_os_release install_boot pre_hypr_symlink wal_init grub_wallpaper grudupdater setup_sudoers 2>/dev/null
+    log "Sourced distro hooks: $STEPS"
+fi
+
+# ── Pre-install (distro-specific cleanup) ─────────────────────────────────
+# Authenticate once, visibly, before any spinner hides the terminal.
+_sudo_auth
+_step "Removing leftover Packages"
+if type pre_install >/dev/null 2>&1; then
+    pre_install
+else
+    pkg_remove plasma-meta kde-applications-meta plasma kde-applications
+fi
+_ok "Leftover packages removed"
+
+# ── Load libraries ────────────────────────────────────────────────────────
+_step "Loading Installation Libraries"
+source "$SCRIPT_DIR/installer/scripts/library.sh"
+# Export the library helpers AND the pkgmanager primitives they call, so the
+# `bash -c` subshells used by _spin can resolve them (exported functions do not
+# carry their own dependencies).
+export -f _installSymLink _isInstalledPacman _isInstalledYay _installPackagesPacman _installPackagesYay 2>/dev/null
+export -f hyprtk_detect_pm hyprtk_pm_name hyprtk_run_root pkg_is_installed pkg_install pkg_remove aur_helper aur_available aur_install 2>/dev/null
+_ok "Library loaded"
+
+# ── Timezone ──────────────────────────────────────────────────────────────
+echo ""
+bash "$SCRIPT_DIR/installer/scripts/set-timezone.sh" 2>/dev/null
+_ok "Timezone configured"
+
+# ── Install Yay (Arch only) ───────────────────────────────────────────────
+# Only Arch-family systems need an AUR helper; every other family installs its
+# feature packages straight from the distro repos.
+if [ "$HYPRTK_PM" = pacman ]; then
+    _step "Installing Yay"
+    if pkg_is_installed yay; then
+        _ok "yay already installed"
+    else
+        # makepkg -si (and base-devel) need sudo; make sure the cached credential
+        # is fresh and prompt visibly rather than under the spinner.
+        _sudo_auth
+        _spin "Installing yay..." "_installPackagesPacman base-devel git && git clone https://aur.archlinux.org/yay-git.git ~/Downloads/yay-git && cd ~/Downloads/yay-git && makepkg -si --noconfirm" "$LOG_FILE" "base-devel + yay-git (AUR build)"
+        _ok "yay installed"
+    fi
+else
+    _ok "Non-Arch system ($HYPRTK_PM) — AUR helper not required"
+fi
+
+# ── Confirm start ─────────────────────────────────────────────────────────
+if ! $GUM confirm --prompt.foreground=5 "Start the installation now?"; then
+    echo -e "${MAGENTA}  Installation cancelled.${NC}"
+    log "Installation cancelled by user"
+    exit 0
+fi
+
+# ── Graphics card ─────────────────────────────────────────────────────────
+_step "Graphics Card Setup"
+bash "$SCRIPT_DIR/hypr/packages/graphics-card.sh"
+_ok "Graphics card configured"
+
+# ── Confirm core apps ────────────────────────────────────────────────────
+if ! $GUM confirm --prompt.foreground=5 "Install core apps now?"; then
+    echo -e "${MAGENTA}  Installation aborted.${NC}"
+    log "Installation aborted by user"
+    exit 0
+fi
+
+# ── Core packages ─────────────────────────────────────────────────────────
+_step "Installing Core Packages"
+for pkg in hyprland xfce4 filetools webtools printers network media terminaltools systemtools system sddm-check sddmgrub matuwall; do
+    pkg_script="$SCRIPT_DIR/hypr/packages/$pkg.sh"
+    pkg_detail="$(_fit_detail "$(_script_packages "$pkg_script")")"
+    _spin "Installing $pkg..." "bash $pkg_script" "$LOG_FILE" "$pkg_detail"
+    _ok "$pkg installed"
+done
+
+# hyprviz needs interactive sudo - run without spin
+echo -e "${CYAN}  → ${WHITE}Installing hyprviz${NC}"
+bash "$SCRIPT_DIR/hypr/packages/hyprviz.sh"
+_ok "hyprviz installed"
+
+# wallpapers needs y/n confirmation - run without spin
+echo -e "${CYAN}  → ${WHITE}Installing wallpapers${NC}"
+bash "$SCRIPT_DIR/hypr/packages/wallpapers.sh"
+_ok "wallpapers installed"
+
+# fonts needs y/n confirmation and sudo - run without spin
+echo -e "${CYAN}  → ${WHITE}Installing fonts${NC}"
+bash "$SCRIPT_DIR/hypr/packages/fonts.sh"
+_ok "fonts installed"
+
+_spin "Installing awww wrapper..." "bash $SCRIPT_DIR/installer/scripts/awww-wrapper.sh" "$LOG_FILE"
+_ok "awww wrapper installed"
+
+if type grudupdater >/dev/null 2>&1; then
+    _spin "Running grub updater..." "grudupdater" "$LOG_FILE"
+fi
+
+# ── Pywal16 (bundled in hyprtk-bar) ───────────────────────────────────────
+# pywal16 is vendored inside hyprtk-bar (vendor/pywal16) and exposed as `wal`
+# by the bar's installer — no separate AUR/PyPI download. It is provisioned
+# here, early, because the pywal init steps below (and the dotfiles' wal
+# templates) run before the full bar install near the end of this script.
+_step "Installing Pywal16 (bundled)"
+_spin "Provisioning bundled pywal16..." "bash $SCRIPT_DIR/installer/hyprtk-bar/install.sh --wal-only" "$LOG_FILE"
+_ok "pywal16 ready (bundled wal)"
+
+# ── Icons root ────────────────────────────────────────────────────────────
+_step "Installing Icons (root)"
+# Download to a temp file and run it locally instead of `wget -qO- ... | sh`:
+# a pipe lets a partial/failed download execute as root with no artifact to
+# inspect. Pin the URL to a specific commit/release when one is available.
+_spin "Installing Papirus icons for root..." \
+    "tmp=\$(mktemp) && wget -qO- --timeout=60 https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh > \"\$tmp\" && DESTDIR=/root/.local/share/icons sh \"\$tmp\"; rc=\$?; rm -f -- \"\$tmp\"; exit \$rc" \
+    "$LOG_FILE"
+_ok "Icons installed for root"
+
+# ── Init pywal16 ─────────────────────────────────────────────────────────
+_step "Initiating Pywal16"
+_spin "Initializing pywal16..." "wal -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
+_ok "pywal16 initiated"
+
+_spin "Setting default wallpaper..." "cp $SCRIPT_DIR/assets/Wallpapers/default.png ~/.cache/current-wallpaper.png && sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png" "$LOG_FILE"
+if type grub_wallpaper >/dev/null 2>&1; then
+    _spin "Updating grub wallpaper..." "grub_wallpaper" "$LOG_FILE"
+fi
+_spin "Updating user directories..." "xdg-user-dirs-update --force && xdg-user-dirs-gtk-update --force" "$LOG_FILE"
+_ok "Default wallpaper set"
+
+# ── Confirm Hyprland config ──────────────────────────────────────────────
+if ! $GUM confirm --prompt.foreground=5 "Configure Hyprland now?"; then
+    echo -e "${MAGENTA}  Hyprland configuration skipped.${NC}"
+    log "Hyprland configuration skipped by user"
+else
+    # ── Thunar xfconf ────────────────────────────────────────────────────
+    _step "Launching Thunar to generate xfconf"
+    _spin "Generating xfconf..." "thunar & sleep 3 && killall thunar" "$LOG_FILE"
+    _ok "Thunar xfconf generated"
+
+    # ── Bluetooth ────────────────────────────────────────────────────────
+    _step "Enabling Bluetooth"
+    _spin "Enabling bluetooth..." "sudo systemctl start bluetooth && sudo systemctl enable bluetooth" "$LOG_FILE"
+    _ok "Bluetooth enabled"
+
+    # ── Cockpit / os-release ─────────────────────────────────────────────
+    _step "Enabling Cockpit"
+    if type install_os_release >/dev/null 2>&1; then
+        _spin "Installing os-release..." "install_os_release" "$LOG_FILE"
+    elif [ -f "$SCRIPT_DIR/installer/os-release/os-release-$DISTRO" ]; then
+        _spin "Copying os-release..." "sudo cp $SCRIPT_DIR/installer/os-release/os-release-$DISTRO /usr/lib/" "$LOG_FILE"
+    else
+        _warn "No os-release branding for $DISTRO — keeping the system's own"
+    fi
+    if type install_boot >/dev/null 2>&1; then
+        _spin "Installing boot splash..." "install_boot" "$LOG_FILE"
+    fi
+    _spin "Enabling cockpit..." "sudo cp $SCRIPT_DIR/configs/User-Management/manage-users.desktop /usr/share/applications/ && sudo systemctl enable --now cockpit.socket && sudo systemctl start cockpit.socket" "$LOG_FILE"
+    _ok "Cockpit enabled"
+
+    # ── Samba ────────────────────────────────────────────────────────────
+    _step "Enabling Samba"
+    # Service names differ: Arch uses smb/nmb, most others smbd/nmbd.
+    _spin "Enabling samba..." "sudo mkdir -p /etc/samba && sudo cp $SCRIPT_DIR/configs/smb/smb.conf /etc/samba/ && (sudo systemctl enable --now smb nmb 2>/dev/null || sudo systemctl enable --now smbd nmbd 2>/dev/null); true" "$LOG_FILE"
+    _warn "Update interfaces in /etc/samba/smb.conf with your IP address"
+    _ok "Samba enabled"
+
+    # ── NVIDIA info ──────────────────────────────────────────────────────
+    _step "NVIDIA Information"
+    echo -e "${WHITE}  If you installed an NVIDIA card, follow the instructions in:${NC}"
+    echo -e "${CYAN}  ~/hyprtk/hypr/nvidia.lua${NC}"
+    $GUM input --placeholder "Press Enter to continue..."
+
+    # ── Confirm dotfiles ────────────────────────────────────────────────
+    if ! $GUM confirm --prompt.foreground=5 "Install dotfiles now?"; then
+        echo -e "${MAGENTA}  Dotfile installation skipped.${NC}"
+        log "Dotfile installation skipped by user"
+    else
+        # ── .config directory ───────────────────────────────────────────
+        _step "Checking .config Directory"
+        if [ -d ~/.config ]; then
+            _ok ".config folder exists"
+        else
+            mkdir ~/.config
+            _ok ".config folder created"
+        fi
+
+        # ── General symlinks ───────────────────────────────────────────
+        _step "Installing General Configs"
+        _spin "Installing alacritty..." "_installSymLink alacritty ~/.config/alacritty $SCRIPT_DIR/configs/alacritty/ ~/.config" "$LOG_FILE"
+        _spin "Installing ranger..." "_installSymLink ranger ~/.config/ranger $SCRIPT_DIR/configs/ranger/ ~/.config" "$LOG_FILE"
+        _spin "Installing vim..." "_installSymLink vim ~/.config/vim $SCRIPT_DIR/configs/vim/ ~/.config" "$LOG_FILE"
+        _spin "Installing nvim..." "_installSymLink nvim ~/.config/nvim $SCRIPT_DIR/configs/nvim/ ~/.config" "$LOG_FILE"
+        _spin "Installing starship..." "_installSymLink starship ~/.config/starship.toml $SCRIPT_DIR/configs/starship/starship.toml ~/.config/starship.toml" "$LOG_FILE"
+        _spin "Installing rofi..." "_installSymLink rofi ~/.config/rofi $SCRIPT_DIR/configs/rofi/ ~/.config" "$LOG_FILE"
+        _spin "Installing wal..." "_installSymLink wal ~/.config/wal $SCRIPT_DIR/configs/wal/ ~/.config" "$LOG_FILE"
+        _spin "Installing btop..." "_installSymLink btop ~/.config/btop $SCRIPT_DIR/configs/btop/ ~/.config" "$LOG_FILE"
+        _ok "General configs installed"
+
+        # ── Re-init pywal16 ───────────────────────────────────────────
+        _step "Re-Initiating Pywal16"
+        if type wal_init >/dev/null 2>&1; then
+            _spin "Running wal_init..." "wal_init" "$LOG_FILE"
+        else
+            _spin "Initializing pywal16..." "wal -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
+        fi
+        _ok "Pywal16 templates initiated"
+
+        # ── GTK ───────────────────────────────────────────────────────
+        _step "Installing GTK Configs"
+        _spin "Installing GTK 3.0..." "_installSymLink gtk-3.0 ~/.config/gtk-3.0 $SCRIPT_DIR/configs/gtk/gtk-3.0/ ~/.config/" "$LOG_FILE"
+        _spin "Installing GTK 4.0..." "_installSymLink gtk-4.0 ~/.config/gtk-4.0 $SCRIPT_DIR/configs/gtk/gtk-4.0/ ~/.config/" "$LOG_FILE"
+        _spin "Installing themes..." "_installSymLink themes ~/.local/share/themes $SCRIPT_DIR/assets/themes ~/.local/share/" "$LOG_FILE"
+        _spin "Installing icons..." "_installSymLink icons ~/.local/share/icons $SCRIPT_DIR/assets/papirus-icons/icons ~/.local/share/" "$LOG_FILE"
+        _ok "GTK configs installed"
+
+        # ── Xfce ──────────────────────────────────────────────────────
+        _step "Installing Xfce Configs"
+        _spin "Installing xfce4..." "_installSymLink xfce4 ~/.config/xfce4 $SCRIPT_DIR/configs/xfce4 ~/.config/" "$LOG_FILE"
+        _spin "Installing Thunar..." "_installSymLink Thunar ~/.config/Thunar $SCRIPT_DIR/configs/Thunar ~/.config/" "$LOG_FILE"
+        _spin "Installing Mousepad..." "_installSymLink Mousepad ~/.config/Mousepad $SCRIPT_DIR/configs/Mousepad ~/.config/" "$LOG_FILE"
+        _ok "Xfce configs installed"
+
+        # ── Hyprland ──────────────────────────────────────────────────
+        _step "Installing Hyprland Configs"
+        if type pre_hypr_symlink >/dev/null 2>&1; then
+            _spin "Running pre_hypr_symlink..." "pre_hypr_symlink" "$LOG_FILE"
+        fi
+        _spin "Installing hypr..." "_installSymLink hypr ~/.config/hypr $SCRIPT_DIR/hypr/ ~/.config" "$LOG_FILE"
+        _spin "Installing fastfetch..." "_installSymLink fastfetch ~/.config/fastfetch $SCRIPT_DIR/configs/fastfetch/ ~/.config" "$LOG_FILE"
+        _spin "Installing swaylock..." "_installSymLink swaylock ~/.config/swaylock $SCRIPT_DIR/configs/swaylock/ ~/.config" "$LOG_FILE"
+        _spin "Installing swappy..." "_installSymLink swappy ~/.config/swappy $SCRIPT_DIR/configs/swappy/ ~/.config" "$LOG_FILE"
+        _spin "Installing hyprlogout..." "_installSymLink hyprlogout ~/.config/hyprlogout $SCRIPT_DIR/configs/hyprlogout/ ~/.config" "$LOG_FILE"
+        _spin "Installing waypaper..." "_installSymLink waypaper ~/.config/waypaper $SCRIPT_DIR/configs/waypaper/ ~/.config" "$LOG_FILE"
+        _spin "Installing zshrc..." "_installSymLink zshrc ~/.config/zshrc $SCRIPT_DIR/configs/zshrc/ ~/.config" "$LOG_FILE"
+        _spin "Installing ohmyposh..." "_installSymLink ohmyposh ~/.config/ohmyposh $SCRIPT_DIR/configs/ohmyposh/ ~/.config" "$LOG_FILE"
+        _spin "Installing matuwall..." "_installSymLink matuwall ~/.config/matuwall $SCRIPT_DIR/configs/matuwall/ ~/.config" "$LOG_FILE"
+        _spin "Installing wob..." "_installSymLink wob ~/.config/wob $SCRIPT_DIR/configs/wob/ ~/.config" "$LOG_FILE"
+        _spin "Creating ~/.local/bin..." "mkdir -p ~/.local/bin" "$LOG_FILE"
+        _ok "Hyprland configs installed"
+
+        # ── ZSH ──────────────────────────────────────────────────────
+        _step "Installing ZSH"
+        _spin "Installing zsh..." "_installPackagesPacman zsh" "$LOG_FILE"
+        # oh-my-zsh install needs interactive input - run without spin.
+        # Fetch to a temp file and run it (avoids `sh -c "$(curl ...)"`, which
+        # hides the fetched code and runs a partial download if the fetch fails).
+        echo -e "${CYAN}  → ${WHITE}Installing oh-my-zsh${NC}"
+        tmp="$(mktemp)" && curl -fsSL --max-time 90 \
+            https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh \
+            -o "$tmp" && bash "$tmp" --unattended
+        rc=$?
+        rm -f -- "$tmp"
+        if [ "$rc" -ne 0 ]; then
+            _fail "oh-my-zsh install exited $rc (network?)"
+        fi
+        _ok "ZSH installed"
+
+        _step "Installing ZSH Plugins"
+        _spin "Installing zsh-autosuggestions..." "[ -d \${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ] || git clone https://github.com/zsh-users/zsh-autosuggestions \${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions 2>/dev/null" "$LOG_FILE"
+        _spin "Installing zsh-syntax-highlighting..." "[ -d \${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ] || git clone https://github.com/zsh-users/zsh-syntax-highlighting.git \${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting 2>/dev/null" "$LOG_FILE"
+        _spin "Installing fast-syntax-highlighting..." "[ -d \${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting ] || git clone https://github.com/zdharma-continuum/fast-syntax-highlighting.git \${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting 2>/dev/null" "$LOG_FILE"
+        _ok "ZSH plugins installed"
+
+        # ── .zshrc ────────────────────────────────────────────────────
+        _step "Updating .zshrc"
+        _spin "Installing .zshrc..." "_installSymLink .zshrc ~/.zshrc $SCRIPT_DIR/.zshrc ~/.zshrc" "$LOG_FILE"
+        # chsh needs password - run without spin
+        echo -e "${CYAN}  → ${WHITE}Setting default shell to zsh${NC}"
+        ZSH_BIN="$(command -v zsh || echo /bin/zsh)"
+        sudo chsh -s "$ZSH_BIN"
+        chsh -s "$ZSH_BIN" 2>/dev/null || true
+        _ok ".zshrc updated"
+
+        # ── Standalone apps ──────────────────────────────────────────
+        _step "Installing Standalone Apps"
+        _spin "Installing standalone binaries..." "_installSymLink standalone ~/.local/bin $SCRIPT_DIR/installer/standalone/ ~/.local/bin" "$LOG_FILE"
+        _spin "Installing oh-my-zsh..." "_installSymLink oh-my-zsh ~/.oh-my-zsh/oh-my-zsh.sh $SCRIPT_DIR/configs/oh-my-zsh/oh-my-zsh.sh ~/.oh-my-zsh" "$LOG_FILE"
+        _ok "Standalone apps installed"
+
+        # ── hyprtk-bar ──────────────────────────────────────────────
+        _step "Installing hyprtk-bar"
+        _spin "Installing hyprtk-bar..." "bash $SCRIPT_DIR/installer/hyprtk-bar/install.sh" "$LOG_FILE"
+        _ok "hyprtk-bar installed (autostarted by autostart.lua; owns the notification daemon; hosts the arc menu overlay)"
+
+        # ── Root user config ─────────────────────────────────────────
+        _step "Setting Up Root User Config"
+        echo -e "${CYAN}  → ${WHITE}Copying root config${NC}"
+        sudo find /root/.config -type l -delete 2>/dev/null
+        # configs/root/ holds hidden root-home files (.bashrc, .config, ...).
+        # Copy its contents into /root/ — never glob `configs/root/*` onto `/`.
+        sudo cp -rf "$SCRIPT_DIR"/configs/root/. /root/ 2>/dev/null || true
+        log "Root config copied"
+        _ok "Root user config copied"
+
+        # ── Sudoers ──────────────────────────────────────────────────
+        if type setup_sudoers >/dev/null 2>&1; then
+            _spin "Configuring sudoers..." "setup_sudoers" "$LOG_FILE"
+        else
+            # Defaults appended via a validated drop-in, never `tee -a /etc/sudoers`.
+            _spin "Configuring sudoers..." \
+                "printf 'Defaults env_reset,pwfeedback\n' | sudo tee /etc/sudoers.d/99-hyprtk-defaults >/dev/null && sudo chmod 440 /etc/sudoers.d/99-hyprtk-defaults && sudo visudo -c >/dev/null 2>&1" \
+                "$LOG_FILE"
+        fi
+        _ok "Sudoers configured"
+
+        # ── Bar sudo access (passwordless) ──────────────────────────
+        _step "Configuring Bar Sudo Access"
+        echo -e "${CYAN}  → ${WHITE}Installing hyprtk-bar sudoers (passwordless sudo)${NC}"
+        sudo bash "$SCRIPT_DIR/installer/scripts/setup-sudoers.sh"
+        _ok "Bar passwordless sudo configured"
+    fi
+fi
+
+# ── Cleanup ────────────────────────────────────────────────────────────────
+if [ -n "${HOME:-}" ]; then
+    rm -rf -- "$HOME/dotfiles" 2>/dev/null || true
+fi
+
+# ── Completion ─────────────────────────────────────────────────────────────
+log "=== hyprtk installation completed ==="
+clear
+_box \
+    "$(printf "${CYAN}INSTALLATION COMPLETE${NC}")" \
+    "" \
+    "$(printf "${WHITE}Done!${NC}")" \
+    "" \
+    "$(printf "${WHITE}Installation log:${NC}")" \
+    "$(printf "${CYAN}%s${NC}" "$LOG_FILE")" \
+    "" \
+    "$(printf "${WHITE}Next steps:${NC}")" \
+    "$(printf "${CYAN}1. Update keyboard layout${NC}")" \
+    "$(printf "${CYAN}   in ~/hyprtk/hypr/input.lua${NC}")" \
+    "$(printf "${CYAN}2. Update screen resolution${NC}")" \
+    "$(printf "${CYAN}   in ~/hyprtk/hypr/monitors.lua${NC}")" \
+    "$(printf "${WHITE}3. Reboot your system${NC}")" \
+    "" \
+    "$(printf "${CYAN}github.com/hyprtk/dotfiles${NC}")"
+
+echo ""

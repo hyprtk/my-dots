@@ -16,7 +16,6 @@ hl.config({
             new_optimizations = true,
             ignore_opacity = true,
             xray = true,
-            -- blurls = waybar
         },
         shadow = {
             enabled = true,

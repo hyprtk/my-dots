@@ -13,7 +13,7 @@ inputbar {
 }
 
 textbox-prompt-colon {
-    background-color:            @color11;
+    background-color:            @color5;
     text-color:                  rgba(35,35,20,0.90);
 }
 
@@ -64,7 +64,7 @@ element alternate.active {
 }
 
 message {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
     border-color:                rgba(0,0,0,0.07);
 }
@@ -74,7 +74,7 @@ textbox {
 }
 
 error-message {
-    background-color:            @color4;
+    background-color:            @color5;
     text-color:                  #ffffff;
-    border-color:                @color11;
+    border-color:                @color5;
 }

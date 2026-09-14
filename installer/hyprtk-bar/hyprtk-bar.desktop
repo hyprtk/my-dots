@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=hyprtk-bar
+Comment=HYPRTK taskbar for Hyprland
+Exec=/home/hyprtk/.local/bin/hyprtk-bar
+Icon=com.gitlab.jnuutinen.minimalmenu
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
+Path=
+StartupNotify=false

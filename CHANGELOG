@@ -1,114 +1,121 @@
 # Changelog
 
-## [Unreleased]
+All notable changes to hyprtk-merged (the unified dotfiles installer) are
+documented in this file. Dates are in YYYY-MM-DD format.
 
-### Fixed — Full Codebase Audit (2026-08-05)
-
-**Rofi:**
-- `shared/colors.rasi`: Fixed `@import` path — `$HOME` doesn't expand in rofi CSS, reverted to `~` which works
-
-**Installer (1-install.sh + library.sh):**
-- Fixed `SCRIPT_DIR` clobbering by library sourcing chain (library.sh, headers.sh, distro-detection.sh)
-- `_installSymLink()` rewritten — removed interactive `read -p` prompts, now silent and non-interactive
-- Fixed array comparison bug in `_installPackagesPacman`/`_installPackagesYay`
-- Added `gum_choose_safe()` wrapper to prevent `set -e` crash on gum Esc
-- Yay install now validates success (clone + build + post-install check)
-- All 50+ hardcoded `~/hyprtk/` paths replaced with `$SCRIPT_DIR/...`
-- Removed duplicate gvfs packages (were in both Hyprland and Network sections)
-- Moved `cups`, `cups-pdf`, `cups-filters`, `nss-mdns` from yay to pacman (official repos)
-- Removed duplicate `curl` and `python-pip` installs
-- Removed deprecated `exa` (eza already installed)
-- Fixed Nvidia GRUB sed pattern to match any existing `GRUB_CMDLINE_LINUX` value
-- Wallpaper copy now happens BEFORE `wal -i` (was reversed)
-- Thunar launch now tracks PID with `kill`/`wait` instead of `killall`
-- Fixed `pcp-pmda-*` expansion to check for empty results
-- Quoted `$HOME/dotfiles` in removal command
-- Removed 8 dead functions: `_installPackagesPacman`, `_installPackagesYay`, `_isInstalledAur`, `_installAurPackage`, `_isDirectoryExists`, `_isCommandExists`, `_checkAndInstallHyprviz`, `_checkAndInstallMatuwall`
-- library.sh reduced from 377 to 218 lines (-37%)
-
-**Waybar Configs:**
-- `launch.sh`: Fixed shebang from `#!/bin/sh` to `#!/bin/bash`
-- `default/config`: Replaced `wlr/workspaces` with `hyprland/workspaces`, removed sway-only modules
-- `default/config`: Removed dead `custom/media` module referencing non-existent `mediaplayer.py`
-- `default/style.css`: Added missing comma between `#mpd` and `#kbstate` selectors
-- `modules.json`: Fixed `"tooltip": "true"` (string) to `"tooltip": true` (boolean)
-- `themes/config`: Removed duplicate `"layer": "top"` key
-- `themes/config`: Fixed module order to match hyprtk themes (cpu, memory, disk)
-- `themes/config`: Fixed audio/hardware drawer `transition-left-to-right` to match hyprtk themes
-- `themes/style.css`: Replaced 9 undefined CSS variables with concrete fallback values
-- `themes/style.css`: Removed duplicate `#network` selector
-- `themes/style.css`: Removed dead CSS selectors (custom-outlook, custom-teams, etc.)
-- `hyprtk-inverse/style.css`: Removed 6 duplicate one-liner color declarations
-- `hyprtk-light/style.css`: Removed 6 duplicate one-liner color declarations
-- `themeswitcher.sh`: Quoted all variables to handle paths with spaces
-
-**Shell Scripts:**
-- Fixed broken shebangs in vmware-setup.sh, appimage-setup.sh, lockscreentime.sh, onedrive.sh, wal.sh
-- `screenshot.sh`: Removed `eval`, fixed paths to use `$SCRIPT_DIR/settings/`, added nullglob for unguarded glob
-- `change-icons.sh`: Fixed `OUTPUT_FILE` path (missing `configs/` prefix)
-- `generate-aero-colors.sh`: Added `-f` check before `readlink -f`
-- `rofi/shared/colors.rasi`: Kept `~` in @import (rofi expands tilde, does NOT expand `$HOME`)
-- `rofi/config-cliphist.rasi`: Added missing `@import "shared/fonts.rasi"`
-- `rofi/config-short.rasi`: Added missing `@import "shared/fonts.rasi"`
-- `autolock.sh`: Wrapped in `$XDG_SESSION_TYPE = "x11"` check for Wayland compatibility
-- `templates.sh`: Added `wl-copy` (Wayland) with `xclip` (X11) fallback
-- `cleanup.sh` (both): Added `[y/N]` confirmation before destructive operations
-- `wf-record-start.sh`: Quoted pgrep, fixed notification typo
-- `wf-record-stop.sh`: Quoted pgrep, replaced broken wait loop with `sleep 0.2`, fixed tilde in double quotes
-- `Volume.sh`: Removed stray `u` argument from `pamixer --default-source`
-- `graphics-card.sh`: Fixed argument count mismatch for `update_initramfs_config`
-- `graphics-card.sh`: Fixed Nvidia GRUB sed pattern (same fix as 1-install.sh)
-
-**Hyprland Config (Lua format):**
-- `keybindings.lua`: Removed duplicate `SUPER+SHIFT+P` binding (recording conflicted with passthru submap)
-- `keybindings.lua`: Recording moved to `SUPER+SHIFT+p` (lowercase) to avoid conflict
-- `keybindings.lua`: Fixed brightness hardcodes (`set 100%`/`set 70%` → `set 5%+`/`set 5%-`)
-- `keybindings.lua`: Replaced 20 individual workspace binds with `for` loop (cleaner, like ml4w)
-- `keybindings.lua`: Added `local hyprtk` variable for consistent path referencing
-- `keybindings.lua`: Fixed workspace 10 keysym (was `10`, now `0`)
-- `autostart.lua`: Removed `xhost +local:` (X11 command, not appropriate for Wayland)
-- `autostart.lua`: Removed `lockscreentime.sh` call (X11-only xautolock)
-- `autostart.lua`: Added `sleep 2` delay for wal-watcher startup
-- `environment.lua`: Removed forced software rendering (`WLR_NO_HARDWARE_CURSORS`, `WLR_RENDERER_ALLOW_SOFTWARE`)
-- `environment.lua`: Added Qt Wayland, Electron/Chromium Wayland, Mozilla Wayland env vars
-- `window.lua`: Fixed dead code path (`if not colors_path` was always false)
-- `window.lua`: Added fallback colors if pywal colors file missing
-- `nvidia.lua`: Commented out all env vars, documented as opt-in (harmful on AMD/Intel)
-- `hyprlock.conf`: Replaced deprecated `hide_cursor` with `no_pointer`
-- `hyprlock.conf`: Fixed wallpaper path (was `.png` extension mismatch)
-- Deleted orphaned `default.lua` (duplicate of layouts.lua, never required)
-- Deleted orphaned `keyboard.lua` (undefined variable, never required)
-- `wal-watcher.sh`: Removed missing `hyprlock_wall.sh` reference
-- `wallpaper-colors.sh`: Removed missing `hyprlock_wall.sh` reference
-- `volume-mute.sh`: Now shows actual volume on unmute instead of always 0
-- `brightness-up.sh`/`brightness-down.sh`/`volume-up.sh`/`volume-down.sh`: Quoted all variables
-
-**Architecture:**
-- Removed 8 dead functions from library.sh
-- Unified install pattern: only `_installOrUpdatePacman` and `_installOrUpdateYay` remain
-- Added `2>/dev/null` to `_isInstalledPacman`/`_isInstalledYay` to suppress noisy errors
-
-## [0.1.0] — 2026-08-03
+## [Unreleased] - 2026-09-14
 
 ### Added
-- Initial release of hyprtk-merged
-- Unified installer supporting 11 Arch-based distros
-- TUI selector using gum (standalone binary)
-- 147 unique packages across 10 categories
-- 47 scripts in installer/scripts/
-- 36 screenshots (3 per distro)
-- 39 thumbnails (3 per distro)
-- 8 waybar themes (hyprtk, hyprtk-aero, hyprtk-clear, hyprtk-inverse, hyprtk-light, hyprtk-negative, hyprtk-reverse, hyprtk-vertical)
-- 7 rofi theme variants
-- Hyprland Lua configuration (modular, requires-based)
-- Pywal16 dynamic color theming
-- matuwall wallpaper manager integration
-- theme-gui GTK4 theme manager
-- Papirus icon themes with 25 custom color variants
-- GTK2/GTK3/GTK4 theme (Kripton-v40)
-- SDDM login screen configuration
-- GRUB splash screen
-- Oh My Zsh + Starship prompt
-- Alacritty, Kitty, btop, ranger, neovim configs
-- dunst, wob, swappy, swaylock configs
-- XFCE4 fallback desktop
+
+- **Multi-distro install — hyprtk now installs on any Linux distribution.**
+  New `installer/scripts/pkgmanager.sh` detects the host package manager
+  (pacman/apt/dnf/zypper/xbps/apk/emerge/nix) and provides
+  `pkg_install`/`pkg_remove`/`pkg_is_installed`/`aur_install` wrappers. Every
+  `hypr/packages/*.sh` script now carries an exhaustive per-family package list
+  (Arch, Debian/Ubuntu, Fedora/RHEL, openSUSE, Void, Alpine) with an Arch AUR
+  list, and supports `--list` for the installer's spinner preview.
+- `1-install.sh` detects Debian/Ubuntu, Fedora/RHEL, openSUSE, Void, Alpine,
+  Gentoo and NixOS (via `ID`/`ID_LIKE`) in addition to the 11 Arch-based
+  distros, with a family/manager readout and an expanded manual-selection menu.
+- `PORTABILITY.md` documenting the family matrix, Arch-only features and
+  per-family gotchas.
+
+### Changed
+
+- The AUR helper (`yay`) step runs only on Arch; other families skip it.
+- `library.sh` delegates to the abstraction while keeping the historic
+  `_installPackages*`/`_isInstalled*` names; the pkgmanager primitives are
+  exported for the installer's `bash -c` spinner subshells.
+- Package scripts and misc helpers are invoked with `bash` explicitly (they use
+  arrays), not `sh`.
+- Misc system scripts are now PM-aware: `rm-dm-managers.sh`, `cleanup.sh`,
+  `installupdates.sh`, `updates.sh` (distro-agnostic), `snapper-setup.sh`,
+  `vmware-setup.sh`, `qemu-virt-setup.sh`, `appimage-setup.sh`.
+- `graphics-card.sh` installs the Intel/AMD/NVIDIA stack per family and guards
+  the `mkinitcpio`/GRUB steps; `sddmgrub.sh`/`sddm-check.sh` use repo-relative
+  paths and `hyprtk_run_root`.
+- Root `.bashrc`'s `update` alias is now a distro-aware function.
+
+### Fixed
+
+- `hyprviz.sh` builds in a dedicated dir and skips cleanly off Arch.
+- `fonts.sh`/`wallpapers.sh`/`matuwall.sh` resolve repo-relative asset paths and
+  use `python3`.
+
+## [Unreleased] - 2026-09-07
+
+### Changed
+
+- **pywal16 bundled — the AUR dependency is gone** — pywal16 is now vendored
+  inside hyprtk-bar (`installer/hyprtk-bar/vendor/pywal16/`; MIT, v3.8.15,
+  commit `a04c3e3`) and exposed as `wal` (`venv/bin/wal`, symlinked into
+  `~/.local/bin`). `1-install.sh` provisions it early with
+  `installer/hyprtk-bar/install.sh --wal-only`, replacing the
+  `yay -S python-pywal16-git` step; `python-pywal16-git` was removed from the
+  AUR extras. The bar and its scripts resolve the bundled `wal` first
+  (`HYPRTK_WAL` → `~/.local/bin` → beside-install → PATH), so a stale system
+  `wal` cannot shadow it. See `installer/hyprtk-bar/BUNDLING.md` and
+  `installer/hyprtk-bar/vendor/pywal16/VENDOR.md`.
+- **hyprtk-bar settings window single border** — the floating bar-settings
+  window previously showed a double border: Hyprland drew its own compositor
+  window border around the plain `Gtk.Window` on top of the CSS `.popup-box`
+  border. Added `border_size = 0` to the `windowrule-bar-settings` rule so only
+  the CSS animated border shows, matching the layer-shell dialogs.
+- **hyprtk-bar border animation mirrors Hyprland** — vendored hyprtk-bar now
+  animates its pill border at the same pace as Hyprland's `borderangle`
+  (speed = duration in ds, `speed * 100` ms) and exposes an Animations tab
+  (Low / High / Custom; custom speed independent of Hyprland).
+- **hyprtk-bar GPU page supports Intel + NVIDIA** — auto-picks the primary GPU
+  and reads amdgpu sysfs / `nvidia-smi` / Intel i915+xe sysfs (vendored).
+- hyprtk-menu theming shares the bar's theme model (pywal / waybar / manual).
+
+## [0.2.0] - 2026-09-05
+
+### Changed
+
+- **Waybar + dunst fully removed** — replaced by the bundled **hyprtk-bar**
+  (taskbar, system tray, and built-in notification center all in one app).
+  `configs/waybar` (incl. all themes), `configs/dunst`, and the waybar-only
+  color script were deleted; packages, keybindings, wal/wallpaper script
+  launches, RTMIN signals and dunstrc copies removed.
+- hyprtk-bar, hyprtk-menu, hyprtk-arc-menu and theme-gui vendored into
+  `installer/` and wired into `1-install.sh`; gtk3 + desktop-file-utils added
+  to the hyprland package deps.
+- Rofi variants aligned with the bar theme: accent switched to pywal color5,
+  aero variant made pywal-aware, `hyprtk-glass` variant added; the bar syncs
+  the rofi variant on every re-theme.
+- hyprtk-bar + hyprtk-arc-menu autostart fixed (Hyprland autostart PATH lacks
+  `~/.local/bin` — use absolute paths).
+- SDDM/GRUB module (theme-gui) uses pkexec; theme-gui standalone wrapper path
+  fixed.
+
+## [0.1.0] - 2026-08-13
+
+### Added
+
+- **Unified 11-distro installer** — one `1-install.sh` covering Arch, ArchBang,
+  Archcraft, ArchMan, Bluestar, CachyOS, EndeavourOS, Garuda, Kiro, Manjaro and
+  RebornOS, with per-distro hooks in `installer/steps/` (os-release install,
+  boot splash, grub wallpaper/updater, wal re-init, hypr-config backup,
+  sudoers).
+- New 4-category tree layout: `assets/` (fonts, wallpapers, themes, papirus
+  icons, splash, screenshots), `configs/` (all app configs + root),
+  `hypr/` (Hyprland lua config) and `installer/` (os-release variants, scripts,
+  standalone gum, steps). Per-distro overlays under `distro/<name>/`.
+- Gum TUI installer with distro auto-detection (`/etc/os-release`), standalone
+  gum binary, `install.log` logging, and dependency audit.
+- Verification suite: `installer/scripts/verify/` — completeness, reference
+  audit, installer audit, dry-run, and a full end-to-end installer dry-run
+  harness (sandboxed `$HOME`, all system-mutating commands stubbed, per-distro
+  fake os-release).
+
+### Changed
+
+- Merged the 11 source distro trees into one canonical tree (arch-dots is the
+  canonical base; other trees are diff-generated overlays).
+- os-release ×11 + fastfetch ASCII logos for every distro.
+
+### Removed
+
+- Separate per-distro repos: everything is merged into a single `dotfiles`
+  repo (github.com/hyprtk/dotfiles).

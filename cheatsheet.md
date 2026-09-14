@@ -19,7 +19,6 @@ and run sudo mkinitcpio -P (Please ensure you have your kernels headers installe
   Super          q        *quit* (kill focused window)
   Super          d        *show app menu* (`rofi menu`)
   Super   Ctrl   q        *show hyprlogout* (lock/suspend/logout/reboot/shutdown)
-  Super   Shift  b        *reload waybar config files*
 
 # screenshot
   Super PrintSrc          *full screenshot*
@@ -33,7 +32,7 @@ screen recordings are saved by default to your ~/videos/Recordings directory
 
 # application shortcuts 
   Ctrl    Alt U           *pavucontrol*
-  Ctrl    ALT P           *pacseek*
+  Ctrl    ALT P           *pamac-manager*
   Super   F               *file manager* (`thunar`)
   Super   B               *browser* (`brave`)
   Super   Ctrl B          *browser* (`chromium`)
@@ -52,7 +51,8 @@ screen recordings are saved by default to your ~/videos/Recordings directory
   - *Hyprland* configuration files are in `~/.config/hypr/`.
     Read all the files with the editor of your choice.
     More keybindings are included in the config.
-  - *Waybar* is documented through man pages - `man waybar`. 
+  - *hyprtk-bar* is the taskbar (right-click for bar settings / theme).
+    Notifications use its built-in center (bell button).
   - *rofi* is documented through man pages - `man rofi`.
   - *Multimedia keys* - may not work for every keyboard
     may need to hold down the function (`fn`) key

@@ -1,7 +1,8 @@
 #!/bin/bash
-# ── Update WAL ────────────────────────────────────────
-# by Kori Tk (2026)
-# ─────────────────────────────────────────────────────
+#
+#
+# by hyprtk (Kori Tk) (2026)
+# ----------------------------------------------------- 
 
 echo "Changing theme..."
 
@@ -19,17 +20,14 @@ sleep 1
 # Get new theme
 # ----------------------------------------------------- 
 source "$HOME/.cache/wal/colors.sh"
-
-~/hyprtk/configs/swaylock/update-swaylock.sh
-
-newwall=$(echo $wallpaper | sed "s|$HOME/Pictures/Wallpapers/||g")
+newwall=$(basename "$wallpaper")
 
 # ----------------------------------------------------- 
 # Copy selected wallpaper into .cache folder
 # ----------------------------------------------------- 
-cp $wallpaper ~/.cache/current-wallpaper.png
+cp "$wallpaper" ~/.cache/current-wallpaper.png
 
-~/hyprtk/configs/papirus-icons/scripts/change-icons.sh
+~/hyprtk/assets/papirus-icons/scripts/change-icons.sh
 
 # ----------------------------------------------------- 
 # Send notification
