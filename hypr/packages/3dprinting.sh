@@ -5,7 +5,12 @@
 _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 . "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
-if [ "${1:-}" = "--list" ]; then printf 'orca-slicer-bin bambustudio-bin\n'; exit 0; fi
+if [ "${1:-}" = "--list" ]; then
+    # AUR-only, so only Arch has resolvable names; elsewhere the install is a
+    # Flatpak hint (see below) and there is nothing to list.
+    [ "$HYPRTK_PM" = pacman ] && printf 'orca-slicer-bin bambustudio-bin\n'
+    exit 0
+fi
 
 echo ""
 echo " 3D Printing "

@@ -6,7 +6,12 @@ _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 
 PKGS=(eza micro xfce4-terminal btop alacritty kitty starship ranger nano neovim fastfetch)
 AUR=()
-[ "$HYPRTK_PM" = pacman ] && AUR=(fastfetch)
+case "$HYPRTK_PM" in
+    pacman) AUR=(fastfetch) ;;
+    # openSUSE names the editor micro-editor; the rest of the list is shared.
+    zypper) PKGS=(eza micro-editor xfce4-terminal btop alacritty kitty starship
+                  ranger nano neovim fastfetch) ;;
+esac
 
 if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 

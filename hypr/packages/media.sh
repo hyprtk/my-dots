@@ -13,7 +13,7 @@ apt)
     PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
     ;;
 dnf)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg-free)
     ;;
 zypper)
     PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)

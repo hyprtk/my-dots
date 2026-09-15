@@ -18,13 +18,13 @@ dnf)
           xfce4-terminal Thunar xfce4-power-manager parole tumbler)
     ;;
 zypper)
-    PKGS=(patterns-xfce-xfce xfce4-goodies parole tumbler)
+    PKGS=(patterns-xfce-xfce parole tumbler)
     ;;
 xbps)
-    PKGS=(xfce4 xfce4-goodies parole tumbler)
+    PKGS=(xfce4 xfce4-plugins parole tumbler)
     ;;
 apk)
-    PKGS=(xfce4 xfce4-plugins parole tumbler)
+    PKGS=(xfce4 xfce4-panel parole tumbler)
     ;;
 esac
 

@@ -23,7 +23,7 @@ apt)
     ;;
 dnf)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist
-          xorg-x11-server-utils nwg-look curl ImageMagick jq bc
+          xhost nwg-look curl ImageMagick jq bc
           brightnessctl playerctl libadwaita gtk3 gtk-layer-shell gtk4
           desktop-file-utils python3 python3-pip python3-virtualenv python3-gobject
           wob hyprsunset swaylock gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
@@ -32,7 +32,7 @@ dnf)
 zypper)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
           curl ImageMagick jq bc brightnessctl playerctl libadwaita-1-0
-          gtk3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
+          gtk3 libgtk-layer-shell0 gtk4 desktop-file-utils python3 python3-pip
           python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs
           gvfs-backends p7zip unzip unrar)
     ;;

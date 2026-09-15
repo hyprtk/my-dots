@@ -9,7 +9,7 @@ case "$HYPRTK_PM" in
 pacman)
     PKGS=(pacman-contrib alacritty kitty rofi chromium starship ranger neovim mpv
           freerdp xfce4-power-manager thunar mousepad awesome-terminal-fonts
-          ttf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd vlc exa
+          otf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd vlc eza
           python-pip python-psutil python-rich python-click xdg-desktop-portal-gtk
           pavucontrol tumbler blueman sddm papirus-icon-theme btop networkmanager
           network-manager-applet git nano xdg-user-dirs xdg-user-dirs-gtk os-prober
@@ -31,8 +31,8 @@ apt)
     ;;
 dnf)
     PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp
-          xfce4-power-manager Thunar mousepad fontawesome-fonts fira-code-fonts vlc
-          eza python3-pip python3-psutil python3-rich python3-click
+          xfce4-power-manager Thunar mousepad fontawesome-fonts-all fira-code-fonts
+          vlc eza python3-pip python3-psutil python3-rich python3-click
           xdg-desktop-portal-gtk pavucontrol tumbler blueman sddm papirus-icon-theme
           btop NetworkManager network-manager-applet git nano xdg-user-dirs
           xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring gvfs gvfs-afc
@@ -47,12 +47,12 @@ zypper)
           xdg-desktop-portal-gtk pavucontrol tumbler blueman sddm papirus-icon-theme
           btop NetworkManager NetworkManager-applet git nano xdg-user-dirs
           xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring gvfs gvfs-backends
-          ntfs-3g samba xfce4-terminal wf-recorder file-roller micro xclip pamixer
-          xautolock gnome-disk-utility)
+          ntfs-3g samba xfce4-terminal wf-recorder file-roller micro-editor xclip
+          pamixer xautolock gnome-disk-utility)
     ;;
 xbps)
     PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp
-          xfce4-power-manager Thunar mousepad font-awesome fira-code vlc eza
+          xfce4-power-manager Thunar mousepad font-awesome font-firacode vlc eza
           python3-pip python3-psutil python3-rich python3-click
           xdg-desktop-portal-gtk pavucontrol tumbler blueman sddm papirus-icon-theme
           btop NetworkManager network-manager-applet git nano xdg-user-dirs
@@ -63,7 +63,7 @@ xbps)
     ;;
 apk)
     PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp
-          xfce4-power-manager thunar mousepad font-awesome fira-code vlc eza
+          xfce4-power-manager thunar mousepad font-awesome font-fira-code-nerd vlc eza
           py3-pip py3-psutil py3-rich py3-click xdg-desktop-portal-gtk pavucontrol
           tumbler blueman sddm papirus-icon-theme btop networkmanager
           network-manager-applet git nano xdg-user-dirs xdg-user-dirs-gtk os-prober

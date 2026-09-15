@@ -209,21 +209,51 @@ distros. A parallel non-Arch harness exercises the generic families
 reach `INSTALLATION COMPLETE` with no `FATAL`/`FAIL`/`SPIN FAILED`/`RUN FAILED`
 entries and a clean run log.
 
+### Package-name container matrix (T1)
+
+`installer/scripts/verify/container-matrix.sh` is the authoritative check that
+every native package name the installer uses resolves on its family. For each
+family it collects the names from `hypr/packages/*.sh` (`--list`) plus the
+vendored bar's `DEPS`/`EXTRAS`, then resolves them in a throwaway **rootless
+podman** container *without installing*:
+
+| family | image | resolve with |
+|--------|-------|--------------|
+| pacman | `archlinux:latest` | `pacman -Si` / `-Sg` (+ AUR RPC for misses) |
+| apt | `debian:bookworm`, `debian:trixie`, `ubuntu:24.04`, `ubuntu:26.04` | `apt-get install -s` |
+| dnf | `fedora:latest` | `dnf repoquery --available` |
+| zypper | `opensuse/tumbleweed` | `zypper install --dry-run` |
+| xbps | `voidlinux/voidlinux` | `xbps-query -R -p pkgver` |
+| apk | `alpine:latest` | `apk search -e` |
+
+Arch names absent from the official repos but present in the **AUR** are
+reported `AUR` (expected, not a failure). Gentoo/NixOS are advisory —
+`1-install.sh` only prints their names, so they are listed but not resolved.
+Known-acceptable gaps (third-party repos, non-free components, packages not in a
+release) live in `installer/scripts/verify/container-matrix.allow`. Current
+result: **1059 resolvable, 21 AUR, 67 allow-listed, 0 unexpected.**
+
+On a host whose kernel lacks overlayfs (e.g. this one), rootless podman needs a
+storage-driver drop-in; `~/.config/containers/storage.conf.d/00-vfs.conf` selects
+`vfs` (Arch's `/usr/share/containers/storage.conf.d/00-storage-arch.conf` forces
+`overlay`). The matrix images bake the resolver query, so no extra host tooling
+is required.
+
 ## Remaining work
 
-1. Package names are audited for **apt** (all `hypr/packages/*.sh` lists + the
-   bar's `EXTRAS[apt]` resolve cleanly on Ubuntu 26.04 via `apt-get install -s`)
-   and spot-checked against Fedora/openSUSE/Void repo metadata. A full
-   per-release check still needs the container matrix (item 2); **Alpine** has
-   known unresolved gaps (`cliphist`, `nss-mdns`, `ipp-usb`, `nwg-look`,
-   `xfce4-plugins`, `swappy`, `unrar`, `cockpit`) and openSUSE relies on
-   provides/aliases for `python3*`/`gtk3`/`gtk4` (list may need versioned names).
-   Run the resolution linter in each family's container to finish this.
-2. Add a container matrix to CI (mirroring hyprtk-bar's
-   `.github/workflows/install-matrix.yml`) — the authoritative way to validate
-   the per-family package lists without a VM.
+1. Package names are audited across all families by the container matrix (see
+   above): 1059 resolve, 0 unexpected. The remaining 67 are documented in
+   `container-matrix.allow` — third-party repos (RPMFusion, COPR, Brave, PPAs),
+   non-free components (Debian/Void/Alpine), and packages genuinely absent from
+   a release (e.g. `cliphist`, `swappy`, `nss-mdns`, `ipp-usb`). Closing these
+   means adding the third-party repos at install time (as `webtools.sh` already
+   does for Brave) — not renaming.
+2. Add the matrix to CI (mirroring hyprtk-bar's `.github/workflows/install-matrix.yml`)
+   so the per-family lists are validated on every push without a VM.
 3. Gentoo/NixOS: provide an ebuild set / Nix expression so those families are
    first-class instead of "listed for manual install".
-4. Validate the `awww-install.sh` source build on a live Debian/Ubuntu, Fedora
-   and openSUSE container (build deps + rustup + `cargo build --release`), and
-   confirm the Void/Alpine `swww` package names.
+4. `awww-install.sh` source build is validated (T3): Ubuntu 24.04, Fedora and
+   openSUSE Tumbleweed all build `awww 0.12.1`. **Debian 12 cannot** — it ships
+   libwayland 1.21 and awww needs >= 1.22; the script now detects this and fails
+   fast with a clear message. Void/Alpine use the native `swww` package (the
+   `swww`→`awww` symlink path is exercised by the `NATIVE_PKG` branch).

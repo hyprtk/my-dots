@@ -1,0 +1,69 @@
+# container-matrix allowlist
+#
+# Package names that are *expected* to be missing on a family/variant, with a
+# reason. The matrix reports these as "allow" instead of "MISS" and does not
+# fail. Format (whitespace-separated):
+#
+#   <family>[/<variant>] <name> # reason
+#
+# A bare <family> matches every variant of that family (apt has two: bookworm,
+# noble). Families: pacman apt dnf zypper xbps apk (emerge/nix are advisory).
+#
+# ── apt: Ubuntu/PPA- or non-free-only; absent from the Debian archive ───────
+apt           brave-browser                    # Brave's own apt repo (added by webtools.sh at install time)
+apt           fastfetch                        # not packaged for Debian 12 / Ubuntu 24.04 (24.10+)
+apt           hyprland                         # Ubuntu: cppiber/hyprland PPA (see hyprland.sh); not in Debian
+apt           hyprpicker                       # Hyprland ecosystem; PPA/COPR only
+apt           hyprsunset                       # Hyprland ecosystem; PPA/COPR only
+apt           libgtk4-layer-shell0             # not in Debian 12 / Ubuntu 24.04 (added 24.10+)
+apt           nvidia-driver                    # Debian: non-free disabled; Ubuntu: versioned (nvidia-driver-535)
+apt           nwg-look                         # not packaged in Debian/Ubuntu archives
+apt           starship                         # not packaged in Debian/Ubuntu archives
+apt           swappy                           # not packaged in Debian/Ubuntu archives
+apt/bookworm  cliphist                         # Debian 12 lacks it; Ubuntu 24.04+ has it
+apt/bookworm  eza                              # Debian 12 ships exa; eza added in Ubuntu/newer Debian
+apt/bookworm  freerdp3-x11                     # Debian 12 ships freerdp2-x11; freerdp3 is Ubuntu-only
+apt/bookworm  intel-media-va-driver-non-free   # Debian non-free component not enabled by default
+apt/bookworm  nvidia-settings                  # Debian non-free component not enabled by default
+apt/bookworm  unrar                            # Debian non-free component not enabled by default
+#
+# ── apt/Debian 13 (trixie): non-free off + packages dropped since 12 ────────
+apt/trixie  intel-media-va-driver-non-free  # Debian non-free component not enabled by default
+apt/trixie  nvidia-settings                 # Debian non-free component not enabled by default
+apt/trixie  policykit-1-gnome               # dropped in Debian 13 (use mate-polkit / lxpolkit)
+apt/trixie  unrar                           # Debian non-free component not enabled by default
+apt/trixie  xautolock                       # removed from the Debian archive in 13
+#
+# ── dnf: RPMFusion / COPR or not packaged ───────────────────────────────────
+dnf  akmod-nvidia                       # RPMFusion (NVIDIA driver)
+dnf  font-manager                       # COPR only
+dnf  hyprland                           # COPR (solopasha/hyprland); not in Fedora base
+dnf  hyprpicker                         # COPR (Hyprland ecosystem)
+dnf  hyprsunset                         # COPR (Hyprland ecosystem)
+dnf  mesa-va-drivers                    # RPMFusion (mesa-va-drivers-freeworld); Fedora base ships ffmpeg-free
+dnf  nvidia-settings                    # RPMFusion
+dnf  nwg-look                           # COPR only
+dnf  polkit-gnome                       # not packaged in Fedora
+dnf  starship                           # COPR/EPEL only, not in Fedora base
+dnf  xorg-x11-drv-nvidia-cuda           # RPMFusion
+#
+# ── xbps: Void — not packaged, or the nonfree repo is not enabled ───────────
+xbps  cockpit           # not packaged for Void
+xbps  gvfs-nfs          # Void gvfs is monolithic; no separate nfs backend
+xbps  hyprland          # not in Void repos (build/custom repo required)
+xbps  hyprsunset        # Hyprland ecosystem; not packaged for Void
+xbps  nvidia            # Void nonfree repo not enabled by default
+xbps  nvidia-settings   # Void nonfree repo not enabled by default
+xbps  unrar             # Void nonfree repo not enabled by default
+#
+# ── apk: Alpine — not packaged, or the nonfree repo is not enabled ──────────
+apk  cliphist         # not packaged for Alpine
+apk  cockpit          # not packaged for Alpine
+apk  hyprpicker       # not packaged for Alpine (Hyprland itself is)
+apk  ipp-usb          # not packaged for Alpine
+apk  nss-mdns         # not packaged for Alpine
+apk  nvidia           # Alpine nonfree repo not enabled by default
+apk  nvidia-settings  # Alpine nonfree repo not enabled by default
+apk  nwg-look         # not packaged for Alpine
+apk  swappy           # not packaged for Alpine
+apk  unrar            # Alpine nonfree repo not enabled by default

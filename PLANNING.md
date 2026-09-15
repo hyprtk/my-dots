@@ -509,9 +509,79 @@ success with the packages missing): `gtk-layer-shell`, `gtk4-layer-shell`,
 - `bash -n` clean; audit 45/45; dryrun 11/11; completeness all-11;
   installer-dryrun 11/11.
 
-### Left for the container matrix
+## 15. Container matrix (T1) — 2026-09-15
 
-Alpine gaps (`cliphist`, `nss-mdns`, `ipp-usb`, `nwg-look`, `xfce4-plugins`,
-`swappy`, `unrar`, `cockpit`) and openSUSE `python3*`/`gtk3`/`gtk4`
-(provides/aliases) need a real container run to finalise.
+`installer/scripts/verify/container-matrix.sh` is the authoritative per-family
+package-name check. It collects every native name from `hypr/packages/*.sh`
+(`--list`) plus the vendored bar's `DEPS`/`EXTRAS`, then resolves each in a
+throwaway rootless-**podman** container of that family *without installing*:
+`pacman -Si`/`-Sg`, `apt-get install -s` (Debian 12/13 and Ubuntu 24.04/26.04),
+`dnf repoquery`, `zypper install --dry-run`, `xbps-query -R`, `apk search -e`.
+Arch misses are checked against the AUR RPC (`.../rpc/v5/info`); the AUR is no
+longer a failure. Gentoo/NixOS are advisory (names listed, not resolved, since
+`1-install.sh` only prints them). Expected gaps live in
+`installer/scripts/verify/container-matrix.allow`.
+
+Result: **1059 resolvable, 21 AUR, 67 allow-listed, 0 unexpected.** The apt
+family is checked on both the previous and current release of each
+(Debian 12 bookworm / 13 trixie, Ubuntu 24.04 noble / 26.04 resolute); the
+newest resolves almost everything (`resolute`: 121 names, only `brave-browser`,
+`hyprsunset` and `nvidia-driver` allow-listed).
+
+### Fixes the matrix surfaced (renames / removals)
+
+- pacman: `ttf-font-awesome` → `otf-font-awesome`; `exa` → `eza`. (`xfce4` /
+  `xfce4-goodies` are pacman **groups**, now accepted by the resolver.)
+- apt: unchanged (Ubuntu resolves; Debian 12 gaps allow-listed).
+- dnf: `exa` → `eza`; `ffmpeg` → `ffmpeg-free`; `intel-media-driver` →
+  `libva-intel-media-driver`; `fontawesome-fonts` → `fontawesome-fonts-all`;
+  `xorg-x11-server-utils` → `xhost`.
+- zypper: `gtk-layer-shell` → `libgtk-layer-shell0`; `gtk4-layer-shell` →
+  `libgtk4-layer-shell0`; `micro` → `micro-editor`; dropped `xfce4-goodies`
+  (the `patterns-xfce-xfce` pattern covers it).
+- xbps: `fira-code` → `font-firacode`; `font-manager` → `fontmanager`;
+  `mesa-va-drivers` → `mesa-vaapi`; `xfce4-goodies` → `xfce4-plugins`.
+- apk: `fira-code` → `font-fira-code-nerd`; `mesa-vulkan-radeon` →
+  `mesa-vulkan-ati`; `xfce4-plugins` → `xfce4-panel`.
+- `graphics-card.sh` had **no `--list` guard** despite carrying package lists;
+  one was added (union of the Intel/AMD/Nvidia branches, no `hyprtk-pkglist`
+  marker since it runs outside the spinner loop).
+- `3dprinting.sh` `--list` now prints the AUR slicers only on pacman (it is a
+  Flatpak hint elsewhere), so they no longer pollute non-Arch families.
+- **Vendored bar `DEPS[zypper]`** asked for `typelib-1_0-cairo-1_0` and
+  `typelib-1_0-xlib-2_0`, which do not exist on openSUSE. Fixed in the
+  **hyprtk-bar** repo (→ `girepository-1_0`, which provides both `cairo-1.0` and
+  `xlib-2.0` typelibs) and re-vendored into both trees; openSUSE now resolves
+  118/118 and the bar's `--no-extras` install + Gtk/GtkLayerShell import passes.
+
+### Allow-listed (documented) gaps
+
+- apt/Debian 12: `cliphist`, `eza`, `freerdp3-x11`, `nvidia-settings`,
+  `intel-media-va-driver-non-free`, `unrar` (Ubuntu-only / non-free).
+  apt/Debian 13: the non-free trio plus `policykit-1-gnome` (dropped in 13; use
+  `mate-polkit`/`lxpolkit`) and `xautolock` (removed from the archive). Both
+  Ubuntu and Debian: `brave-browser` (Brave repo), `fastfetch`,
+  `libgtk4-layer-shell0`, `hyprland`/`hyprpicker`/`hyprsunset` (PPA),
+  `nvidia-driver` (Debian non-free / Ubuntu versioned), `nwg-look`, `starship`,
+  `swappy`.
+- dnf: RPMFusion (`akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`,
+  `mesa-va-drivers`), COPR (`hyprland`, `hyprpicker`, `hyprsunset`, `nwg-look`,
+  `font-manager`, `starship`) and not-packaged (`polkit-gnome`).
+- xbps: `cockpit`, `gvfs-nfs`, `hyprland`, `hyprsunset` (not packaged);
+  `nvidia`, `nvidia-settings`, `unrar` (nonfree repo not enabled).
+- apk: `cliphist`, `cockpit`, `hyprpicker`, `ipp-usb`, `nss-mdns`, `nwg-look`,
+  `swappy` (not packaged); `nvidia`, `nvidia-settings`, `unrar` (nonfree).
+
+### awww source build (T3) — validated in containers
+
+Ran `installer/scripts/awww-install.sh` end-to-end (build deps + rustup +
+`cargo build --release --locked`) in real containers:
+
+- **Ubuntu 24.04, Fedora, openSUSE Tumbleweed** — `awww 0.12.1` builds and
+  installs + all four `awww`/`swww` symlinks.
+- **Debian 12 (bookworm)** — **cannot build**: it ships libwayland 1.21, and
+  awww's daemon implements the `wl_surface` `preferred_buffer_scale` /
+  `preferred_buffer_transform` handlers (libwayland **>= 1.22**). The script now
+  detects this up front (`pkg-config --modversion wayland-client`) and fails
+  fast with a clear reason instead of downloading rustup and compiling first.
 

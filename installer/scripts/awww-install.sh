@@ -83,6 +83,17 @@ cargo_new_enough() {
     [ -n "$v" ] && ver_ge "$v" "$AWWW_MSRV"
 }
 
+# awww's daemon implementation provides the wl_surface preferred_buffer_scale /
+# preferred_buffer_transform handlers, which only exist once libwayland >= 1.22.
+# Older bases (Debian 12 / bookworm ships 1.21) therefore cannot compile it —
+# detect that up front rather than after a rustup download and a failed build.
+wayland_new_enough() {
+    command -v pkg-config >/dev/null 2>&1 || return 1
+    local v
+    v="$(pkg-config --modversion wayland-client 2>/dev/null)" || return 1
+    [ -n "$v" ] && ver_ge "$v" "1.22"
+}
+
 # Ensure a cargo that satisfies upstream's MSRV, or return non-zero. The distro
 # toolchain is used when it is new enough; otherwise Rust is bootstrapped with
 # rustup (the MSRV moves ahead of every LTS release's packaged rustc).
@@ -134,6 +145,11 @@ build_from_source() {
         pkg_install ${BUILD_DEPS[$HYPRTK_PM]} || true
     else
         say "no build-dependency list for $HYPRTK_PM — assuming a toolchain is present"
+    fi
+
+    if ! wayland_new_enough; then
+        manual_steps "libwayland < 1.22 (Debian 12 ships 1.21) — awww needs the wl_surface preferred_buffer_scale events; use a newer base or backports"
+        return 1
     fi
 
     if ! ensure_cargo; then

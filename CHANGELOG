@@ -7,6 +7,32 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Container package-name matrix (T1).** New
+  `installer/scripts/verify/container-matrix.sh` resolves every native name from
+  `hypr/packages/*.sh` + the vendored bar in a throwaway rootless-podman
+  container per family (pacman/apt/dnf/zypper/xbps/apk; apt on Debian 12/13 and
+  Ubuntu 24.04/26.04) without installing. Arch misses are checked against the
+  AUR; expected gaps live in `container-matrix.allow`. Result: **1059
+  resolvable, 21 AUR, 67 allow-listed, 0 unexpected** (Ubuntu 26.04 alone leaves
+  just `brave-browser`, `hyprsunset`, `nvidia-driver`). Renames this surfaced:
+  - pacman: `ttf-font-awesome` → `otf-font-awesome`; `exa` → `eza`; resolver now
+    accepts pacman **groups** (`xfce4`, `xfce4-goodies`).
+  - dnf: `ffmpeg` → `ffmpeg-free`; `intel-media-driver` →
+    `libva-intel-media-driver`; `fontawesome-fonts` → `fontawesome-fonts-all`;
+    `xorg-x11-server-utils` → `xhost`.
+  - zypper: `gtk-layer-shell` → `libgtk-layer-shell0`, `gtk4-layer-shell` →
+    `libgtk4-layer-shell0`; dropped `xfce4-goodies`.
+  - xbps: `fira-code` → `font-firacode`, `font-manager` → `fontmanager`,
+    `mesa-va-drivers` → `mesa-vaapi`, `xfce4-goodies` → `xfce4-plugins`.
+  - apk: `fira-code` → `font-fira-code-nerd`, `mesa-vulkan-radeon` →
+    `mesa-vulkan-ati`, `xfce4-plugins` → `xfce4-panel`.
+  - `graphics-card.sh` gained a `--list` guard (it carried package lists but was
+    never enumerable); `3dprinting.sh` `--list` no longer emits its AUR slicers
+    on non-Arch families.
+- **awww source build validated in containers (T3).** Ubuntu 24.04, Fedora and
+  openSUSE Tumbleweed build `awww 0.12.1`. Debian 12 cannot (libwayland 1.21 <
+  the required 1.22); `awww-install.sh` now checks `wayland-client` up front and
+  fails fast with a clear reason instead of downloading rustup first.
 - **Package-name audit.** Corrected package names that silently failed to
   install (findings: Ubuntu 26.04 VM + Fedora/openSUSE/Void repo metadata):
   - **apt (Ubuntu 26.04)** — `gtk-layer-shell` → `libgtk-layer-shell0`,
@@ -70,6 +96,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Vendored bar `DEPS[zypper]` used non-existent openSUSE packages**
+  (`typelib-1_0-cairo-1_0`, `typelib-1_0-xlib-2_0`). Fixed upstream in
+  `hyprtk-bar` (→ `girepository-1_0`, which provides both `cairo-1.0` and
+  `xlib-2.0` typelibs) and re-vendored into `installer/hyprtk-bar/` here and in
+  `hyprtk-merged`. Verified: openSUSE resolves 118/118 and the bar's
+  `--no-extras` install + Gtk/GtkLayerShell import passes.
 - `hyprviz.sh` builds in a dedicated dir and skips cleanly off Arch.
 - `fonts.sh`/`wallpapers.sh`/`matuwall.sh` resolve repo-relative asset paths and
   use `python3`.
