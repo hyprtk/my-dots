@@ -25,6 +25,14 @@ Dates are in YYYY-MM-DD format.
 - `derivation.nix` installs the vendored tree and wraps a `wal` executable;
   the flake devShell exposes `wal` from the source tree.
 
+### Fixed
+
+- **Debian/Ubuntu extras use valid package names.** `EXTRAS[apt]` requested
+  `libnotify` and `policykit-1`, which do not exist on Ubuntu 26.04
+  (`libnotify` has no candidate; `policykit-1` was superseded by `polkitd` +
+  `pkexec`). The apt list now installs `libnotify-bin` (which provides
+  `notify-send`) and `polkitd pkexec`.
+
 ## [0.1.0] - 2026-09-12
 
 ### Added
