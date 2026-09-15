@@ -80,7 +80,7 @@ no package at all and **build it from source** (see the gotcha below).
 
 | Area | Arch | Debian/Ubuntu | Fedora | openSUSE | Void | Alpine | Gentoo | Nix |
 |------|------|---------------|--------|----------|------|--------|--------|-----|
-| Hyprland + portals | ✅ repo | ✅ (PPA/sid for older releases) | ✅ (COPR for older) | ✅ Tumbleweed | ✅ | ✅ edge | ✅ | ✅ |
+| Hyprland + portals | ✅ repo | ✅ (0.56 PPA¹) | ✅ (COPR for older) | ✅ Tumbleweed | ✅ | ✅ edge | ✅ | ✅ |
 | GTK3/4 + gtk-layer-shell | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Python GI bindings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | XFCE fallback | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (plugins) | ✅ | ✅ |
@@ -95,6 +95,8 @@ no package at all and **build it from source** (see the gotcha below).
 | hyprtk-bar | ✅ | ✅ | ✅ | ✅ | ✅ | ✅* | ✅ | ✅ |
 
 `✅*` = hyprtk-bar supports Alpine from edge (gtk-layer-shell ≥ 0.9).<br>
+`¹` = Ubuntu: the installer adds the `cppiber/hyprland` PPA so Hyprland ≥ 0.55
+(the Lua config) is installed; see the Hyprland gotcha below.<br>
 `²` = built from source by `awww-install.sh`; needs a Rust toolchain (rustup when
 the distro's rustc is older than upstream's MSRV) and the build deps listed in
 the gotcha below.
@@ -120,6 +122,28 @@ fallback warns and continues if one is unavailable.
 hyprtk-bar needs gtk-layer-shell ≥ 0.9. Families below that floor (Debian ≤ 12,
 Ubuntu ≤ 24.04, Fedora ≤ 40, openSUSE Leap 15.x, Alpine ≤ 3.20) need a newer
 release or a source build; the bar's own installer warns.
+
+### Hyprland ≥ 0.55 (Lua config)
+Since Hyprland 0.55 the config language is Lua (`hyprland.lua`). The dotfiles are
+entirely Lua-based (`hypr/hyprland.lua` + `require(...)`), so **Hyprland < 0.55
+ignores them and generates a stock `hyprland.conf`** — autostart, keybindings and
+windowrules then never apply.
+
+Arch/Void and rolling releases ship ≥ 0.55. Ubuntu 26.04's archive ships
+`0.53.3`, so `hypr/packages/hyprland.sh` adds the community PPA
+[`ppa:cppiber/hyprland`](https://launchpad.net/~cppiber/+archive/ubuntu/hyprland)
+(0.56.2 for resolute) on Ubuntu before installing. The PPA's `libhyprcursor1` /
+`libudis86.1` supersede the archive's `libhyprcursor0` / `libudis86-0` without
+declaring `Replaces`, so the step installs with
+`-o Dpkg::Options::=--force-overwrite` to get past the overlapping file lists.
+
+Debian has no equivalent PPA and its archive Hyprland predates 0.55, so the
+installer warns and installs it anyway (the desktop won't read the Lua config
+until Debian — or a backport — provides ≥ 0.55). Verify a live session with:
+
+    Hyprland --version                 # >= 0.55
+    hyprctl configerrors               # empty
+    hyprctl binds | grep -c dispatcher # > 0
 
 ### Wallpaper daemon (awww)
 `installer/scripts/awww-install.sh` (called by `1-install.sh` before the wrapper)

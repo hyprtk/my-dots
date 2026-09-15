@@ -26,6 +26,14 @@ documented in this file. Dates are in YYYY-MM-DD format.
   upstream's 1.89 MSRV. Binaries install to `/usr/local/bin` with `swww`
   compatibility symlinks; `1-install.sh` runs it (before the wrapper) and the
   step is non-fatal with manual instructions when no route exists.
+- **Hyprland ≥ 0.55 on Ubuntu** — the dotfiles' config is Lua-based, which
+  Hyprland only reads from 0.55 onward, but Ubuntu 26.04's archive ships 0.53.3
+  (which silently generates a stock `hyprland.conf` and ignores the Lua config).
+  `hypr/packages/hyprland.sh` now adds the community `cppiber/hyprland` PPA
+  (0.56.2 for resolute) on Ubuntu and installs with
+  `-o Dpkg::Options::=--force-overwrite` to clear the PPA's overlapping file
+  lists with the archive `libhyprcursor0`/`libudis86-0`. Debian (no PPA) warns
+  and keeps the archive package.
 
 ### Changed
 

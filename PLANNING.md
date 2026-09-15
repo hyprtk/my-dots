@@ -410,3 +410,49 @@ with per-family build deps, Remaining-work item), `README.md`, `CHANGELOG`.
   verified to skip (already installed).
 - `installer-dryrun.sh` → 11/11 (see session log).
 
+## 13. Hyprland ≥ 0.55 on Ubuntu (2026-09-15)
+
+Live validation on a real Ubuntu 26.04 VM (QEMU/KVM, via the qemu guest agent)
+exposed a second blocker: the session came up but none of the dotfiles applied.
+
+### Root cause
+
+- Hyprland moved to a **Lua config** in **0.55**; the dotfiles are entirely Lua
+  (`hypr/hyprland.lua` + `require(...)`) and ship no `hyprland.conf`.
+- Ubuntu 26.04's archive ships **Hyprland 0.53.3** (pre-Lua). It ignored
+  `hyprland.lua`, generated a stock `hyprland.conf`, and logged
+  `Using config: …/hyprland.conf`. Result: no autostart, no keybindings, no
+  windowrules, no bar.
+- Evidence: `strings /usr/bin/Hyprland` had no `.lua` references.
+
+### Fix
+
+- **`hypr/packages/hyprland.sh`** — on apt, `install_hyprland_apt` checks the
+  installed Hyprland via `dpkg-query`; if < 0.55 and the host is Ubuntu
+  (`ID`/`ID_LIKE` contains `ubuntu`), it installs `software-properties-common`,
+  adds `ppa:cppiber/hyprland` (0.56.2 for resolute), `apt-get update`, then
+  installs `hyprland` with `-o Dpkg::Options::=--force-overwrite` (the PPA's
+  `libhyprcursor1`/`libudis86.1` overwrite the archive's `libhyprcursor0`/
+  `libudis86-0` files without declaring `Replaces`). Debian (no PPA) warns and
+  falls through to the archive package.
+- Docs: `PORTABILITY.md` (feature row footnote + gotcha), `README.md`,
+  `CHANGELOG`.
+
+### Live verification (on the VM)
+
+- Upgraded to **Hyprland 0.56.2** (same commit as the host's Arch): `dpkg -l`
+  all `ii` after `apt-get -f install` with force-overwrite.
+- Restarted the session; the log showed
+  `[cfg] Using lua config found at /home/test/.config/hypr/hyprland.lua`.
+- `hyprctl configerrors` → empty; `hyprctl binds` → **65** dispatchers.
+- Autostart ran: **hyprtk-bar** (`python3 -m hyprtk_bar`) and **awww-daemon**
+  running; awww set the wallpaper from `wallpaper-restore.sh`.
+- (VM prep needed to reach a session: `usermod -aG video,render,input test`,
+  then `openvt`+`su` onto tty3.)
+
+### Verification
+
+- `bash -n` clean; branch logic unit-tested with stubbed `dpkg-query` +
+  fake os-release: Ubuntu/0.53.3 → PPA+force-overwrite, Ubuntu/0.56.2 → skip,
+  Debian/0.53.3 → warn (no PPA). `--list` unchanged.
+

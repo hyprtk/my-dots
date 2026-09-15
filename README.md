@@ -51,7 +51,9 @@ manual/declarative installs. Arch-only features (AUR packages, `mkinitcpio`
 splash, os-release branding) are skipped with a warning elsewhere. The
 wallpaper daemon is the exception — **awww** comes from the AUR on Arch, the
 native `swww` package on Void/Alpine, and is otherwise built from source by the
-installer. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
+installer. On Ubuntu the installer also adds a PPA so **Hyprland ≥ 0.55** (which
+the Lua config requires) is installed. See
+[`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 
 ## Features
 
