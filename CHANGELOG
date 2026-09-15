@@ -119,6 +119,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Choosing "Nvidia" in `graphics-card.sh` installed the AMD stack.** The menu
+  `case` arms were ordered `1)` / `2|*)` / `3)`, so the `*` catch-all matched `3`
+  and the Nvidia arm was unreachable. Reordered to `1)` / `3)` / `2|*)`, and the
+  apt Nvidia arm gained a **versioned fallback** — Ubuntu/Mint ship no generic
+  `nvidia-driver` meta, so the newest `nvidia-driver-5xx` is selected instead
+  (Mint 22.3 → `nvidia-driver-610`).
 - **Hyprland (and hyprpicker/hyprsunset) never installed on Ubuntu 24.04 /
   Linux Mint 22.3.** `add-apt-repository -y ppa:cppiber/hyprland` fails there
   ("This codename isn't currently supported") — it needs a reachable Launchpad

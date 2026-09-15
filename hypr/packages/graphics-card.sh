@@ -88,19 +88,6 @@ case "$GRAPHICSCARD" in
     esac
     pkg_install "${PKGS[@]}"
     ;;
-2|*)
-    case "$HYPRTK_PM" in
-        pacman) PKGS=(xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau) ;;
-        apt)    PKGS=(mesa-vulkan-drivers mesa-va-drivers libvdpau-va-gl1) ;;
-        dnf)    PKGS=(mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers) ;;
-        zypper) PKGS=(Mesa Mesa-libva) ;;
-        xbps)   PKGS=(mesa-dri mesa-vulkan-radeon mesa-vaapi) ;;
-        apk)    PKGS=(mesa-vulkan-ati mesa-va-gallium mesa-dri-gallium) ;;
-    esac
-    pkg_install "${PKGS[@]}"
-    add_mkinitcpio_module amdgpu
-    regen_initramfs
-    ;;
 3)
     case "$HYPRTK_PM" in
         pacman)
@@ -108,7 +95,20 @@ case "$GRAPHICSCARD" in
                   qt6-wayland qt6ct libva)
             AUR=(libva-nvidia-driver-git)
             ;;
-        apt)    PKGS=(nvidia-driver nvidia-settings libva2 libva-drm2) ;;
+        apt)
+            PKGS=(nvidia-driver nvidia-settings libva2 libva-drm2)
+            # Ubuntu/Mint ship no generic `nvidia-driver` meta — only versioned
+            # ones (nvidia-driver-5xx). When the meta is missing, pick the newest
+            # available versioned driver so the GPU stack still installs.
+            if ! apt-get install -s -y nvidia-driver >/dev/null 2>&1; then
+                _nv="$(apt-cache search --names-only '^nvidia-driver-[0-9][0-9][0-9]$' 2>/dev/null \
+                       | awk '{print $1}' | sed 's/^nvidia-driver-//' | sort -n | tail -1)"
+                if [ -n "$_nv" ]; then
+                    PKGS=(nvidia-driver-"$_nv" nvidia-settings libva2 libva-drm2)
+                    echo "  → nvidia-driver absent; using nvidia-driver-$_nv"
+                fi
+            fi
+            ;;
         dnf)    PKGS=(akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-settings) ;;
         zypper) PKGS=(nvidia-open-driver-G06-signed-kmp-default nvidia-settings) ;;
         xbps)   PKGS=(nvidia nvidia-settings) ;;
@@ -125,6 +125,21 @@ case "$GRAPHICSCARD" in
     echo "options nvidia-drm modeset=1" | hyprtk_run_root tee /etc/modprobe.d/nvidia.conf >/dev/null 2>&1 || true
     pkg_install "${PKGS[@]}"
     aur_install "${AUR[@]}"
+    regen_initramfs
+    ;;
+# The AMD arm keeps the catch-all ("defaults to AMD"), so it must come *after*
+# the explicit 3) arm — otherwise `*` also matches "3" and Nvidia is unreachable.
+2|*)
+    case "$HYPRTK_PM" in
+        pacman) PKGS=(xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau) ;;
+        apt)    PKGS=(mesa-vulkan-drivers mesa-va-drivers libvdpau-va-gl1) ;;
+        dnf)    PKGS=(mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers) ;;
+        zypper) PKGS=(Mesa Mesa-libva) ;;
+        xbps)   PKGS=(mesa-dri mesa-vulkan-radeon mesa-vaapi) ;;
+        apk)    PKGS=(mesa-vulkan-ati mesa-va-gallium mesa-dri-gallium) ;;
+    esac
+    pkg_install "${PKGS[@]}"
+    add_mkinitcpio_module amdgpu
     regen_initramfs
     ;;
 esac

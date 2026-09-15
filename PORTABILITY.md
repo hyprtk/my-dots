@@ -279,8 +279,8 @@ and the PPA codename logic are genuinely exercised.
    keyring + `sources.list.d`, since `add-apt-repository` needs a reachable
    Launchpad API and fails on minimal/containerised Ubuntu & Mint). Packages no
    archive carries are then built/installed by `srcapps-install.sh` (see below).
-   The only remaining archive gap is `nvidia-driver` (Ubuntu needs the versioned
-   `nvidia-driver-5xx`).
+   `nvidia-driver` is handled by a versioned fallback in `graphics-card.sh`
+   (Ubuntu/Mint ship no generic meta; the newest `nvidia-driver-5xx` is picked).
 
 ### Source-built apps (`srcapps-install.sh`)
 

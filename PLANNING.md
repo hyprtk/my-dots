@@ -680,3 +680,16 @@ Per-family build-dep maps for `apt`/`dnf`/`zypper`/`xbps`/`apk`. Verified with
 **real builds in containers**: Linux Mint 22.3, Alpine and Fedora all install all
 four (the symlink resolves on multiarch and `lib64`). `bash -n` clean; host suite
 (installer-dryrun 11/11, refs 45/45, completeness) and T2 (12/12) still green.
+## 19. Graphics-card Nvidia — versioned fallback + an arm-order bug — 2026-09-15
+
+- **Bug (real, user-facing):** `graphics-card.sh`'s Nvidia menu `case` arms were
+  ordered `1)` / `2|*)` / `3)`, so the `*` catch-all swallowed `3` — **choosing
+  "Nvidia" installed the AMD stack**, and no Nvidia driver was ever installed.
+  Reordered to `1)` / `3)` / `2|*)` (AMD keeps the catch-all/default), with a
+  comment so it does not regress.
+- **Versioned fallback:** Ubuntu/Mint ship no generic `nvidia-driver` meta, only
+  `nvidia-driver-5xx`. The apt Nvidia arm now probes the generic meta and, when
+  absent, selects the newest versioned driver (Mint 22.3 → `nvidia-driver-610`).
+- Verified on Mint: inputs 1/2/3 now select Intel/AMD/Nvidia correctly (dry-run
+  shows the chosen package lists). T2 12/12; host suite green (11/11, 45/45,
+  completeness); T1 unchanged.
