@@ -72,8 +72,9 @@ _hyprland_ge_055() {
 _hyprtk_is_ubuntu() {
     [ -r /etc/os-release ] || return 1
     local id like
-    id="$(grep -E '^ID=' /etc/os-release | cut -d= -f2 | tr -d '"')"
-    like="$(grep -E '^ID_LIKE=' /etc/os-release | cut -d= -f2 | tr -d '"')"
+    # Strip both quote styles — os-release (e.g. Gentoo) may use single quotes.
+    id="$(grep -E '^ID=' /etc/os-release | cut -d= -f2 | tr -d "\"'")"
+    like="$(grep -E '^ID_LIKE=' /etc/os-release | cut -d= -f2 | tr -d "\"'")"
     case "$id $like" in *ubuntu*) return 0 ;; *) return 1 ;; esac
 }
 

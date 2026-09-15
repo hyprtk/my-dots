@@ -585,3 +585,31 @@ Ran `installer/scripts/awww-install.sh` end-to-end (build deps + rustup +
   detects this up front (`pkg-config --modversion wayland-client`) and fails
   fast with a clear reason instead of downloading rustup and compiling first.
 
+## 16. Full installer dry-run in containers (T2) — 2026-09-15
+
+`installer/scripts/verify/container-dryrun.sh` runs the **whole** installer in a
+throwaway container per family/variant (the containerised counterpart of
+`installer-dryrun.sh`). Sandbox `$HOME` with the repo at `~/hyprtk` (code copied,
+bulk assets symlinked), every mutating command + the family PM stubbed, bundled
+`gum` replaced by a non-interactive stub, `HYPRTK_DRYRUN=1`, piped `read`
+answers. Pass = the `hyprtk installation completed` marker in `install.log` with
+no `FATAL`/`FAIL`/`SPIN FAILED`/`RUN FAILED`.
+
+Result: **11/11** — arch, debian 12/13, ubuntu 24.04/26.04, fedora, suse, void,
+alpine all complete cleanly; gentoo + nixos complete as advisory (package deps
+skipped).
+
+### Bug fixed
+
+- **os-release single quotes.** `_detect_distro` (and `hyprland.sh`'s
+  `_hyprtk_is_ubuntu`) stripped only double quotes, so `ID='gentoo'` (Gentoo's
+  real os-release uses single quotes) failed auto-detection. Both now strip
+  `"` and `'`. Surfaced by the Gentoo container.
+
+### Bootstrap quirks (container base images, not installer bugs)
+
+- openSUSE Tumbleweed base has no `awk` → install `gawk` first.
+- Void needs `xbps-install -Syu xbps` before `bash` can be installed.
+- `nixos/nix` is a build image: no `/etc/os-release` (detection falls back to the
+  manual menu) and no `sed`/`awk` (bootstrap `gnused`/`gawk`).
+

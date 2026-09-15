@@ -239,6 +239,29 @@ storage-driver drop-in; `~/.config/containers/storage.conf.d/00-vfs.conf` select
 `overlay`). The matrix images bake the resolver query, so no extra host tooling
 is required.
 
+### Full installer dry-run in containers (T2)
+
+`installer/scripts/verify/container-dryrun.sh` is the containerised counterpart
+of `installer-dryrun.sh`: it runs the **whole** installer inside a throwaway
+container for every family/variant (Arch, Debian 12/13, Ubuntu 24.04/26.04,
+Fedora, openSUSE, Void, Alpine; Gentoo/NixOS advisory). Inside the container it
+builds a sandbox `$HOME` with the repo at `~/hyprtk` (code copied, the large
+read-only asset trees symlinked), stubs every mutating command **and the
+family's package manager**, swaps the bundled `gum` for a non-interactive stub,
+and runs `1-install.sh` with `HYPRTK_DRYRUN=1`. It requires the
+`hyprtk installation completed` marker in `install.log` and no
+`FATAL`/`FAIL`/`SPIN FAILED`/`RUN FAILED` (or run-log errors). Gentoo/NixOS are
+advisory: the run must complete, but the bar's dependency step is allowed to
+fail there (the installer never installs packages automatically on those
+families).
+
+Result: **11/11** — the nine installable family/variant rows complete cleanly;
+Gentoo and NixOS complete with package deps skipped. Base-image quirks handled
+by the row bootstrap: openSUSE ships no `awk` (install `gawk`), Void needs an
+`xbps` self-update before `bash`, and the `nixos/nix` build image has no
+`/etc/os-release` and no `sed`/`awk` (bootstrap `gnused`/`gawk` + a stub
+os-release).
+
 ## Remaining work
 
 1. Package names are audited across all families by the container matrix (see

@@ -29,6 +29,13 @@ documented in this file. Dates are in YYYY-MM-DD format.
   - `graphics-card.sh` gained a `--list` guard (it carried package lists but was
     never enumerable); `3dprinting.sh` `--list` no longer emits its AUR slicers
     on non-Arch families.
+- **Full installer dry-run in containers (T2).** New
+  `installer/scripts/verify/container-dryrun.sh` runs the whole installer in a
+  throwaway container per family/variant (arch, Debian 12/13, Ubuntu 24.04/26.04,
+  Fedora, openSUSE, Void, Alpine; Gentoo/NixOS advisory) with every mutating
+  command + the family PM stubbed and `HYPRTK_DRYRUN=1`. Result: **11/11** (nine
+  installable rows complete cleanly; Gentoo/NixOS complete with package deps
+  skipped).
 - **awww source build validated in containers (T3).** Ubuntu 24.04, Fedora and
   openSUSE Tumbleweed build `awww 0.12.1`. Debian 12 cannot (libwayland 1.21 <
   the required 1.22); `awww-install.sh` now checks `wayland-client` up front and
@@ -96,6 +103,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **os-release single-quoted values broke distro detection.** `1-install.sh`
+  `_detect_distro` (and `hyprland.sh`'s `_hyprtk_is_ubuntu`) stripped only double
+  quotes, so Gentoo's `ID='gentoo'` was not recognised. Both now strip `"` and
+  `'`. Found by the T2 container dry-run on Gentoo.
 - **Vendored bar `DEPS[zypper]` used non-existent openSUSE packages**
   (`typelib-1_0-cairo-1_0`, `typelib-1_0-xlib-2_0`). Fixed upstream in
   `hyprtk-bar` (→ `girepository-1_0`, which provides both `cairo-1.0` and
