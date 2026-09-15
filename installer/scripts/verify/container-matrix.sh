@@ -92,7 +92,8 @@ _family_rows() {
         apt)    printf '%s %s\n' bookworm docker.io/library/debian:bookworm
                 printf '%s %s\n' trixie   docker.io/library/debian:trixie
                 printf '%s %s\n' noble    docker.io/library/ubuntu:24.04
-                printf '%s %s\n' resolute docker.io/library/ubuntu:26.04 ;;
+                printf '%s %s\n' resolute docker.io/library/ubuntu:26.04
+                printf '%s %s\n' mint22   docker.io/linuxmintd/mint22.3-amd64 ;;
         dnf)    printf '%s %s\n' fedora   registry.fedoraproject.org/fedora:latest ;;
         zypper) printf '%s %s\n' suse     registry.opensuse.org/opensuse/tumbleweed:latest ;;
         xbps)   printf '%s %s\n' void     docker.io/voidlinux/voidlinux:latest ;;

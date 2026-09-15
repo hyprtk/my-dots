@@ -184,6 +184,7 @@ _rows() {
         "apt|trixie|docker.io/library/debian:trixie|" \
         "apt|noble|docker.io/library/ubuntu:24.04|" \
         "apt|resolute|docker.io/library/ubuntu:26.04|" \
+        "apt|mint22|docker.io/linuxmintd/mint22.3-amd64|sed -i 's/^ID=ubuntu/ID=linuxmint/; s/^ID_LIKE=.*/ID_LIKE=\"ubuntu debian\"/; s/^VERSION_CODENAME=noble/VERSION_CODENAME=wilma/' /etc/os-release; grep -q '^UBUNTU_CODENAME=' /etc/os-release || echo UBUNTU_CODENAME=noble >> /etc/os-release" \
         "dnf|fedora|registry.fedoraproject.org/fedora:latest|" \
         "zypper|suse|registry.opensuse.org/opensuse/tumbleweed:latest|zypper --non-interactive --gpg-auto-import-keys refresh; zypper --non-interactive install -y gawk" \
         "xbps|void|docker.io/voidlinux/voidlinux:latest|printf 'repository=https://repo-default.voidlinux.org/current\\n' >/etc/xbps.d/00-repo.conf; xbps-install -Syu xbps; xbps-install -Sy bash" \

@@ -33,9 +33,17 @@ documented in this file. Dates are in YYYY-MM-DD format.
   `installer/scripts/verify/container-dryrun.sh` runs the whole installer in a
   throwaway container per family/variant (arch, Debian 12/13, Ubuntu 24.04/26.04,
   Fedora, openSUSE, Void, Alpine; Gentoo/NixOS advisory) with every mutating
-  command + the family PM stubbed and `HYPRTK_DRYRUN=1`. Result: **11/11** (nine
-  installable rows complete cleanly; Gentoo/NixOS complete with package deps
-  skipped).
+  command + the family PM stubbed and `HYPRTK_DRYRUN=1`. Result: **12/12** (ten
+  installable rows — Arch, Debian 12/13, Ubuntu 24.04/26.04, **Linux Mint 22.3**,
+  Fedora, openSUSE, Void, Alpine — complete cleanly; Gentoo/NixOS complete with
+  package deps skipped).
+- **Linux Mint 22.3 (Ubuntu-24.04 family) support.** Added Mint to the T1 matrix
+  and the T2 dry-run. New `pkgmanager.sh` helpers — `hyprtk_apt_add_ppa`,
+  `hyprtk_ubuntu_codename`, `hyprtk_is_ubuntu_family` — add a Launchpad PPA by
+  explicit keyring + `sources.list.d` (no `add-apt-repository`/Launchpad API).
+  `hyprland.sh` uses it for **cppiber/hyprland** (Hyprland `0.56.2` +
+  hyprpicker/hyprsunset) and `terminaltools.sh` for **zhangsongcui3371/fastfetch**
+  (noble has no `fastfetch`).
 - **awww source build validated in containers (T3).** Ubuntu 24.04, Fedora and
   openSUSE Tumbleweed build `awww 0.12.1`. Debian 12 cannot (libwayland 1.21 <
   the required 1.22); `awww-install.sh` now checks `wayland-client` up front and
@@ -103,6 +111,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Hyprland (and hyprpicker/hyprsunset) never installed on Ubuntu 24.04 /
+  Linux Mint 22.3.** `add-apt-repository -y ppa:cppiber/hyprland` fails there
+  ("This codename isn't currently supported") — it needs a reachable Launchpad
+  API and `software-properties-common`. The PPA *does* publish `noble`; it is now
+  added by explicit keyring + source (`hyprtk_apt_add_ppa`), with
+  `add-apt-repository` only as a fallback. This restores the core compositor.
 - **os-release single-quoted values broke distro detection.** `1-install.sh`
   `_detect_distro` (and `hyprland.sh`'s `_hyprtk_is_ubuntu`) stripped only double
   quotes, so Gentoo's `ID='gentoo'` was not recognised. Both now strip `"` and

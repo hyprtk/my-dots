@@ -11,10 +11,10 @@
 #
 # ── apt: Ubuntu/PPA- or non-free-only; absent from the Debian archive ───────
 apt           brave-browser                    # Brave's own apt repo (added by webtools.sh at install time)
-apt           fastfetch                        # not packaged for Debian 12 / Ubuntu 24.04 (24.10+)
-apt           hyprland                         # Ubuntu: cppiber/hyprland PPA (see hyprland.sh); not in Debian
-apt           hyprpicker                       # Hyprland ecosystem; PPA/COPR only
-apt           hyprsunset                       # Hyprland ecosystem; PPA/COPR only
+apt           fastfetch                        # not in the archive; zhangsongcui3371 PPA on the Ubuntu family
+apt           hyprland                         # cppiber/hyprland PPA on the Ubuntu family (0.56.2); not in Debian
+apt           hyprpicker                       # Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora
+apt           hyprsunset                       # Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora
 apt           libgtk4-layer-shell0             # not in Debian 12 / Ubuntu 24.04 (added 24.10+)
 apt           nvidia-driver                    # Debian: non-free disabled; Ubuntu: versioned (nvidia-driver-535)
 apt           nwg-look                         # not packaged in Debian/Ubuntu archives

@@ -220,7 +220,7 @@ podman** container *without installing*:
 | family | image | resolve with |
 |--------|-------|--------------|
 | pacman | `archlinux:latest` | `pacman -Si` / `-Sg` (+ AUR RPC for misses) |
-| apt | `debian:bookworm`, `debian:trixie`, `ubuntu:24.04`, `ubuntu:26.04` | `apt-get install -s` |
+| apt | `debian:bookworm`, `debian:trixie`, `ubuntu:24.04`, `ubuntu:26.04`, `linuxmintd/mint22.3-amd64` | `apt-get install -s` |
 | dnf | `fedora:latest` | `dnf repoquery --available` |
 | zypper | `opensuse/tumbleweed` | `zypper install --dry-run` |
 | xbps | `voidlinux/voidlinux` | `xbps-query -R -p pkgver` |
@@ -231,7 +231,7 @@ reported `AUR` (expected, not a failure). Gentoo/NixOS are advisory —
 `1-install.sh` only prints their names, so they are listed but not resolved.
 Known-acceptable gaps (third-party repos, non-free components, packages not in a
 release) live in `installer/scripts/verify/container-matrix.allow`. Current
-result: **1059 resolvable, 21 AUR, 67 allow-listed, 0 unexpected.**
+result: **1173 resolvable, 21 AUR, 77 allow-listed, 0 unexpected.**
 
 On a host whose kernel lacks overlayfs (e.g. this one), rootless podman needs a
 storage-driver drop-in; `~/.config/containers/storage.conf.d/00-vfs.conf` selects
@@ -255,22 +255,32 @@ advisory: the run must complete, but the bar's dependency step is allowed to
 fail there (the installer never installs packages automatically on those
 families).
 
-Result: **11/11** — the nine installable family/variant rows complete cleanly;
-Gentoo and NixOS complete with package deps skipped. Base-image quirks handled
-by the row bootstrap: openSUSE ships no `awk` (install `gawk`), Void needs an
-`xbps` self-update before `bash`, and the `nixos/nix` build image has no
+Result: **12/12** — the ten installable family/variant rows (Arch, Debian 12/13,
+Ubuntu 24.04/26.04, **Linux Mint 22.3**, Fedora, openSUSE, Void, Alpine) complete
+cleanly; Gentoo and NixOS complete with package deps skipped. Base-image quirks
+handled by the row bootstrap: openSUSE ships no `awk` (install `gawk`), Void
+needs an `xbps` self-update before `bash`, and the `nixos/nix` build image has no
 `/etc/os-release` and no `sed`/`awk` (bootstrap `gnused`/`gawk` + a stub
-os-release).
+os-release). The Mint row rewrites the image's os-release to real-Mint values
+(`ID=linuxmint`, `VERSION_CODENAME=wilma`, `UBUNTU_CODENAME=noble`) so detection
+and the PPA codename logic are genuinely exercised.
 
 ## Remaining work
 
 1. Package names are audited across all families by the container matrix (see
-   above): 1059 resolve, 0 unexpected. The remaining 67 are documented in
+   above): 1173 resolve, 0 unexpected. The remaining 77 are documented in
    `container-matrix.allow` — third-party repos (RPMFusion, COPR, Brave, PPAs),
    non-free components (Debian/Void/Alpine), and packages genuinely absent from
    a release (e.g. `cliphist`, `swappy`, `nss-mdns`, `ipp-usb`). Closing these
    means adding the third-party repos at install time (as `webtools.sh` already
-   does for Brave) — not renaming.
+   does for Brave) — not renaming. On the Ubuntu family the installer now adds
+   the **cppiber/hyprland** PPA (Hyprland `>= 0.55` + hyprpicker/hyprsunset) and
+   the **zhangsongcui3371/fastfetch** PPA via `hyprtk_apt_add_ppa` (explicit
+   keyring + `sources.list.d`, since `add-apt-repository` needs a reachable
+   Launchpad API and fails on minimal/containerised Ubuntu & Mint). Still an
+   archive gap on Ubuntu 24.04 / Mint 22.3: `libgtk4-layer-shell0` (used by
+   matuwall's `LD_PRELOAD`), `nwg-look`, `swappy`, `starship` (cosmetic) and
+   `nvidia-driver` (Ubuntu needs the versioned `nvidia-driver-5xx`).
 2. Add the matrix to CI (mirroring hyprtk-bar's `.github/workflows/install-matrix.yml`)
    so the per-family lists are validated on every push without a VM.
 3. Gentoo/NixOS: provide an ebuild set / Nix expression so those families are

@@ -88,9 +88,14 @@ install_hyprland_apt() {
         return 0
     fi
     echo "  Enabling the cppiber/hyprland PPA for Hyprland >= 0.55 (Lua config)"
-    pkg_install software-properties-common
-    hyprtk_run_root add-apt-repository -y ppa:cppiber/hyprland
-    hyprtk_run_root apt-get update
+    # Prefer adding the PPA by keyring + source: `add-apt-repository` needs
+    # software-properties-common and a reachable Launchpad API, and fails on
+    # minimal/containerised Ubuntu & Mint ("codename isn't currently supported").
+    if ! hyprtk_apt_add_ppa cppiber/hyprland A54D23B62FF3FCC76EFF71E8FDBAAA1CF0CCF48E; then
+        pkg_install software-properties-common
+        hyprtk_run_root add-apt-repository -y ppa:cppiber/hyprland
+        hyprtk_run_root apt-get update
+    fi
     # The PPA's libhyprcursor1/libudis86.1 supersede the archive's
     # libhyprcursor0/libudis86-0 without declaring Replaces, so the file lists
     # collide; --force-overwrite lets the upgrade through.

@@ -613,3 +613,48 @@ skipped).
 - `nixos/nix` is a build image: no `/etc/os-release` (detection falls back to the
   manual menu) and no `sed`/`awk` (bootstrap `gnused`/`gawk`).
 
+## 17. Linux Mint 22.3 (Ubuntu-24.04 family) — report + fixes — 2026-09-15
+
+User report: multi-distro "does not install everything" on **Linux Mint 22.3**.
+Tested in `linuxmintd/mint22.3-amd64` (Mint's repo layout: `packages.linuxmint.com`
++ Ubuntu `noble` main/restricted/universe/multiverse).
+
+### Finding
+
+Mint 22.3's unresolved apt names were the **exact noble set** (no Mint-specific
+drift): `brave-browser`, `fastfetch`, `hyprland`, `hyprpicker`, `hyprsunset`,
+`libgtk4-layer-shell0`, `nvidia-driver`, `nwg-look`, `starship`, `swappy`. The
+serious one is **`hyprland` itself** — `add-apt-repository -y
+ppa:cppiber/hyprland` fails on Mint/Ubuntu containers with *"This codename isn't
+currently supported"* (it needs a reachable Launchpad API + software-properties),
+so the compositor never installed. The PPA **does** publish `noble` (hyprland
+`0.56.2`, plus hyprpicker/hyprsunset/hyprlock/hypridle).
+
+### Fixes
+
+- **`hyprtk_apt_add_ppa`** (new, in `pkgmanager.sh`): adds a Launchpad PPA by
+  fetching its signing key into `/etc/apt/keyrings/ppa-<name>.asc` and writing a
+  `signed-by` `sources.list.d` entry — no `add-apt-repository`, no Launchpad API.
+  Also `hyprtk_ubuntu_codename` (prefers `UBUNTU_CODENAME`, so Mint's
+  `VERSION_CODENAME=wilma` still yields `noble`) and `hyprtk_is_ubuntu_family`.
+- **`hyprland.sh`**: `install_hyprland_apt` uses `hyprtk_apt_add_ppa
+  cppiber/hyprland A54D23B6…F0CCF48E`, falling back to `add-apt-repository` only
+  if the key fetch fails. Fixes hyprland/hyprpicker/hyprsunset on Ubuntu 24.04 &
+  Mint 22.3.
+- **`terminaltools.sh`**: adds the `zhangsongcui3371/fastfetch` PPA
+  (`EB65EE19…D4865F21`) on the Ubuntu family when `fastfetch` does not resolve
+  (noble has no `fastfetch`; the PPA ships `2.68.1~noble`).
+
+### Coverage
+
+- Mint added to both harnesses: T1 (`container-matrix.sh` apt row `mint22`) →
+  114 ok / 10 allowed / 0 unexpected; T2 (`container-dryrun.sh`) → the row rewrites
+  os-release to real-Mint values so detection + codename logic are exercised.
+- Full re-runs: **T1 1173 resolvable / 21 AUR / 77 allowed / 0 unexpected**;
+  **T2 12/12**.
+
+### Remaining Mint/noble archive gaps (documented, allow-listed)
+
+`libgtk4-layer-shell0` (matuwall `LD_PRELOAD`), `nwg-look`, `swappy`, `starship`,
+`nvidia-driver` (Ubuntu wants `nvidia-driver-5xx`). No clean PPA; candidates for a
+source build (gtk4-layer-shell) or upstream install script (starship).

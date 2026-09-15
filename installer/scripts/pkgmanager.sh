@@ -180,3 +180,56 @@ aur_install() {
     }
     return 0
 }
+
+# ── Ubuntu-family third-party apt repos ─────────────────────────────────────
+# A PPA is normally added with `add-apt-repository`, but that needs
+# software-properties-common and a working Launchpad API — which is not always
+# available (and fails outright in minimal/containerised Ubuntu & Mint). These
+# helpers add a PPA by its signing key + a sources.list.d entry instead, which
+# needs only curl + apt itself.
+
+# The Ubuntu codename of the host. Linux Mint sets VERSION_CODENAME to its own
+# name (e.g. "zena") but UBUNTU_CODENAME to the base release ("noble"), and a
+# PPA is keyed by the Ubuntu codename.
+hyprtk_ubuntu_codename() {
+    local c
+    c=$(grep -E '^UBUNTU_CODENAME=' /etc/os-release 2>/dev/null | head -1 | cut -d= -f2 | tr -d "\"'")
+    [ -n "$c" ] || c=$(grep -E '^VERSION_CODENAME=' /etc/os-release 2>/dev/null | head -1 | cut -d= -f2 | tr -d "\"'")
+    printf '%s' "$c"
+}
+
+# True on Ubuntu and its derivatives (Mint, Pop, elementary, Zorin, …).
+hyprtk_is_ubuntu_family() {
+    [ -r /etc/os-release ] || return 1
+    local id like
+    id=$(grep -E '^ID=' /etc/os-release | head -1 | cut -d= -f2 | tr -d "\"'")
+    like=$(grep -E '^ID_LIKE=' /etc/os-release | head -1 | cut -d= -f2 | tr -d "\"'")
+    case "$id $like" in
+        *ubuntu*) return 0 ;;
+    esac
+    return 1
+}
+
+# Add a Launchpad PPA explicitly. $1 = user/archive, $2 = signing key
+# fingerprint, $3 = components (default "main"). Returns non-zero if the key
+# could not be fetched or the codename is unknown.
+hyprtk_apt_add_ppa() {
+    local ppa="$1" key="$2" comps="${3:-main}"
+    local name codename keyring
+    name="$(printf '%s' "$ppa" | tr '/' '-')"
+    codename="$(hyprtk_ubuntu_codename)"
+    [ -n "$codename" ] || { echo "  ! $ppa: cannot determine the Ubuntu codename" >&2; return 1; }
+    keyring="/etc/apt/keyrings/ppa-$name.asc"
+    pkg_install curl ca-certificates
+    hyprtk_run_root install -d -m 0755 /etc/apt/keyrings
+    if ! curl -fsSL --max-time 60 \
+            "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x$key" -o "$keyring" 2>/dev/null; then
+        echo "  ! $ppa: could not fetch the signing key" >&2
+        return 1
+    fi
+    printf 'deb [signed-by=%s] https://ppa.launchpadcontent.net/%s/ubuntu %s %s\n' \
+        "$keyring" "$ppa" "$codename" "$comps" \
+        | hyprtk_run_root tee "/etc/apt/sources.list.d/$name.list" >/dev/null
+    hyprtk_run_root apt-get update || true
+    return 0
+}
