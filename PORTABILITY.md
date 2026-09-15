@@ -60,13 +60,21 @@ on other families (the rest of the install continues):
 
 | Feature | Why |
 |---------|-----|
-| AUR packages (`awww`, `swaylock-effects`, `brave-bin`, `bibata-cursor-theme`, `trizen`, `sublime-text-4`, `sddm-theme-sugar-candy-git`, `pacseek`, `pamac-*`, `github-desktop-bin`, `waypaper`, `hyprquickframe-git`, `thunar-shares-plugin`, `tumbler-extra-thumbnailers`, `vmware-*`, `orca-slicer-bin`, `bambustudio-bin`, `libva-nvidia-driver-git`) | No AUR off Arch. Where a repo equivalent exists it is listed in the family's `PKGS` (e.g. `swaylock`, `papirus-icon-theme`). |
+| AUR packages (`swaylock-effects`, `brave-bin`, `bibata-cursor-theme`, `trizen`, `sublime-text-4`, `sddm-theme-sugar-candy-git`, `pacseek`, `pamac-*`, `github-desktop-bin`, `waypaper`, `hyprquickframe-git`, `thunar-shares-plugin`, `tumbler-extra-thumbnailers`, `vmware-*`, `orca-slicer-bin`, `bambustudio-bin`, `libva-nvidia-driver-git`) | No AUR off Arch. Where a repo equivalent exists it is listed in the family's `PKGS` (e.g. `swaylock`, `papirus-icon-theme`). |
 | `hyprviz-bin` build | AUR-only GUI; source build is referenced instead. |
 | `pacman -Ssq 'pcp-pmda-*'` (Performance Co-Pilot modules) | Arch packaging only. |
 | `mkinitcpio` module edits + `install_boot` splash | Arch initramfs. Other families regenerate with `update-initramfs`/`dracut` where present. |
 | `os-release-<distro>` branding → `/usr/lib/` | The 11 Arch-based distros only; other systems keep their own os-release. |
 | `snap-pac` | Arch pacman snapshot hook. |
 | `pacman -Syu` update alias | Root `.bashrc` now detects the manager instead. |
+
+### awww is no longer Arch-only
+
+The wallpaper daemon (`awww`, the renamed swww) is **not** in the AUR-only list
+above: `installer/scripts/awww-install.sh` gives it a cross-distro path. Arch
+still gets it from the AUR via `hypr/packages/hyprland.sh`; Void and Alpine
+install the native `swww` package; Debian/Ubuntu, Fedora/RHEL and openSUSE have
+no package at all and **build it from source** (see the gotcha below).
 
 ## Feature availability
 
@@ -83,9 +91,13 @@ on other families (the rest of the install continues):
 | VMware Workstation | ✅ AUR | ✗ bundle | ✗ bundle | ✗ bundle | ✗ bundle | ✗ bundle | ✗ bundle | ✗ | 
 | SDDM + Sugar-Candy theme | ✅ | ✅ SDDM (theme AUR) | ✅ SDDM (theme AUR) | ✅ SDDM (theme AUR) | ✅ SDDM | ✅ SDDM | ✅ SDDM | ✅ SDDM |
 | pywal16 (`wal`) | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled |
+| Wallpaper daemon (`awww`) | ✅ AUR | ✅ source² | ✅ source² | ✅ source² | ✅ `swww` | ✅ `swww` (3.24+) | ⚠ manual | ✅ flake |
 | hyprtk-bar | ✅ | ✅ | ✅ | ✅ | ✅ | ✅* | ✅ | ✅ |
 
-`✅*` = hyprtk-bar supports Alpine from edge (gtk-layer-shell ≥ 0.9).
+`✅*` = hyprtk-bar supports Alpine from edge (gtk-layer-shell ≥ 0.9).<br>
+`²` = built from source by `awww-install.sh`; needs a Rust toolchain (rustup when
+the distro's rustc is older than upstream's MSRV) and the build deps listed in
+the gotcha below.
 
 ## Gotchas
 
@@ -108,6 +120,41 @@ fallback warns and continues if one is unavailable.
 hyprtk-bar needs gtk-layer-shell ≥ 0.9. Families below that floor (Debian ≤ 12,
 Ubuntu ≤ 24.04, Fedora ≤ 40, openSUSE Leap 15.x, Alpine ≤ 3.20) need a newer
 release or a source build; the bar's own installer warns.
+
+### Wallpaper daemon (awww)
+`installer/scripts/awww-install.sh` (called by `1-install.sh` before the wrapper)
+acquires awww without the AUR:
+
+- **Already installed** — nothing to do.
+- **Native package** — Void and Alpine ship `swww`; the script installs it and
+  adds `awww`/`awww-daemon` symlinks in `/usr/local/bin` so the dotfiles' `awww`
+  calls work unchanged.
+- **Source build** — Debian/Ubuntu, Fedora/RHEL and openSUSE (and any family
+  whose native package is missing) build the pinned upstream release
+  (`LGFae/awww` `v0.12.1`, GPL-3) with `cargo build --release --locked`. Build
+  deps per family (from `common/build.rs`'s `liblz4` probe and the daemon's
+  wayland-protocol XML needs):
+
+  | Family | Build deps |
+  |--------|------------|
+  | apt | `build-essential pkg-config git curl ca-certificates libwayland-dev wayland-protocols liblz4-dev libxkbcommon-dev` |
+  | dnf | `gcc gcc-c++ make pkgconf-pkg-config git curl ca-certificates wayland-devel wayland-protocols-devel lz4-devel libxkbcommon-devel` |
+  | zypper | `gcc gcc-c++ make pkg-config git curl ca-certificates wayland-devel wayland-protocols-devel liblz4-devel libxkbcommon-devel` |
+  | xbps | `base-devel pkg-config git curl wayland-devel wayland-protocols liblz4-devel libxkbcommon-devel` |
+  | apk | `build-base pkgconf git curl wayland-dev wayland-protocols lz4-dev libxkbcommon-dev` |
+
+  Upstream's MSRV (`rust-version = 1.89.0`, edition 2024) is newer than every
+  LTS release's packaged `rustc`, so when the system `cargo` is missing or too
+  old the script bootstraps Rust with **rustup** (`--profile minimal`) into
+  `~/.cargo`. The binaries land in `/usr/local/bin` with `swww` compatibility
+  symlinks.
+- **No route** (Gentoo/NixOS, or a failed build) — a warning with the manual
+  steps, never a fatal error; the rest of the install continues and the bar
+  degrades to its fixed palette until awww is present.
+
+Because the source build needs network + a Rust toolchain and can take a few
+minutes, expect that step to be the slowest part of a non-Arch install. Set
+`HYPRTK_DRYRUN=1` to have the script print its plan without building.
 
 ### sudo vs root
 `hyprtk_run_root` uses `sudo` when present and non-root. Minimal containers
@@ -135,3 +182,6 @@ entries and a clean run log.
    `.github/workflows/install-matrix.yml`).
 3. Gentoo/NixOS: provide an ebuild set / Nix expression so those families are
    first-class instead of "listed for manual install".
+4. Validate the `awww-install.sh` source build on a live Debian/Ubuntu, Fedora
+   and openSUSE container (build deps + rustup + `cargo build --release`), and
+   confirm the Void/Alpine `swww` package names.

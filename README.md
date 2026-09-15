@@ -48,8 +48,10 @@ abstraction (`installer/scripts/pkgmanager.sh`): **Arch** (pacman + AUR),
 **Debian/Ubuntu** (apt), **Fedora/RHEL** (dnf), **openSUSE** (zypper), **Void**
 (xbps) and **Alpine** (apk), with **Gentoo** and **NixOS** supported as
 manual/declarative installs. Arch-only features (AUR packages, `mkinitcpio`
-splash, os-release branding) are skipped with a warning elsewhere. See
-[`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
+splash, os-release branding) are skipped with a warning elsewhere. The
+wallpaper daemon is the exception — **awww** comes from the AUR on Arch, the
+native `swww` package on Void/Alpine, and is otherwise built from source by the
+installer. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 
 ## Features
 
@@ -60,7 +62,7 @@ splash, os-release branding) are skipped with a warning elsewhere. See
 | **App launcher** | Rofi (plus the in-bar start menu) |
 | **Status bar** | hyprtk-bar — pywal-themed taskbar with built-in menus |
 | **Theming** | pywal16 (bundled), live, from your wallpaper |
-| **Wallpaper** | Matuwall film-strip picker + rofi list + random |
+| **Wallpaper** | Matuwall film-strip picker + rofi list + random (awww daemon, installed automatically) |
 | **Screenshots** | grim & slurp |
 | **Screen recording** | wf-recorder |
 | **Clipboard** | cliphist |

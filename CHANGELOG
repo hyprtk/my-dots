@@ -19,6 +19,13 @@ documented in this file. Dates are in YYYY-MM-DD format.
   distros, with a family/manager readout and an expanded manual-selection menu.
 - `PORTABILITY.md` documenting the family matrix, Arch-only features and
   per-family gotchas.
+- **Cross-distro awww** — new `installer/scripts/awww-install.sh` acquires the
+  wallpaper daemon without the AUR: native `swww` on Void/Alpine, otherwise a
+  pinned source build of `LGFae/awww` (`v0.12.1`, GPL-3) via `cargo build
+  --release`, with rustup bootstrapped when the distro's `rustc` is older than
+  upstream's 1.89 MSRV. Binaries install to `/usr/local/bin` with `swww`
+  compatibility symlinks; `1-install.sh` runs it (before the wrapper) and the
+  step is non-fatal with manual instructions when no route exists.
 
 ### Changed
 
@@ -41,6 +48,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
 - `hyprviz.sh` builds in a dedicated dir and skips cleanly off Arch.
 - `fonts.sh`/`wallpapers.sh`/`matuwall.sh` resolve repo-relative asset paths and
   use `python3`.
+- **awww wrapper no longer assumes `/usr/bin/awww`** — `awww-wrapper.sh`
+  resolves the real binary (AUR `/usr/bin`, source-build `/usr/local/bin`, or a
+  Void/Alpine `swww`) instead of hardcoding the AUR path, so it no longer fails
+  on non-Arch installs where awww was never installed.
 
 ## [Unreleased] - 2026-09-07
 

@@ -368,3 +368,45 @@ updated. The `.bashrc` `update` alias is now a distro-aware function.
   `debian`, `fedora`, `suse`, `void`, `alpine`, `gentoo`, `nixos`.
 - `--list` output verified for all six supported managers.
 
+## 12. Cross-distro awww (2026-09-15)
+
+Closed the gap that left the wallpaper daemon missing on non-Arch installs
+(found when installing the any-distro tree on Ubuntu).
+
+### Root cause
+
+- `awww` (the renamed `swww`) is AUR-only. On Arch `hypr/packages/hyprland.sh`
+  installs it from the AUR; the apt/dnf/zypper package lists had no wallpaper
+  daemon, and Ubuntu/Fedora/openSUSE package neither `awww` nor `swww`.
+- `installer/scripts/awww-wrapper.sh` only wrapped an already-installed awww —
+  it hardcoded `REAL_AWW=/usr/bin/awww` and `sudo ln -s /usr/bin/awww …`, both
+  of which fail when nothing installed awww.
+
+### Fix
+
+- **New `installer/scripts/awww-install.sh`** — acquisition ladder: skip if
+  present (Arch AUR handled elsewhere); native `swww` on Void/Alpine (with
+  awww/swww symlinks); otherwise a pinned source build of `LGFae/awww` `v0.12.1`
+  (`cargo build --release --locked`) with per-family build deps and a rustup
+  bootstrap when the distro `cargo` is below upstream's 1.89 MSRV; install to
+  `/usr/local/bin` + `swww` compatibility symlinks; manual instructions (never
+  fatal) when no route exists. `HYPRTK_DRYRUN=1` prints the plan.
+- **`awww-wrapper.sh` rewritten** to resolve the real binary (AUR
+  `/usr/bin`, source-build `/usr/local/bin`, or `swww`), guard the symlinks, and
+  warn instead of writing a broken wrapper when awww is absent.
+- **`1-install.sh`** runs `awww-install.sh` then the wrapper at the existing
+  awww step (before the bar install, so the bar's autostart gating sees awww).
+
+### Docs
+
+`PORTABILITY.md` (new feature row, "awww is no longer Arch-only" note, gotcha
+with per-family build deps, Remaining-work item), `README.md`, `CHANGELOG`.
+
+### Verification
+
+- `bash -n` on `awww-install.sh`, `awww-wrapper.sh`, `1-install.sh`.
+- `ver_ge` unit-checked (1.75/1.88 < 1.89 ≤ 1.90/2.0).
+- `HYPRTK_DRYRUN=1` plan output checked for `apt` and `xbps`; `pacman` path
+  verified to skip (already installed).
+- `installer-dryrun.sh` → 11/11 (see session log).
+

@@ -541,8 +541,12 @@ echo -e "${CYAN}  → ${WHITE}Installing fonts${NC}"
 bash "$SCRIPT_DIR/hypr/packages/fonts.sh"
 _ok "fonts installed"
 
+# awww (wallpaper daemon). Arch installs it from the AUR in hyprland.sh; no
+# other family packages it, so awww-install.sh builds it from source (or uses
+# the native swww package on Void/Alpine), then the wrapper adds the pywal hook.
+_spin "Installing awww wallpaper daemon..." "bash $SCRIPT_DIR/installer/scripts/awww-install.sh" "$LOG_FILE"
 _spin "Installing awww wrapper..." "bash $SCRIPT_DIR/installer/scripts/awww-wrapper.sh" "$LOG_FILE"
-_ok "awww wrapper installed"
+_ok "awww wallpaper daemon installed"
 
 if type grudupdater >/dev/null 2>&1; then
     _spin "Running grub updater..." "grudupdater" "$LOG_FILE"
