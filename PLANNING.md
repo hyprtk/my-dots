@@ -693,3 +693,17 @@ four (the symlink resolves on multiarch and `lib64`). `bash -n` clean; host suit
 - Verified on Mint: inputs 1/2/3 now select Intel/AMD/Nvidia correctly (dry-run
   shows the chosen package lists). T2 12/12; host suite green (11/11, 45/45,
   completeness); T1 unchanged.
+## 20. Void Linux — Hyprland is not packaged (documented note) — 2026-09-15
+
+Void's repositories ship `hyprutils`/`hyprwayland-scanner` but **not `hyprland`**
+(a packaging-philosophy conflict — confirmed against `repo-default`). The
+documented path is the community binary repo **void-land/hyprland-void-packages**.
+
+- `hypr/packages/hyprland.sh` now prints the exact steps when the compositor is
+  still missing on xbps (add the repo, `xbps-install -Sy hyprland
+  xdg-desktop-portal-hyprland`), plus the build-from-source link. The installer
+  deliberately does **not** add a third-party repo on its own.
+- `PORTABILITY.md` feature table now marks Void as ⚠️ community-repo (and Fedora
+  as ⚠️ COPR), footnote ³.
+- The note is a no-op in the dry-run (the stubbed `xbps-query` reports Hyprland
+  installed), so T2 stays green; `bash -n` clean.

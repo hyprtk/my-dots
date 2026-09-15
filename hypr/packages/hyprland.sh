@@ -103,9 +103,24 @@ install_hyprland_apt() {
     hyprtk_run_root apt-get -o Dpkg::Options::=--force-overwrite -f install -y
 }
 
+# Void Linux does not package Hyprland (a packaging-philosophy conflict), so the
+# xbps list has no `hyprland` to install. The documented path is the community
+# binary repository; the installer does not add a third-party repo on its own, so
+# print the exact steps when the compositor is still missing.
+note_void_hyprland() {
+    [ "$HYPRTK_PM" = xbps ] || return 0
+    pkg_is_installed hyprland && return 0
+    echo "  ! Void Linux does not package Hyprland. Add the community repository, then re-run:" >&2
+    echo "      echo 'repository=https://github.com/void-land/hyprland-void-packages/releases/latest/download/' \\" >&2
+    echo "        | sudo tee /etc/xbps.d/hyprland-packages.conf" >&2
+    echo "      sudo xbps-install -S && sudo xbps-install -Sy hyprland xdg-desktop-portal-hyprland" >&2
+    echo "    (or build from source: https://github.com/void-land/hyprland-void-packages)" >&2
+}
+
 if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " Hyprland "
 [ "$HYPRTK_PM" = apt ] && install_hyprland_apt
 pkg_install "${PKGS[@]}"
 aur_install "${AUR[@]}"
+note_void_hyprland

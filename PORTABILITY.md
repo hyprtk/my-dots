@@ -80,7 +80,7 @@ no package at all and **build it from source** (see the gotcha below).
 
 | Area | Arch | Debian/Ubuntu | Fedora | openSUSE | Void | Alpine | Gentoo | Nix |
 |------|------|---------------|--------|----------|------|--------|--------|-----|
-| Hyprland + portals | ✅ repo | ✅ (0.56 PPA¹) | ✅ (COPR for older) | ✅ Tumbleweed | ✅ | ✅ edge | ✅ | ✅ |
+| Hyprland + portals | ✅ repo | ✅ (0.56 PPA¹) | ⚠️ COPR³ | ✅ Tumbleweed | ⚠️ community repo³ | ✅ edge | ✅ | ✅ |
 | GTK3/4 + gtk-layer-shell | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Python GI bindings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | XFCE fallback | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (plugins) | ✅ | ✅ |
@@ -99,7 +99,13 @@ no package at all and **build it from source** (see the gotcha below).
 (the Lua config) is installed; see the Hyprland gotcha below.<br>
 `²` = built from source by `awww-install.sh`; needs a Rust toolchain (rustup when
 the distro's rustc is older than upstream's MSRV) and the build deps listed in
-the gotcha below.
+the gotcha below.<br>
+`³` = Fedora packages Hyprland only in a **COPR** (`solopasha/hyprland`) and Void
+not at all (a packaging-philosophy conflict) — the documented Void path is the
+community **[hyprland-void-packages](https://github.com/void-land/hyprland-void-packages)**
+binary repo. When the compositor is still missing after the package step,
+`hypr/packages/hyprland.sh` prints the exact repo-ready steps (the installer does
+not add a third-party repo by itself).
 
 ## Gotchas
 

@@ -119,6 +119,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Void Linux: Hyprland availability documented.** Void does not package
+  `hyprland` (a packaging-philosophy conflict). `hypr/packages/hyprland.sh` now
+  prints the community-repo steps (void-land/hyprland-void-packages,
+  `xdg-desktop-portal-hyprland`) when the compositor is still missing on xbps, and
+  `PORTABILITY.md` marks Void as ⚠️ community-repo (and Fedora as ⚠️ COPR). The
+  installer does not add a third-party repo by itself.
 - **Choosing "Nvidia" in `graphics-card.sh` installed the AMD stack.** The menu
   `case` arms were ordered `1)` / `2|*)` / `3)`, so the `*` catch-all matched `3`
   and the Nvidia arm was unreachable. Reordered to `1)` / `3)` / `2|*)`, and the

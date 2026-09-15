@@ -50,7 +50,7 @@ dnf  xorg-x11-drv-nvidia-cuda           # RPMFusion
 # ── xbps: Void — not packaged, or the nonfree repo is not enabled ───────────
 xbps  cockpit           # not packaged for Void
 xbps  gvfs-nfs          # Void gvfs is monolithic; no separate nfs backend
-xbps  hyprland          # not in Void repos (build/custom repo required)
+xbps  hyprland          # not in Void repos; community hyprland-void-packages repo (hyprland.sh prints the steps)
 xbps  hyprsunset        # Hyprland ecosystem; not packaged for Void
 xbps  nvidia            # Void nonfree repo not enabled by default
 xbps  nvidia-settings   # Void nonfree repo not enabled by default
