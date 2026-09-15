@@ -519,7 +519,7 @@ fi
 
 # ── Core packages ─────────────────────────────────────────────────────────
 _step "Installing Core Packages"
-for pkg in hyprland xfce4 filetools webtools printers network media terminaltools systemtools system sddm-check sddmgrub matuwall; do
+for pkg in hyprland xfce4 filetools webtools printers network media terminaltools systemtools system sddm-check sddmgrub matuwall manual_package_installs 3dprinting; do
     pkg_script="$SCRIPT_DIR/hypr/packages/$pkg.sh"
     pkg_detail="$(_fit_detail "$(_script_packages "$pkg_script")")"
     _spin "Installing $pkg..." "bash $pkg_script" "$LOG_FILE" "$pkg_detail"

@@ -7,6 +7,23 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Package-name audit.** Corrected package names that silently failed to
+  install (findings: Ubuntu 26.04 VM + Fedora/openSUSE/Void repo metadata):
+  - **apt (Ubuntu 26.04)** — `gtk-layer-shell` → `libgtk-layer-shell0`,
+    `gtk4-layer-shell` → `libgtk4-layer-shell0`, `cups-pdf` →
+    `printer-driver-cups-pdf`, `fonts-fira-code` → `fonts-firacode`,
+    `freerdp2-x11` → `freerdp3-x11`; removed `mission-center` and
+    `thunar-shares-plugin` (not packaged on Ubuntu). All apt lists now resolve
+    cleanly (`apt-get install -s`).
+  - **Fedora** — `p7zip` → `7zip`, `thunar` → `Thunar`, `libusb` → `libusb1`;
+    dropped `thunar-shares-plugin`, `mission-center`, `xfce4-goodies`.
+  - **openSUSE** — `micro` → `micro-editor`, dropped `mission-center`; bar extras
+    `pipewire-pulse` → `pipewire-pulseaudio`, `libnotify` → `libnotify-tools`.
+  - **Void** — `thunar` → `Thunar`, dropped `mission-center`.
+  - **bar** — `EXTRAS[apt]` `libnotify`/`policykit-1` → `libnotify-bin`/
+    `polkitd pkexec`.
+- **`manual_package_installs.sh` and `3dprinting.sh` wired into the core loop**
+  (both were never invoked, so their packages/extras silently never installed).
 - **Multi-distro install — hyprtk now installs on any Linux distribution.**
   New `installer/scripts/pkgmanager.sh` detects the host package manager
   (pacman/apt/dnf/zypper/xbps/apk/emerge/nix) and provides

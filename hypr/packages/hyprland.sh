@@ -16,29 +16,29 @@ pacman)
     ;;
 apt)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist x11-xserver-utils
-          nwg-look mission-center curl imagemagick jq bc brightnessctl playerctl
-          libadwaita-1-0 libgtk-3-0 gtk-layer-shell libgtk-4-1 desktop-file-utils
+          nwg-look curl imagemagick jq bc brightnessctl playerctl
+          libadwaita-1-0 libgtk-3-0 libgtk-layer-shell0 libgtk-4-1 desktop-file-utils
           python3 python3-pip python3-venv python3-gi wob hyprsunset swaylock
           gvfs-backends 7zip unzip unrar)
     ;;
 dnf)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist
-          xorg-x11-server-utils nwg-look mission-center curl ImageMagick jq bc
+          xorg-x11-server-utils nwg-look curl ImageMagick jq bc
           brightnessctl playerctl libadwaita gtk3 gtk-layer-shell gtk4
           desktop-file-utils python3 python3-pip python3-virtualenv python3-gobject
           wob hyprsunset swaylock gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
-          gvfs-smb p7zip unzip unrar)
+          gvfs-smb 7zip unzip unrar)
     ;;
 zypper)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
-          mission-center curl ImageMagick jq bc brightnessctl playerctl libadwaita-1-0
+          curl ImageMagick jq bc brightnessctl playerctl libadwaita-1-0
           gtk3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
           python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs
           gvfs-backends p7zip unzip unrar)
     ;;
 xbps)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
-          mission-center curl ImageMagick jq bc brightnessctl playerctl libadwaita
+          curl ImageMagick jq bc brightnessctl playerctl libadwaita
           gtk+3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
           python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs gvfs-afc
           gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb p7zip unzip unrar)

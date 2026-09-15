@@ -5,6 +5,8 @@
 _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 . "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
+if [ "${1:-}" = "--list" ]; then printf 'orca-slicer-bin bambustudio-bin\n'; exit 0; fi
+
 echo ""
 echo " 3D Printing "
 echo ""

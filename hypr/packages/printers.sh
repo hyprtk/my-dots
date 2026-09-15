@@ -10,11 +10,11 @@ pacman)
           libusb ipp-usb xdg-utils colord logrotate)
     ;;
 apt)
-    PKGS=(cups cups-pdf cups-filters libnss-mdns system-config-printer libusb-1.0-0
+    PKGS=(cups printer-driver-cups-pdf cups-filters libnss-mdns system-config-printer libusb-1.0-0
           ipp-usb xdg-utils colord logrotate)
     ;;
 dnf)
-    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer libusb ipp-usb
+    PKGS=(cups cups-pdf cups-filters nss-mdns system-config-printer libusb1 ipp-usb
           xdg-utils colord logrotate)
     ;;
 zypper)

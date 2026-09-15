@@ -125,8 +125,8 @@ DEPS[nix]="gtk3 gtk-layer-shell gdk-pixbuf pango cairo gobject-introspection pyt
 declare -A EXTRAS
 EXTRAS[pacman]="networkmanager bluez bluez-utils pipewire pipewire-pulse wireplumber brightnessctl hyprsunset dmidecode pciutils cliphist wl-clipboard rofi libnotify wob papirus-icon-theme polkit awww matugen"
 EXTRAS[apt]="network-manager bluez pipewire pipewire-pulse wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify-bin papirus-icon-theme polkitd pkexec"
-EXTRAS[dnf]="NetworkManager bluez pipewire pipewire-pulse wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify papirus-icon-theme polkit"
-EXTRAS[zypper]="NetworkManager bluez pipewire pipewire-pulse wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify papirus-icon-theme polkit"
+EXTRAS[dnf]="NetworkManager bluez pipewire pipewire-pulseaudio wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify papirus-icon-theme polkit"
+EXTRAS[zypper]="NetworkManager bluez pipewire pipewire-pulseaudio wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify-tools papirus-icon-theme polkit"
 EXTRAS[xbps]="NetworkManager bluez pipewire wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify papirus-icon-theme polkit"
 EXTRAS[apk]="networkmanager bluez pipewire wireplumber brightnessctl dmidecode pciutils wl-clipboard rofi libnotify papirus-icon-theme polkit"
 EXTRAS[emerge]="net-misc/networkmanager net-wireless/bluez media-video/pipewire media-video/wireplumber x11-misc/rofi gui-apps/wl-clipboard x11-libs/libnotify"

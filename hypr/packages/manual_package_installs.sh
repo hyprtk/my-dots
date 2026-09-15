@@ -20,8 +20,8 @@ pacman)
          pacseek github-desktop-bin waypaper nitrogen)
     ;;
 apt)
-    PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp2-x11
-          xfce4-power-manager thunar mousepad fonts-font-awesome fonts-fira-code vlc
+    PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp3-x11
+          xfce4-power-manager thunar mousepad fonts-font-awesome fonts-firacode vlc
           eza python3-pip python3-psutil python3-rich python3-click
           xdg-desktop-portal-gtk pavucontrol tumbler blueman sddm papirus-icon-theme
           btop network-manager network-manager-gnome git nano xdg-user-dirs
@@ -31,7 +31,7 @@ apt)
     ;;
 dnf)
     PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp
-          xfce4-power-manager thunar mousepad fontawesome-fonts fira-code-fonts vlc
+          xfce4-power-manager Thunar mousepad fontawesome-fonts fira-code-fonts vlc
           eza python3-pip python3-psutil python3-rich python3-click
           xdg-desktop-portal-gtk pavucontrol tumbler blueman sddm papirus-icon-theme
           btop NetworkManager network-manager-applet git nano xdg-user-dirs
@@ -52,7 +52,7 @@ zypper)
     ;;
 xbps)
     PKGS=(alacritty kitty rofi chromium starship ranger neovim mpv freerdp
-          xfce4-power-manager thunar mousepad font-awesome fira-code vlc eza
+          xfce4-power-manager Thunar mousepad font-awesome fira-code vlc eza
           python3-pip python3-psutil python3-rich python3-click
           xdg-desktop-portal-gtk pavucontrol tumbler blueman sddm papirus-icon-theme
           btop NetworkManager network-manager-applet git nano xdg-user-dirs

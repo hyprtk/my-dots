@@ -456,3 +456,62 @@ exposed a second blocker: the session came up but none of the dotfiles applied.
   fake os-release: Ubuntu/0.53.3 → PPA+force-overwrite, Ubuntu/0.56.2 → skip,
   Debian/0.53.3 → warn (no PPA). `--list` unchanged.
 
+## 14. Package-name audit (2026-09-15)
+
+Live Ubuntu 26.04 finding: several `apt` package names never installed (the
+per-package fallback isolates them and only warns, so the install reported
+success with the packages missing): `gtk-layer-shell`, `gtk4-layer-shell`,
+`cups-pdf`, `fonts-fira-code`, `freerdp2-x11`, `mission-center`,
+`thunar-shares-plugin`; the bar's `EXTRAS[apt]` asked for `libnotify` /
+`policykit-1`.
+
+### Method
+
+- **apt (authoritative):** resolution linter on the Ubuntu VM — for every
+  `hypr/packages/*.sh --list` (marker + `--list` guard only) and the bar's
+  `EXTRAS[apt]`, run `apt-get install -s` per name. (An earlier `apt-cache
+  policy` check gave false positives for virtual/t64 packages; `-s` doesn't.)
+- **Fedora:** `mdapi.fedoraproject.org/rawhide/pkg/<name>` (200/400).
+- **openSUSE:** Tumbleweed `primary.xml.zst` grepped for `<name>`.
+- **Void:** repo directory listing grepped for `>name-<ver>.x86_64.xbps`.
+- **Alpine:** `APKINDEX.tar.gz` (main + community) grepped for `^P:name$`.
+- Repology was DNS-blocked on the host; the web status-check method was too
+  noisy (Provides/aliases/repo scope), so per-distro metadata was used.
+
+### Fixes applied
+
+- apt: `libgtk-layer-shell0`, `libgtk4-layer-shell0`, `printer-driver-cups-pdf`,
+  `fonts-firacode`, `freerdp3-x11`; dropped `mission-center`,
+  `thunar-shares-plugin`. `python3-venv` etc. unchanged (resolve fine).
+- Fedora: `7zip` (was `p7zip`), `Thunar` (case), `libusb1` (was `libusb`),
+  dropped `thunar-shares-plugin`/`mission-center`/`xfce4-goodies`; bar extras
+  `pipewire-pulseaudio`.
+- openSUSE: `micro-editor`, dropped `mission-center`; bar extras
+  `pipewire-pulseaudio` + `libnotify-tools`.
+- Void: `Thunar` (case), dropped `mission-center`.
+- bar: `libnotify-bin` + `polkitd pkexec`.
+
+### Also fixed here
+
+- `manual_package_installs.sh` and `3dprinting.sh` were **never invoked** by
+  `1-install.sh`; both are now in the core loop (3dprinting gained a `--list`
+  handler). Most of `manual_package_installs`' packages are duplicated in other
+  scripts; its unique items (`xautolock`, AUR extras) now install.
+- `rm-dm-managers.sh` sets `/etc/X11/default-display-manager=/usr/bin/sddm` on
+  apt (Debian/Ubuntu's `sddm.service` `ExecStartPre` requires it) — the reason
+  the Ubuntu VM had no login screen.
+
+### Verified
+
+- Ubuntu 26.04 VM: refined apt linter → **zero MISSING** across all scripts +
+  bar extras; `sddm.service` active after the display-manager fix; Sugar-Candy
+  theme best-effort install; `brave-browser 1.95` installs from Brave's repo.
+- `bash -n` clean; audit 45/45; dryrun 11/11; completeness all-11;
+  installer-dryrun 11/11.
+
+### Left for the container matrix
+
+Alpine gaps (`cliphist`, `nss-mdns`, `ipp-usb`, `nwg-look`, `xfce4-plugins`,
+`swappy`, `unrar`, `cockpit`) and openSUSE `python3*`/`gtk3`/`gtk4`
+(provides/aliases) need a real container run to finalise.
+

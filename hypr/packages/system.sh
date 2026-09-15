@@ -15,10 +15,10 @@ pacman)
          pamac-all libpamac-full pamac-cli tumbler-extra-thumbnailers)
     ;;
 apt)
-    PKGS=(sddm blueman fzf font-manager fonts-font-awesome fonts-fira-code eza
+    PKGS=(sddm blueman fzf font-manager fonts-font-awesome fonts-firacode eza
           python3-pip python3-psutil python3-rich python3-click python3-venv
           xdg-desktop-portal-gtk xdg-user-dirs xdg-user-dirs-gtk os-prober
-          policykit-1-gnome gnome-keyring gtk4-layer-shell hyprpicker)
+          policykit-1-gnome gnome-keyring libgtk4-layer-shell0 hyprpicker)
     ;;
 dnf)
     PKGS=(sddm blueman fzf font-manager fontawesome-fonts fira-code-fonts eza

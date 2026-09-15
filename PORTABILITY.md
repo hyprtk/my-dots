@@ -118,6 +118,18 @@ apk add bash   # or: xbps-install -S bash
 LTS releases they need a backport/PPA/COPR/sid; the installer's per-package
 fallback warns and continues if one is unavailable.
 
+### Package names differ per family
+Names are not portable — each `hypr/packages/*.sh` keeps an explicit list per
+family. Audited corrections (see CHANGELOG): `libgtk-layer-shell0` /
+`libgtk4-layer-shell0` (apt, not `gtk-layer-shell`), `printer-driver-cups-pdf`
+(apt, not `cups-pdf`), `fonts-firacode` (apt) vs `fira-code-fonts`
+(Fedora/openSUSE) vs `fira-code` (Void/Alpine), `freerdp3-x11` (apt),
+`7zip`/`Thunar`/`libusb1`/`pipewire-pulseaudio` (Fedora), `micro-editor` and
+`libnotify-tools` (openSUSE), `Thunar` (Void, capitalised). `mission-center`
+and `thunar-shares-plugin` are Arch-only. A wrong name is isolated by
+`pkg_install` and only warns — so verify each name in every family's repo when
+adding a package.
+
 ### gtk-layer-shell age
 hyprtk-bar needs gtk-layer-shell ≥ 0.9. Families below that floor (Debian ≤ 12,
 Ubuntu ≤ 24.04, Fedora ≤ 40, openSUSE Leap 15.x, Alpine ≤ 3.20) need a newer
@@ -199,11 +211,17 @@ entries and a clean run log.
 
 ## Remaining work
 
-1. Validate the exact package names per family against live distro containers
-   (the per-package fallback keeps a bad name from breaking an install, but the
-   lists should be confirmed on each release).
+1. Package names are audited for **apt** (all `hypr/packages/*.sh` lists + the
+   bar's `EXTRAS[apt]` resolve cleanly on Ubuntu 26.04 via `apt-get install -s`)
+   and spot-checked against Fedora/openSUSE/Void repo metadata. A full
+   per-release check still needs the container matrix (item 2); **Alpine** has
+   known unresolved gaps (`cliphist`, `nss-mdns`, `ipp-usb`, `nwg-look`,
+   `xfce4-plugins`, `swappy`, `unrar`, `cockpit`) and openSUSE relies on
+   provides/aliases for `python3*`/`gtk3`/`gtk4` (list may need versioned names).
+   Run the resolution linter in each family's container to finish this.
 2. Add a container matrix to CI (mirroring hyprtk-bar's
-   `.github/workflows/install-matrix.yml`).
+   `.github/workflows/install-matrix.yml`) — the authoritative way to validate
+   the per-family package lists without a VM.
 3. Gentoo/NixOS: provide an ebuild set / Nix expression so those families are
    first-class instead of "listed for manual install".
 4. Validate the `awww-install.sh` source build on a live Debian/Ubuntu, Fedora

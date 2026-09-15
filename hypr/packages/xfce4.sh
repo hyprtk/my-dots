@@ -15,7 +15,7 @@ apt)
     ;;
 dnf)
     PKGS=(xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-settings
-          xfce4-terminal thunar xfce4-power-manager xfce4-goodies parole tumbler)
+          xfce4-terminal Thunar xfce4-power-manager parole tumbler)
     ;;
 zypper)
     PKGS=(patterns-xfce-xfce xfce4-goodies parole tumbler)

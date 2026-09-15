@@ -16,13 +16,26 @@ echo "File /etc/sddm.conf.d/sddm.conf updated."
 echo ""
 cp "$_PKGDIR/../../default.png" ~/.cache/current-wallpaper.png
 echo ""
-hyprtk_run_root cp ~/.cache/current-wallpaper.png /usr/share/sddm/themes/Sugar-Candy/Backgrounds/ 2>/dev/null || true
-echo "Current wallpaper copied into sddm theme folder"
-echo ""
-echo ""
-hyprtk_run_root cp "$_PKGDIR/../../configs/sddm/theme.conf" /usr/share/sddm/themes/Sugar-Candy/ 2>/dev/null || true
-echo "File theme.conf updated in /usr/share/sddm/themes/Sugar-Candy/"
-echo ""
+# Sugar-Candy is AUR-only (sddm-theme-sugar-candy-git); non-Arch installs have
+# no theme for sddm.conf's Current=Sugar-Candy. SDDM falls back to its embedded
+# theme, so this is cosmetic — try upstream once, non-fatal.
+SUGAR_THEME=/usr/share/sddm/themes/Sugar-Candy
+if [ ! -d "$SUGAR_THEME" ] && command -v git >/dev/null 2>&1; then
+    _tmp="$(mktemp -d)"
+    if git clone --depth=1 https://framagit.org/MarianArlt/sddm-sugar-candy "$_tmp/Sugar-Candy" >/dev/null 2>&1; then
+        hyprtk_run_root mkdir -p /usr/share/sddm/themes
+        hyprtk_run_root cp -r "$_tmp/Sugar-Candy" "$SUGAR_THEME"
+        echo "Installed the Sugar-Candy SDDM theme from upstream"
+    fi
+    rm -rf "$_tmp"
+fi
+if [ -d "$SUGAR_THEME" ]; then
+    hyprtk_run_root cp ~/.cache/current-wallpaper.png "$SUGAR_THEME/Backgrounds/" 2>/dev/null || true
+    hyprtk_run_root cp "$_PKGDIR/../../configs/sddm/theme.conf" "$SUGAR_THEME/" 2>/dev/null || true
+    echo "Sugar-Candy theme assets updated."
+else
+    echo "Sugar-Candy theme not installed — SDDM will use its built-in theme."
+fi
 echo ""
 hyprtk_run_root cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png 2>/dev/null || true
 echo ""

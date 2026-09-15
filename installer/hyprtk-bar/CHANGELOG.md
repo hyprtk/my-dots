@@ -32,6 +32,9 @@ Dates are in YYYY-MM-DD format.
   (`libnotify` has no candidate; `policykit-1` was superseded by `polkitd` +
   `pkexec`). The apt list now installs `libnotify-bin` (which provides
   `notify-send`) and `polkitd pkexec`.
+- **Fedora/openSUSE extras corrected.** `pipewire-pulse` is a Debian name; Fedora
+  and openSUSE ship `pipewire-pulseaudio`. openSUSE's `notify-send` lives in
+  `libnotify-tools`, not `libnotify`. Fixed in `EXTRAS[dnf]`/`EXTRAS[zypper]`.
 
 ## [0.1.0] - 2026-09-12
 

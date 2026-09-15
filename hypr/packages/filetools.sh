@@ -10,16 +10,16 @@ pacman)
     AUR=(thunar-shares-plugin)
     ;;
 apt)
-    PKGS=(thunar mousepad thunar-shares-plugin)
+    PKGS=(thunar mousepad)
     ;;
 dnf)
-    PKGS=(thunar mousepad thunar-shares-plugin)
+    PKGS=(Thunar mousepad)
     ;;
 zypper)
     PKGS=(thunar mousepad thunar-shares-plugin)
     ;;
 xbps)
-    PKGS=(thunar mousepad)
+    PKGS=(Thunar mousepad)
     ;;
 apk)
     PKGS=(thunar mousepad)

@@ -50,5 +50,18 @@ echo ""
 # Optional: Force symlink replacement if needed (e.g., on EndeavourOS)
 hyprtk_run_root systemctl enable sddm --force 2>/dev/null
 
+# Debian/Ubuntu ship an sddm.service with an ExecStartPre that requires
+# /etc/X11/default-display-manager to name sddm; a leftover lightdm entry (or a
+# missing file) makes the unit fail on every start and no greeter appears. Arch
+# has no such check, so this is a no-op there. See PORTABILITY.md.
+if [ "$HYPRTK_PM" = apt ]; then
+    hyprtk_run_root mkdir -p /etc/X11
+    if command -v update-alternatives >/dev/null 2>&1 \
+        && update-alternatives --query default-display-manager >/dev/null 2>&1; then
+        hyprtk_run_root update-alternatives --set default-display-manager /usr/bin/sddm 2>/dev/null
+    fi
+    hyprtk_run_root sh -c 'printf "%s\n" /usr/bin/sddm > /etc/X11/default-display-manager'
+fi
+
 echo ""
 echo "Switched to SDDM. Reboot to apply changes."

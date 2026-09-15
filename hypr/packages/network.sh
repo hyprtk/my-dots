@@ -11,7 +11,7 @@ pacman)
           gvfs-wsdd ntfs-3g samba)
     ;;
 apt)
-    PKGS=(network-manager network-manager-gnome git freerdp2-x11 curl gvfs
+    PKGS=(network-manager network-manager-gnome git freerdp3-x11 curl gvfs
           gvfs-backends ntfs-3g samba)
     ;;
 dnf)
