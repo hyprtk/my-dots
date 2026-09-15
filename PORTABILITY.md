@@ -277,10 +277,32 @@ and the PPA codename logic are genuinely exercised.
    the **cppiber/hyprland** PPA (Hyprland `>= 0.55` + hyprpicker/hyprsunset) and
    the **zhangsongcui3371/fastfetch** PPA via `hyprtk_apt_add_ppa` (explicit
    keyring + `sources.list.d`, since `add-apt-repository` needs a reachable
-   Launchpad API and fails on minimal/containerised Ubuntu & Mint). Still an
-   archive gap on Ubuntu 24.04 / Mint 22.3: `libgtk4-layer-shell0` (used by
-   matuwall's `LD_PRELOAD`), `nwg-look`, `swappy`, `starship` (cosmetic) and
-   `nvidia-driver` (Ubuntu needs the versioned `nvidia-driver-5xx`).
+   Launchpad API and fails on minimal/containerised Ubuntu & Mint). Packages no
+   archive carries are then built/installed by `srcapps-install.sh` (see below).
+   The only remaining archive gap is `nvidia-driver` (Ubuntu needs the versioned
+   `nvidia-driver-5xx`).
+
+### Source-built apps (`srcapps-install.sh`)
+
+Some apps are absent from the archives of several families. `installer/scripts/
+srcapps-install.sh` fills those gaps after the package steps — idempotent (skips
+when already present) and non-fatal (a failed build warns and the install
+continues), like `awww-install.sh`. `HYPRTK_DRYRUN=1` prints the plan.
+
+| app | how | why |
+|-----|-----|-----|
+| gtk4-layer-shell | meson build, `v1.3.0` (`-Dvapi=false -Dintrospection=false`) | matuwall's `LD_PRELOAD`; missing on noble/Mint/bookworm |
+| swappy | meson build, `v1.8.0` | `grim.sh` screenshot editor; missing on noble/bookworm/Alpine |
+| nwg-look | `go build`, `v1.1.1` | GTK settings tool; missing on Ubuntu/Debian/Alpine, COPR on Fedora |
+| starship | upstream installer (`starship.rs/install.sh`, `v1.26.0`) | shell prompt; missing on noble/bookworm/Fedora/Alpine |
+
+The build deps are defined per family (`apt`/`dnf`/`zypper`/`xbps`/`apk`). For
+gtk4-layer-shell it also creates `/usr/lib/libgtk4-layer-shell.so` pointing at the
+real library (via `pkg-config --variable=libdir`, with `lib`/`lib64` fallbacks),
+because the dotfiles' matuwall launch hard-codes that Arch path. Verified with
+real builds in containers: **Linux Mint 22.3**, **Alpine** and **Fedora** all
+install all four; the `LD_PRELOAD` symlink resolves on multiarch
+(`x86_64-linux-gnu`) and Fedora (`lib64`) layouts.
 2. Add the matrix to CI (mirroring hyprtk-bar's `.github/workflows/install-matrix.yml`)
    so the per-family lists are validated on every push without a VM.
 3. Gentoo/NixOS: provide an ebuild set / Nix expression so those families are

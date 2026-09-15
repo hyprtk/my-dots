@@ -550,6 +550,12 @@ _spin "Installing awww wallpaper daemon..." "bash $SCRIPT_DIR/installer/scripts/
 _spin "Installing awww wrapper..." "bash $SCRIPT_DIR/installer/scripts/awww-wrapper.sh" "$LOG_FILE"
 _ok "awww wallpaper daemon installed"
 
+# Apps some distros do not package (gtk4-layer-shell, swappy, nwg-look, starship)
+# are built from source / installed from upstream when the native package is
+# missing. Idempotent and non-fatal.
+_spin "Installing apps that need source builds..." "bash $SCRIPT_DIR/installer/scripts/srcapps-install.sh" "$LOG_FILE"
+_ok "Source-built apps processed"
+
 if type grudupdater >/dev/null 2>&1; then
     _spin "Running grub updater..." "grudupdater" "$LOG_FILE"
 fi

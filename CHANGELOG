@@ -37,6 +37,14 @@ documented in this file. Dates are in YYYY-MM-DD format.
   installable rows — Arch, Debian 12/13, Ubuntu 24.04/26.04, **Linux Mint 22.3**,
   Fedora, openSUSE, Void, Alpine — complete cleanly; Gentoo/NixOS complete with
   package deps skipped).
+- **Source-built apps (`srcapps-install.sh`).** Apps absent from a family's
+  archives are now built from source / installed from upstream when the native
+  package is missing: **gtk4-layer-shell** (meson `v1.3.0`; also creates
+  `/usr/lib/libgtk4-layer-shell.so` for matuwall's `LD_PRELOAD`), **swappy**
+  (meson `v1.8.0`; `grim.sh`'s editor), **nwg-look** (`go build` `v1.1.1`) and
+  **starship** (upstream installer `v1.26.0`). Idempotent, non-fatal and
+  `HYPRTK_DRYRUN`-aware; per-family build-dep maps. Verified with real builds in
+  Linux Mint 22.3, Alpine and Fedora.
 - **Linux Mint 22.3 (Ubuntu-24.04 family) support.** Added Mint to the T1 matrix
   and the T2 dry-run. New `pkgmanager.sh` helpers — `hyprtk_apt_add_ppa`,
   `hyprtk_ubuntu_codename`, `hyprtk_is_ubuntu_family` — add a Launchpad PPA by

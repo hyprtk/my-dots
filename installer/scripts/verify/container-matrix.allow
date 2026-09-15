@@ -15,11 +15,11 @@ apt           fastfetch                        # not in the archive; zhangsongcu
 apt           hyprland                         # cppiber/hyprland PPA on the Ubuntu family (0.56.2); not in Debian
 apt           hyprpicker                       # Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora
 apt           hyprsunset                       # Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora
-apt           libgtk4-layer-shell0             # not in Debian 12 / Ubuntu 24.04 (added 24.10+)
+apt           libgtk4-layer-shell0             # no archive pkg (Debian 12 / Ubuntu 24.04); srcapps-install.sh builds it
 apt           nvidia-driver                    # Debian: non-free disabled; Ubuntu: versioned (nvidia-driver-535)
-apt           nwg-look                         # not packaged in Debian/Ubuntu archives
-apt           starship                         # not packaged in Debian/Ubuntu archives
-apt           swappy                           # not packaged in Debian/Ubuntu archives
+apt           nwg-look                         # no archive pkg; srcapps-install.sh builds it (go)
+apt           starship                         # no archive pkg; srcapps-install.sh runs the upstream installer
+apt           swappy                           # no archive pkg; srcapps-install.sh builds it (meson)
 apt/bookworm  cliphist                         # Debian 12 lacks it; Ubuntu 24.04+ has it
 apt/bookworm  eza                              # Debian 12 ships exa; eza added in Ubuntu/newer Debian
 apt/bookworm  freerdp3-x11                     # Debian 12 ships freerdp2-x11; freerdp3 is Ubuntu-only
@@ -42,9 +42,9 @@ dnf  hyprpicker                         # COPR (Hyprland ecosystem)
 dnf  hyprsunset                         # COPR (Hyprland ecosystem)
 dnf  mesa-va-drivers                    # RPMFusion (mesa-va-drivers-freeworld); Fedora base ships ffmpeg-free
 dnf  nvidia-settings                    # RPMFusion
-dnf  nwg-look                           # COPR only
+dnf  nwg-look                           # COPR only; srcapps-install.sh builds it
 dnf  polkit-gnome                       # not packaged in Fedora
-dnf  starship                           # COPR/EPEL only, not in Fedora base
+dnf  starship                           # COPR/EPEL only; srcapps-install.sh runs the upstream installer
 dnf  xorg-x11-drv-nvidia-cuda           # RPMFusion
 #
 # ── xbps: Void — not packaged, or the nonfree repo is not enabled ───────────
@@ -64,6 +64,6 @@ apk  ipp-usb          # not packaged for Alpine
 apk  nss-mdns         # not packaged for Alpine
 apk  nvidia           # Alpine nonfree repo not enabled by default
 apk  nvidia-settings  # Alpine nonfree repo not enabled by default
-apk  nwg-look         # not packaged for Alpine
-apk  swappy           # not packaged for Alpine
+apk  nwg-look         # not packaged for Alpine; srcapps-install.sh builds it
+apk  swappy           # not packaged for Alpine; srcapps-install.sh builds it
 apk  unrar            # Alpine nonfree repo not enabled by default

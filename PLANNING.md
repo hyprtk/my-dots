@@ -658,3 +658,25 @@ so the compositor never installed. The PPA **does** publish `noble` (hyprland
 `libgtk4-layer-shell0` (matuwall `LD_PRELOAD`), `nwg-look`, `swappy`, `starship`,
 `nvidia-driver` (Ubuntu wants `nvidia-driver-5xx`). No clean PPA; candidates for a
 source build (gtk4-layer-shell) or upstream install script (starship).
+## 18. Source-build fallbacks for unpackaged apps — 2026-09-15
+
+The Mint/noble gaps no PPA carried (`libgtk4-layer-shell0`, `swappy`, `nwg-look`,
+`starship`) are now closed by `installer/scripts/srcapps-install.sh`, called from
+`1-install.sh` after the awww steps. It is idempotent (skips when present),
+non-fatal (a failed build warns and the install continues) and `HYPRTK_DRYRUN`-
+aware (prints the plan).
+
+- **gtk4-layer-shell `v1.3.0`** — meson build with `-Dvapi=false
+  -Dintrospection=false` (the `vapi` option forces `valac` even when examples are
+  off). Needed by matuwall's `LD_PRELOAD`; the script also creates
+  `/usr/lib/libgtk4-layer-shell.so` for the dotfiles' Arch-path `LD_PRELOAD`,
+  located via `pkg-config --variable=libdir` with `lib`/`lib64` fallbacks.
+- **swappy `v1.8.0`** — meson; `grim.sh`'s screenshot editor.
+- **nwg-look `v1.1.1`** — `go build`.
+- **starship `v1.26.0`** — upstream installer (`starship.rs/install.sh -b
+  /usr/local/bin`).
+
+Per-family build-dep maps for `apt`/`dnf`/`zypper`/`xbps`/`apk`. Verified with
+**real builds in containers**: Linux Mint 22.3, Alpine and Fedora all install all
+four (the symlink resolves on multiarch and `lib64`). `bash -n` clean; host suite
+(installer-dryrun 11/11, refs 45/45, completeness) and T2 (12/12) still green.
