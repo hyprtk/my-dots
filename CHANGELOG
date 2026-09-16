@@ -119,6 +119,16 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Installer "went stale" in the apt package phase on Linux Mint / Ubuntu.**
+  The `system.sh` batch (the largest apt step) could hang invisibly inside the
+  `gum spin`: Mint's background updaters (mintupdate, unattended-upgrades,
+  packagekit, apt-daily) can hold the dpkg/apt lock, and debconf/needrestart can
+  prompt. `pkgmanager.sh` now routes every apt call through an `_apt` wrapper
+  (`DEBIAN_FRONTEND=noninteractive`, `NEEDRESTART_MODE=a`,
+  `-o DPkg::Lock::Timeout=600`, dpkg `--force-confdef/--force-confold`), and
+  `1-install.sh` calls a new `hyprtk_apt_wait_lock` before the core package loop
+  that waits visibly (flock poll, 5s steps, 10-min cap) and announces a held
+  lock. `hyprland.sh`/`webtools.sh` use `_apt` too.
 - **Void Linux: Hyprland availability documented.** Void does not package
   `hyprland` (a packaging-philosophy conflict). `hypr/packages/hyprland.sh` now
   prints the community-repo steps (void-land/hyprland-void-packages,

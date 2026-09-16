@@ -707,3 +707,42 @@ documented path is the community binary repo **void-land/hyprland-void-packages*
   as ⚠️ COPR), footnote ³.
 - The note is a no-op in the dry-run (the stubbed `xbps-query` reports Hyprland
   installed), so T2 stays green; `bash -n` clean.
+## 21. Mint/Ubuntu apt "stale" install — lock + prompt hardening — 2026-09-15
+
+Report: on Linux Mint the installer "becomes stale" while installing the
+`system.sh` packages (the largest apt batch).
+
+### Cause
+
+The container image is a Docker-optimised Mint base (periodic updates disabled,
+no `needrestart`), so it never reproduced; a real Mint desktop differs:
+
+1. **dpkg/apt lock** — `mintupdate`/`mintupdate-tool`, `unattended-upgrades`,
+   `packagekit` and the `apt-daily*` timers can hold `/var/lib/dpkg/lock-frontend`.
+   A plain `apt-get install` waits for it *forever*, and the `gum spin` wrapper
+   hides apt's "Waiting for cache lock…" line → the spinner looks frozen.
+2. **Interactive prompts** — `debconf` and `needrestart` can ask questions whose
+   prompt is buried inside the spinner.
+
+Neither was handled anywhere (`grep` found no `Lock::Timeout`/`DEBIAN_FRONTEND`).
+
+### Fix
+
+- `pkgmanager.sh`: new **`_apt`** wrapper used by every apt path (install /
+  per-package retry / remove / `hyprtk_apt_add_ppa` update). Sets
+  `DEBIAN_FRONTEND=noninteractive`, `NEEDRESTART_MODE=a`, and passes
+  `-o DPkg::Lock::Timeout=600 -o Dpkg::Options::=--force-confdef
+  --force-confold` (also passed through `hyprtk_run_root`, since sudo would
+  otherwise drop the env).
+- `pkgmanager.sh`: **`hyprtk_apt_wait_lock`** — a visible preflight that polls
+  `flock -n` on the dpkg/apt locks (5s steps, 600s cap) and prints
+  "apt is locked by a background updater — waiting…" / "✓ apt lock released".
+  Called from `1-install.sh` before the core package loop (outside the spinner,
+  so it is actually visible).
+- `hyprland.sh` / `webtools.sh`: their direct apt calls now use `_apt`.
+
+### Verified
+
+- On Mint: `_apt install -y fzf` installs cleanly; `hyprtk_apt_wait_lock`
+  detects a held `/var/lib/dpkg/lock-frontend` and prints waiting → released.
+- T2 12/12; host suite green (11/11, 45/45, completeness).

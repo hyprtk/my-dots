@@ -47,7 +47,7 @@ install_brave_apt() {
     fi
     printf 'deb [signed-by=%s] https://brave-browser-apt-release.s3.brave.com/ stable main\n' "$keyring" \
         | hyprtk_run_root tee /etc/apt/sources.list.d/brave-browser-release.list >/dev/null
-    hyprtk_run_root apt-get update
+    _apt update
     pkg_install brave-browser
 }
 

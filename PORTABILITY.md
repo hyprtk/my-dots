@@ -206,6 +206,27 @@ without `sudo` must run the installer as root.
 `1-install.sh` builds `yay` on Arch when no helper is present (needs
 `base-devel` + `git`). Without a helper, AUR packages are skipped with a warning.
 
+### apt installs must be lock-tolerant and non-interactive (Mint/Ubuntu)
+On a real Linux Mint / Ubuntu desktop the package phase can appear to **freeze
+("go stale")** — most visibly in the largest batch (`system.sh`). Two causes,
+both invisible inside the `gum spin` that wraps each `hypr/packages/*.sh` step:
+
+1. **The dpkg/apt lock.** Mint's background updaters (`mintupdate` /
+   `mintupdate-tool`, `unattended-upgrades`, `packagekit`, the `apt-daily`
+   timers) can hold `/var/lib/dpkg/lock-frontend`, and a plain `apt-get` waits
+   for it indefinitely while the spinner shows nothing.
+2. **Interactive prompts.** `debconf` and `needrestart` can ask questions
+   ("Which services should be restarted?") whose prompt is buried in the spinner.
+
+`pkgmanager.sh` therefore funnels every apt call through `_apt`, which sets
+`DEBIAN_FRONTEND=noninteractive` + `NEEDRESTART_MODE=a` and passes
+`-o DPkg::Lock::Timeout=600 -o Dpkg::Options::=--force-confdef
+--force-confold`. `1-install.sh` also calls `hyprtk_apt_wait_lock` before the
+core package loop: it waits *visibly* (via `flock -n` on the dpkg/apt locks, 5s
+steps, 10-minute cap) and announces "apt is locked by a background updater —
+waiting…", so a held lock is explained rather than looking frozen. The in-script
+apt calls (`hyprland.sh`, `webtools.sh`) use `_apt` too.
+
 ## Verification
 
 The dry-run harness (`installer/scripts/verify/installer-dryrun.sh`) stubs every

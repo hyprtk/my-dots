@@ -94,13 +94,13 @@ install_hyprland_apt() {
     if ! hyprtk_apt_add_ppa cppiber/hyprland A54D23B62FF3FCC76EFF71E8FDBAAA1CF0CCF48E; then
         pkg_install software-properties-common
         hyprtk_run_root add-apt-repository -y ppa:cppiber/hyprland
-        hyprtk_run_root apt-get update
+        _apt update
     fi
     # The PPA's libhyprcursor1/libudis86.1 supersede the archive's
     # libhyprcursor0/libudis86-0 without declaring Replaces, so the file lists
     # collide; --force-overwrite lets the upgrade through.
-    hyprtk_run_root apt-get -o Dpkg::Options::=--force-overwrite install -y hyprland
-    hyprtk_run_root apt-get -o Dpkg::Options::=--force-overwrite -f install -y
+    _apt -o Dpkg::Options::=--force-overwrite install -y hyprland
+    _apt -o Dpkg::Options::=--force-overwrite -f install -y
 }
 
 # Void Linux does not package Hyprland (a packaging-philosophy conflict), so the

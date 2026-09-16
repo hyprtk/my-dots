@@ -59,6 +59,44 @@ hyprtk_run_root() {
     fi
 }
 
+# apt wrapper: non-interactive, config-file-tolerant and lock-tolerant.
+# Mint and Ubuntu run background updaters (mintupdate / unattended-upgrades /
+# packagekit / the apt-daily timers) that can hold the dpkg lock, and debconf or
+# needrestart can prompt — neither is visible inside `gum spin`, so the install
+# looks frozen ("stale"). DEBIAN_FRONTEND/NEEDRESTART_MODE suppress the prompts,
+# DPkg::Lock::Timeout bounds the wait for the lock (instead of hanging forever),
+# and the dpkg options keep pre-existing config files.
+_apt() {
+    hyprtk_run_root env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a \
+        apt-get -o DPkg::Lock::Timeout=600 \
+                -o Dpkg::Options::=--force-confdef \
+                -o Dpkg::Options::=--force-confold "$@"
+}
+
+# Wait *visibly* for the dpkg/apt lock when a background updater holds it. Called
+# before the package phase (outside the gum spinner) so an apt-locked install is
+# announced rather than looking frozen; capped so it can never hang forever.
+hyprtk_apt_wait_lock() {
+    [ "$HYPRTK_PM" = apt ] || return 0
+    command -v flock >/dev/null 2>&1 || return 0
+    local waited=0 f
+    for f in /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock; do
+        [ -e "$f" ] || continue
+        while ! hyprtk_run_root flock -n "$f" true 2>/dev/null; do
+            [ "$waited" -eq 0 ] && \
+                echo "  ! apt is locked by a background updater (mintupdate/unattended-upgrades) — waiting…"
+            sleep 5
+            waited=$((waited + 5))
+            if [ "$waited" -ge 600 ]; then
+                echo "  ! apt still locked after ${waited}s — continuing anyway"
+                return 0
+            fi
+        done
+    done
+    [ "$waited" -gt 0 ] && echo "  ✓ apt lock released (waited ${waited}s)"
+    return 0
+}
+
 # ── Query ───────────────────────────────────────────────────────────────────
 # 0 when the named package is installed, 1 otherwise.
 pkg_is_installed() {
@@ -89,7 +127,7 @@ pkg_install() {
     local batch_ok=1
     case "$HYPRTK_PM" in
         pacman) hyprtk_run_root pacman -S --noconfirm --needed "${pkgs[@]}" || batch_ok=0 ;;
-        apt)    hyprtk_run_root apt-get install -y "${pkgs[@]}" || batch_ok=0 ;;
+        apt)    _apt install -y "${pkgs[@]}" || batch_ok=0 ;;
         dnf)    hyprtk_run_root dnf install -y "${pkgs[@]}" || batch_ok=0 ;;
         zypper) hyprtk_run_root zypper --non-interactive install "${pkgs[@]}" || batch_ok=0 ;;
         xbps)   hyprtk_run_root xbps-install -Sy "${pkgs[@]}" || batch_ok=0 ;;
@@ -111,7 +149,7 @@ pkg_install() {
     for p in "${pkgs[@]}"; do
         case "$HYPRTK_PM" in
             pacman) hyprtk_run_root pacman -S --noconfirm --needed "$p" >/dev/null 2>&1 ;;
-            apt)    hyprtk_run_root apt-get install -y "$p" >/dev/null 2>&1 ;;
+            apt)    _apt install -y "$p" >/dev/null 2>&1 ;;
             dnf)    hyprtk_run_root dnf install -y "$p" >/dev/null 2>&1 ;;
             zypper) hyprtk_run_root zypper --non-interactive install "$p" >/dev/null 2>&1 ;;
             xbps)   hyprtk_run_root xbps-install -Sy "$p" >/dev/null 2>&1 ;;
@@ -132,7 +170,7 @@ pkg_remove() {
     fi
     case "$HYPRTK_PM" in
         pacman) hyprtk_run_root pacman -Rns --noconfirm "${pkgs[@]}" 2>/dev/null || true ;;
-        apt)    hyprtk_run_root apt-get remove -y "${pkgs[@]}" 2>/dev/null || true ;;
+        apt)    _apt remove -y "${pkgs[@]}" 2>/dev/null || true ;;
         dnf)    hyprtk_run_root dnf remove -y "${pkgs[@]}" 2>/dev/null || true ;;
         zypper) hyprtk_run_root zypper --non-interactive remove "${pkgs[@]}" 2>/dev/null || true ;;
         xbps)   hyprtk_run_root xbps-remove -Ry "${pkgs[@]}" 2>/dev/null || true ;;
@@ -230,6 +268,6 @@ hyprtk_apt_add_ppa() {
     printf 'deb [signed-by=%s] https://ppa.launchpadcontent.net/%s/ubuntu %s %s\n' \
         "$keyring" "$ppa" "$codename" "$comps" \
         | hyprtk_run_root tee "/etc/apt/sources.list.d/$name.list" >/dev/null
-    hyprtk_run_root apt-get update || true
+    _apt update || true
     return 0
 }

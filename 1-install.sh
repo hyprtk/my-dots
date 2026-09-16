@@ -521,6 +521,9 @@ fi
 
 # ── Core packages ─────────────────────────────────────────────────────────
 _step "Installing Core Packages"
+# Mint/Ubuntu run background updaters that can hold the dpkg lock; announce a
+# wait here (visible) instead of letting the first apt step look frozen.
+hyprtk_apt_wait_lock
 for pkg in hyprland xfce4 filetools webtools printers network media terminaltools systemtools system sddm-check sddmgrub matuwall manual_package_installs 3dprinting; do
     pkg_script="$SCRIPT_DIR/hypr/packages/$pkg.sh"
     pkg_detail="$(_fit_detail "$(_script_packages "$pkg_script")")"
