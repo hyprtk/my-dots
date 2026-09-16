@@ -82,7 +82,11 @@ fi
 WAL_ONLY=0
 if [[ "${1:-}" == "--wal-only" ]]; then
     WAL_ONLY=1
-    # Provisioning pywal needs no feature binaries; skip the extras pass.
+    # pywal16 is pure vendored Python: provisioning `wal` needs neither the
+    # GTK/PyGObject system deps nor any optional feature binaries. Skipping both
+    # means --wal-only never touches the package manager and never needs root —
+    # which is what 1-install.sh relies on when it calls this early.
+    SKIP_DEPS=1
     SKIP_EXTRAS=1
 fi
 
@@ -117,6 +121,19 @@ DEPS[xbps]="gtk+3-devel gtk-layer-shell-devel gdk-pixbuf-devel pango-devel cairo
 DEPS[apk]="gtk+3.0-dev gtk-layer-shell-dev gdk-pixbuf-dev pango-dev cairo-dev gobject-introspection-dev py3-gobject3 py3-cairo py3-pip py3-virtualenv"
 DEPS[emerge]="x11-libs/gtk+:3 gui-libs/gtk-layer-shell x11-libs/gdk-pixbuf x11-libs/pango x11-libs/cairo dev-libs/gobject-introspection dev-python/pygobject dev-python/pycairo"
 DEPS[nix]="gtk3 gtk-layer-shell gdk-pixbuf pango cairo gobject-introspection python3"
+
+# openSUSE ships the Python bindings under versioned names — python313-gobject,
+# python313-pycairo, python313-psutil — with no unversioned python3-* alias.
+# Resolve the running interpreter's prefix and rewrite the zypper Python entries
+# so the same package set works whether Tumbleweed's default Python is 3.11,
+# 3.13 or 3.14. The typelib names are already correct.
+if command -v zypper >/dev/null 2>&1; then
+    __py="$(python3 -c 'import sys; print("python%d%d" % sys.version_info[:2])' 2>/dev/null || true)"
+    if [ -n "${__py:-}" ]; then
+        DEPS[zypper]="typelib-1_0-Gtk-3_0 typelib-1_0-GtkLayerShell-0_1 typelib-1_0-GdkPixbuf-2_0 typelib-1_0-Pango-1_0 girepository-1_0 ${__py}-gobject ${__py}-gobject-Gdk ${__py}-gobject-cairo ${__py}-pip"
+    fi
+    unset __py
+fi
 
 # Optional feature dependencies — the external binaries the bar shells out to
 # for quick settings, system monitor, clipboard, theming, etc. Installed by
@@ -379,7 +396,16 @@ if [ "$SKIP_DEPS" -eq 0 ]; then
         echo ":: Install GTK3 + gtk-layer-shell typelibs manually, then rerun." >&2
     else
         echo ":: Installing system dependencies via $PM ..."
-        install_pkgs "$PM" ${DEPS[$PM]:-}
+        # Non-fatal: a package manager that needs an interactive credential
+        # (openSUSE's run0/polkit, a locked apt, no sudo) must not abort the
+        # whole install. The app, venv, launcher and bundled wal still install;
+        # the bar simply cannot start until the typelibs are present, which the
+        # warning below makes explicit.
+        if ! install_pkgs "$PM" ${DEPS[$PM]:-}; then
+            echo ":: WARN: could not install all system dependencies via $PM (see above)." >&2
+            echo "::       The bar will not start until the GTK, gtk-layer-shell and" >&2
+            echo "::       xlib typelibs plus PyGObject are present." >&2
+        fi
     fi
     # After the deps step, gtk-layer-shell should be importable; warn (don't
     # fail) if it's present but below the 0.9 floor the bar expects.
@@ -472,9 +498,12 @@ cp "$SCRIPT_DIR/pyproject.toml" "$INSTALL_DIR/"
 # compiler + GI/cairo headers) on every distro. Use the distro's own
 # pygobject/pycairo (installed above via DEPS) and pip-install only the
 # pure-Python dbus-next; the bar itself is editable-installed with --no-deps.
-python3 -m venv --system-site-packages "$INSTALL_DIR/venv"
-"$INSTALL_DIR/venv/bin/pip" install --quiet "dbus-next>=0.2.3,<0.3"
-"$INSTALL_DIR/venv/bin/pip" install --quiet --no-deps -e "$INSTALL_DIR"
+python3 -m venv --system-site-packages "$INSTALL_DIR/venv" \
+    || echo ":: WARN: could not create the venv — is python3 (with venv) installed?" >&2
+"$INSTALL_DIR/venv/bin/pip" install --quiet "dbus-next>=0.2.3,<0.3" \
+    || echo ":: WARN: could not install dbus-next (bar IPC may be unavailable)." >&2
+"$INSTALL_DIR/venv/bin/pip" install --quiet --no-deps -e "$INSTALL_DIR" \
+    || echo ":: WARN: could not editable-install the bar." >&2
 
 # Main launcher
 cat > "$BIN_DIR/$APP_NAME" << LAUNCHER
@@ -549,7 +578,9 @@ if [ -d "$SCRIPT_DIR/scripts" ]; then
     done
 fi
 
-cp "$SCRIPT_DIR/$APP_NAME.desktop" "$APPS_DIR/"
+# Rewrite Exec to this user's actual launcher path — the .desktop ships with a
+# placeholder path that is wrong for any account other than the packager's.
+sed "s|^Exec=.*|Exec=$BIN_DIR/$APP_NAME|" "$SCRIPT_DIR/$APP_NAME.desktop" > "$APPS_DIR/$APP_NAME.desktop"
 update-desktop-database "$APPS_DIR" 2>/dev/null || true
 
 configure_autostart

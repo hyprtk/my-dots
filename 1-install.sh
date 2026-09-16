@@ -31,6 +31,9 @@ esac
 
 # ── Installation log ──────────────────────────────────────────────────────
 LOG_FILE="$SCRIPT_DIR/install.log"
+# Steps that failed (non-zero exit) during the run. Collected so the installer
+# can report the truth at the end instead of printing OK for a failed step.
+HYPRTK_FAILED=()
 log() {
     local timestamp
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
@@ -179,10 +182,19 @@ _spin() {
         shown="$title"$'\n'"  → $detail"
     fi
     log "SPIN: $title${detail:+ | $detail}"
-    $GUM spin --spinner dot --title "$shown" -- bash -c "$cmd >> '$logfile' 2>&1"
+    if [ "${HYPRTK_PTY_WRAP:-0}" = "1" ] && command -v script >/dev/null 2>&1; then
+        # run0 (openSUSE's sudo) fails with "Failed to set unit properties" when
+        # its stdio is redirected. Give the step a real PTY via `script`, then
+        # redirect script's output to the log.
+        $GUM spin --spinner dot --title "$shown" -- \
+            bash -c 'script -qec "$1" /dev/null >> "$2" 2>&1' _ "$cmd" "$logfile"
+    else
+        $GUM spin --spinner dot --title "$shown" -- bash -c "$cmd >> '$logfile' 2>&1"
+    fi
     local rc=$?
     if [ $rc -ne 0 ]; then
         log "SPIN FAILED (exit $rc): $title"
+        HYPRTK_FAILED+=("$title")
     else
         log "SPIN OK: $title"
     fi
@@ -195,10 +207,15 @@ _run() {
     local logfile="$3"
     log "RUN: $title"
     echo -e "${CYAN}  → ${WHITE}$title${NC}"
-    bash -c "$cmd >> '$logfile' 2>&1"
+    if [ "${HYPRTK_PTY_WRAP:-0}" = "1" ] && command -v script >/dev/null 2>&1; then
+        bash -c 'script -qec "$1" /dev/null >> "$2" 2>&1' _ "$cmd" "$logfile"
+    else
+        bash -c "$cmd >> '$logfile' 2>&1"
+    fi
     local rc=$?
     if [ $rc -ne 0 ]; then
         log "RUN FAILED (exit $rc): $title"
+        HYPRTK_FAILED+=("$title")
     else
         log "RUN OK: $title"
     fi
@@ -211,24 +228,79 @@ _run() {
 # Ask for the password up front — visibly — then keep the cached credential
 # alive in the background so a long build can't expire the timestamp mid-spin.
 SUDO_KEEPALIVE_PID=""
+# openSUSE Tumbleweed's `sudo` is a shim to run0 (systemd), which authenticates
+# through polkit. Unlike classic sudo it keeps no reusable timestamp, and any
+# non-interactive caller (everything under `gum spin`) is refused with
+# "interactive authentication has not been enabled by the calling program".
+# Installing a temporary polkit rule that lists this user makes run0 passwordless
+# for the rest of the install; it is removed on exit. Other distros keep the
+# classic `sudo -v` + keepalive path.
+HYPRTK_TMP_POLKIT="/etc/polkit-1/rules.d/51-hyprtk-install.rules"
 _cleanup_keepalive() {
     if [ -n "$SUDO_KEEPALIVE_PID" ] && kill -0 "$SUDO_KEEPALIVE_PID" 2>/dev/null; then
         kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
     fi
+    if [ -e "$HYPRTK_TMP_POLKIT" ]; then
+        sudo -n rm -f "$HYPRTK_TMP_POLKIT" 2>/dev/null || true
+    fi
 }
 trap _cleanup_keepalive EXIT
 
-_sudo_auth() {
-    if sudo -n true 2>/dev/null; then
-        log "SUDO: credentials already valid"
-    else
-        echo -e "${WHITE}  Enter your password to authorise the installation:${NC}"
+# True when `sudo` is systemd's run0 wrapper rather than classic sudo.
+_sudo_is_run0() {
+    local resolved
+    resolved="$(readlink -f "$(command -v sudo 2>/dev/null)" 2>/dev/null)"
+    case "$resolved" in *run0*) return 0 ;; esac
+    [ -x /usr/bin/run0 ] && sudo --version 2>/dev/null | grep -qi run0
+}
+
+# Make elevation non-interactive for the duration of the install.
+_sudo_bootstrap() {
+    sudo -n true 2>/dev/null && return 0
+
+    if _sudo_is_run0; then
+        # run0 also needs a PTY for its stdio; make _spin/_run wrap steps in
+        # `script` (see _spin) so root commands work inside the log redirect.
+        HYPRTK_PTY_WRAP=1
+        export HYPRTK_PTY_WRAP
+        echo -e "${WHITE}  openSUSE run0/polkit detected — authorising this user once.${NC}"
         echo ""
         if ! sudo -v; then
-            die "sudo authentication failed"
+            return 1
         fi
-        log "SUDO: credentials cached"
+        local tmp
+        tmp="$(mktemp)"
+        # Documented run0 mechanism: add the user to the passwordless list.
+        cat > "$tmp" <<POLKIT
+// Temporary: written by the hyprtk installer, removed when it exits.
+polkit._run0_nopasswd = polkit._run0_nopasswd || [];
+polkit._run0_nopasswd.push("$(id -un)");
+POLKIT
+        if ! sudo install -m 0644 -o root -g root "$tmp" "$HYPRTK_TMP_POLKIT"; then
+            rm -f "$tmp"
+            return 1
+        fi
+        rm -f "$tmp"
+        # polkit watches rules.d; give it a moment, then confirm.
+        local i
+        for i in 1 2 3 4 5; do
+            sudo -n true 2>/dev/null && return 0
+            sleep 1
+        done
+        return 1
     fi
+
+    echo -e "${WHITE}  Enter your password to authorise the installation:${NC}"
+    echo ""
+    sudo -v || return 1
+    return 0
+}
+
+_sudo_auth() {
+    if ! _sudo_bootstrap; then
+        die "sudo authentication failed"
+    fi
+    log "SUDO: elevation ready"
 
     if [ -z "$SUDO_KEEPALIVE_PID" ] || ! kill -0 "$SUDO_KEEPALIVE_PID" 2>/dev/null; then
         ( while true; do sudo -n true 2>/dev/null; sleep 50; done ) &
@@ -583,8 +655,18 @@ _spin "Installing Papirus icons for root..." \
 _ok "Icons installed for root"
 
 # ── Init pywal16 ─────────────────────────────────────────────────────────
+# pywal reads the palette with `magick … -unique-colors txt:-`. ImageMagick 7
+# ships a security policy that denies the TXT coder, in which case the command
+# exits 0 with no output: pywal retries palette sizes, then gives up and
+# ~/.cache/wal/colors.json is never written (wal "succeeds" with no result).
+# The bundled bar script removes TXT from whatever IM policy is present.
+# `wal -n` skips pywal's own wallpaper setting — this installer sets the
+# wallpaper via awww, and letting pywal also set it can block forever.
 _step "Initiating Pywal16"
-_spin "Initializing pywal16..." "wal -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
+_spin "Allowing pywal's ImageMagick TXT coder (if restricted)..." \
+    "bash $SCRIPT_DIR/installer/hyprtk-bar/scripts/fix-imagemagick-policy.sh" \
+    "$LOG_FILE"
+_spin "Initializing pywal16..." "wal -n -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
 _ok "pywal16 initiated"
 
 _spin "Setting default wallpaper..." "cp $SCRIPT_DIR/assets/Wallpapers/default.png ~/.cache/current-wallpaper.png && sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png" "$LOG_FILE"
@@ -668,7 +750,7 @@ else
         if type wal_init >/dev/null 2>&1; then
             _spin "Running wal_init..." "wal_init" "$LOG_FILE"
         else
-            _spin "Initializing pywal16..." "wal -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
+            _spin "Initializing pywal16..." "wal -n -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
         fi
         _ok "Pywal16 templates initiated"
 
@@ -785,6 +867,21 @@ fi
 
 # ── Completion ─────────────────────────────────────────────────────────────
 log "=== hyprtk installation completed ==="
+if [ "${#HYPRTK_FAILED[@]}" -gt 0 ]; then
+    log "!!! ${#HYPRTK_FAILED[@]} step(s) FAILED:"
+    local_fail=""
+    for local_fail in "${HYPRTK_FAILED[@]}"; do
+        log "!!!   - $local_fail"
+    done
+    echo ""
+    echo -e "${RED}  ${#HYPRTK_FAILED[@]} step(s) did NOT complete cleanly:${NC}"
+    for local_fail in "${HYPRTK_FAILED[@]}"; do
+        echo -e "${YELLOW}    • $local_fail${NC}"
+    done
+    echo -e "${WHITE}  See ${CYAN}$LOG_FILE${WHITE} for the failing output.${NC}"
+    echo ""
+    sleep 4
+fi
 clear
 _box \
     "$(printf "${CYAN}INSTALLATION COMPLETE${NC}")" \

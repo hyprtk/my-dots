@@ -97,8 +97,25 @@ hyprtk_apt_wait_lock() {
     return 0
 }
 
-# ── Query ───────────────────────────────────────────────────────────────────
-# 0 when the named package is installed, 1 otherwise.
+# openSUSE packages Python modules under versioned names (python313-psutil,
+# python314-gobject) with no unversioned python3-* alias. Map a python3-FOO
+# request to python3NN-FOO for the running interpreter; leave anything else (and
+# any undeterminable prefix) untouched. Non-zypper callers never invoke this.
+hyprtk_zypper_pyname() {
+    case "$1" in
+        python3-*)
+            local py
+            py="$(python3 -c 'import sys; print("python%d%d" % sys.version_info[:2])' 2>/dev/null || true)"
+            if [ -n "$py" ]; then
+                printf '%s\n' "${py}-${1#python3-}"
+                return 0
+            fi
+            ;;
+    esac
+    printf '%s\n' "$1"
+}
+
+# ── Query ───────────────────────────────────────────────────────────────────# 0 when the named package is installed, 1 otherwise.
 pkg_is_installed() {
     local p="$1"
     case "$HYPRTK_PM" in
@@ -129,7 +146,13 @@ pkg_install() {
         pacman) hyprtk_run_root pacman -S --noconfirm --needed "${pkgs[@]}" || batch_ok=0 ;;
         apt)    _apt install -y "${pkgs[@]}" || batch_ok=0 ;;
         dnf)    hyprtk_run_root dnf install -y "${pkgs[@]}" || batch_ok=0 ;;
-        zypper) hyprtk_run_root zypper --non-interactive install "${pkgs[@]}" || batch_ok=0 ;;
+        zypper)
+            local -a zpkgs=()
+            local zq
+            for zq in "${pkgs[@]}"; do
+                zpkgs+=("$(hyprtk_zypper_pyname "$zq")")
+            done
+            hyprtk_run_root zypper --non-interactive install "${zpkgs[@]}" || batch_ok=0 ;;
         xbps)   hyprtk_run_root xbps-install -Sy "${pkgs[@]}" || batch_ok=0 ;;
         apk)    hyprtk_run_root apk add --no-cache "${pkgs[@]}" || batch_ok=0 ;;
         emerge)
@@ -151,7 +174,7 @@ pkg_install() {
             pacman) hyprtk_run_root pacman -S --noconfirm --needed "$p" >/dev/null 2>&1 ;;
             apt)    _apt install -y "$p" >/dev/null 2>&1 ;;
             dnf)    hyprtk_run_root dnf install -y "$p" >/dev/null 2>&1 ;;
-            zypper) hyprtk_run_root zypper --non-interactive install "$p" >/dev/null 2>&1 ;;
+            zypper) hyprtk_run_root zypper --non-interactive install "$(hyprtk_zypper_pyname "$p")" >/dev/null 2>&1 ;;
             xbps)   hyprtk_run_root xbps-install -Sy "$p" >/dev/null 2>&1 ;;
             apk)    hyprtk_run_root apk add --no-cache "$p" >/dev/null 2>&1 ;;
         esac || { echo "  ! package unavailable: $p" >&2; failed=1; }
