@@ -29,6 +29,19 @@ case "$SCRIPT_DIR" in
         ;;
 esac
 
+# User-local bin dirs. openSUSE (and some minimal installs) do not put
+# ~/.local/bin on PATH for non-login shells, so bare `wal`/`hyprtk-bar`/
+# standalone tools would be "command not found". Prepend both, idempotently.
+case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) PATH="$HOME/.local/bin:$PATH" ;;
+esac
+case ":$PATH:" in
+    *":/usr/local/bin:"*) ;;
+    *) PATH="$PATH:/usr/local/bin" ;;
+esac
+export PATH
+
 # ── Installation log ──────────────────────────────────────────────────────
 LOG_FILE="$SCRIPT_DIR/install.log"
 # Steps that failed (non-zero exit) during the run. Collected so the installer
@@ -185,13 +198,20 @@ _spin() {
     if [ "${HYPRTK_PTY_WRAP:-0}" = "1" ] && command -v script >/dev/null 2>&1; then
         # run0 (openSUSE's sudo) fails with "Failed to set unit properties" when
         # its stdio is redirected. Give the step a real PTY via `script`, then
-        # redirect script's output to the log.
+        # redirect script's output to the log. `script -c` runs the command with
+        # `sh`, which would drop the exported bash functions the step may use
+        # (_installSymLink, ...), so stage it in a temp file and run it with bash.
+        local __wrap
+        __wrap="$(mktemp)"
+        printf '%s\n' "$cmd" > "$__wrap"
         $GUM spin --spinner dot --title "$shown" -- \
-            bash -c 'script -qec "$1" /dev/null >> "$2" 2>&1' _ "$cmd" "$logfile"
+            bash -c 'script -qec "bash $1" /dev/null >> "$2" 2>&1' _ "$__wrap" "$logfile"
+        local rc=$?
+        rm -f "$__wrap"
     else
         $GUM spin --spinner dot --title "$shown" -- bash -c "$cmd >> '$logfile' 2>&1"
+        local rc=$?
     fi
-    local rc=$?
     if [ $rc -ne 0 ]; then
         log "SPIN FAILED (exit $rc): $title"
         HYPRTK_FAILED+=("$title")
@@ -208,11 +228,16 @@ _run() {
     log "RUN: $title"
     echo -e "${CYAN}  → ${WHITE}$title${NC}"
     if [ "${HYPRTK_PTY_WRAP:-0}" = "1" ] && command -v script >/dev/null 2>&1; then
-        bash -c 'script -qec "$1" /dev/null >> "$2" 2>&1' _ "$cmd" "$logfile"
+        local __wrap
+        __wrap="$(mktemp)"
+        printf '%s\n' "$cmd" > "$__wrap"
+        bash -c 'script -qec "bash $1" /dev/null >> "$2" 2>&1' _ "$__wrap" "$logfile"
+        local rc=$?
+        rm -f "$__wrap"
     else
         bash -c "$cmd >> '$logfile' 2>&1"
+        local rc=$?
     fi
-    local rc=$?
     if [ $rc -ne 0 ]; then
         log "RUN FAILED (exit $rc): $title"
         HYPRTK_FAILED+=("$title")
@@ -256,13 +281,17 @@ _sudo_is_run0() {
 
 # Make elevation non-interactive for the duration of the install.
 _sudo_bootstrap() {
-    sudo -n true 2>/dev/null && return 0
-
+    # Detect run0 FIRST: its stdio must be a PTY, so _spin/_run need the
+    # `script` wrapper whenever run0 is the elevator — even if a polkit rule is
+    # already in place (in which case `sudo -n` succeeds but plain `sudo` with a
+    # redirected stdio still fails with "Failed to set unit properties").
     if _sudo_is_run0; then
-        # run0 also needs a PTY for its stdio; make _spin/_run wrap steps in
-        # `script` (see _spin) so root commands work inside the log redirect.
         HYPRTK_PTY_WRAP=1
         export HYPRTK_PTY_WRAP
+
+        # Already passwordless (rule left over from a previous run)? Done.
+        sudo -n true 2>/dev/null && return 0
+
         echo -e "${WHITE}  openSUSE run0/polkit detected — authorising this user once.${NC}"
         echo ""
         if ! sudo -v; then
@@ -673,7 +702,10 @@ _spin "Setting default wallpaper..." "cp $SCRIPT_DIR/assets/Wallpapers/default.p
 if type grub_wallpaper >/dev/null 2>&1; then
     _spin "Updating grub wallpaper..." "grub_wallpaper" "$LOG_FILE"
 fi
-_spin "Updating user directories..." "xdg-user-dirs-update --force && xdg-user-dirs-gtk-update --force" "$LOG_FILE"
+# xdg-user-dirs-gtk-update needs a running desktop session; a headless/SSH run
+# (or a VM with no display) makes it exit 1. Attempt both, but never fail the
+# step over it.
+_spin "Updating user directories..." "xdg-user-dirs-update --force || true; xdg-user-dirs-gtk-update --force || true" "$LOG_FILE"
 _ok "Default wallpaper set"
 
 # ── Confirm Hyprland config ──────────────────────────────────────────────
@@ -683,7 +715,9 @@ if ! $GUM confirm --prompt.foreground=5 "Configure Hyprland now?"; then
 else
     # ── Thunar xfconf ────────────────────────────────────────────────────
     _step "Launching Thunar to generate xfconf"
-    _spin "Generating xfconf..." "thunar & sleep 3 && killall thunar" "$LOG_FILE"
+    # Thunar must run once to write its xfconf. Without a display it exits
+    # immediately and `killall` finds nothing — don't fail the step for that.
+    _spin "Generating xfconf..." "thunar >/dev/null 2>&1 & sleep 3; killall thunar 2>/dev/null || true" "$LOG_FILE"
     _ok "Thunar xfconf generated"
 
     # ── Bluetooth ────────────────────────────────────────────────────────
@@ -813,11 +847,11 @@ else
         # ── .zshrc ────────────────────────────────────────────────────
         _step "Updating .zshrc"
         _spin "Installing .zshrc..." "_installSymLink .zshrc ~/.zshrc $SCRIPT_DIR/.zshrc ~/.zshrc" "$LOG_FILE"
-        # chsh needs password - run without spin
-        echo -e "${CYAN}  → ${WHITE}Setting default shell to zsh${NC}"
+        # chsh needs a password; use sudo (already authorised). Never fall back
+        # to a non-root `chsh`: it prompts on /dev/tty, which is invisible under
+        # the installer, so it would hang forever waiting for input.
         ZSH_BIN="$(command -v zsh || echo /bin/zsh)"
-        sudo chsh -s "$ZSH_BIN"
-        chsh -s "$ZSH_BIN" 2>/dev/null || true
+        sudo chsh -s "$ZSH_BIN" || _fail "could not set the default shell to zsh"
         _ok ".zshrc updated"
 
         # ── Standalone apps ──────────────────────────────────────────
@@ -846,8 +880,10 @@ else
             _spin "Configuring sudoers..." "setup_sudoers" "$LOG_FILE"
         else
             # Defaults appended via a validated drop-in, never `tee -a /etc/sudoers`.
+            # openSUSE uses run0/polkit (no classic sudo, no /etc/sudoers.d): skip
+            # rather than fail — sudoers defaults don't apply there.
             _spin "Configuring sudoers..." \
-                "printf 'Defaults env_reset,pwfeedback\n' | sudo tee /etc/sudoers.d/99-hyprtk-defaults >/dev/null && sudo chmod 440 /etc/sudoers.d/99-hyprtk-defaults && sudo visudo -c >/dev/null 2>&1" \
+                "command -v visudo >/dev/null 2>&1 || { echo 'no classic sudo/visudo (run0/polkit?) - sudoers defaults not applicable'; exit 0; }; sudo install -d -m 0750 /etc/sudoers.d && printf 'Defaults env_reset,pwfeedback\n' | sudo tee /etc/sudoers.d/99-hyprtk-defaults >/dev/null && sudo chmod 440 /etc/sudoers.d/99-hyprtk-defaults && sudo visudo -c >/dev/null 2>&1" \
                 "$LOG_FILE"
         fi
         _ok "Sudoers configured"
@@ -855,8 +891,11 @@ else
         # ── Bar sudo access (passwordless) ──────────────────────────
         _step "Configuring Bar Sudo Access"
         echo -e "${CYAN}  → ${WHITE}Installing hyprtk-bar sudoers (passwordless sudo)${NC}"
-        sudo bash "$SCRIPT_DIR/installer/scripts/setup-sudoers.sh"
-        _ok "Bar passwordless sudo configured"
+        if sudo bash "$SCRIPT_DIR/installer/scripts/setup-sudoers.sh"; then
+            _ok "Bar passwordless sudo configured"
+        else
+            _fail "Bar passwordless sudo not configured (see $LOG_FILE)"
+        fi
     fi
 fi
 

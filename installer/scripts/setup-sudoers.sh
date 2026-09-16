@@ -26,6 +26,15 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
+# openSUSE Tumbleweed uses run0/polkit and ships neither classic sudo nor a
+# sudoers file, so there is no drop-in to write. The bar's privileged actions
+# fall back to pkexec/run0 there — skip cleanly instead of failing the install.
+if ! command -v visudo >/dev/null 2>&1; then
+    echo "note: classic sudo/visudo not found (openSUSE run0/polkit?) — skipping the scoped sudoers drop-in"
+    exit 0
+fi
+install -d -m 0750 /etc/sudoers.d
+
 # Resolve the desktop user: the sudo invoker, a pkexec caller, else $USER.
 if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
     TARGET_USER="$SUDO_USER"
