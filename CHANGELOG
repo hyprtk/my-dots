@@ -7,6 +7,26 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Fedora install fixes (2026-09-17, found on a live F44 Xfce VM).**
+  - `hyprland.sh` enables a Hyprland COPR on Fedora/RHEL
+    (`lionheartp/Hyprland`, falling back to `solopasha/hyprland`). Hyprland is
+    not in the Fedora base repos, so it silently never installed and the
+    compositor could not start from a TTY. The COPR also supplies `nwg-look`
+    and `hyprsunset`.
+  - `sddmgrub.sh` fixes two SDDM 0.21 faults: the Wayland greeter died on
+    Fedora (now `DisplayServer=x11` off-Arch via a `zz-` drop-in, keeping Arch's
+    Wayland path) and the Qt5 Sugar-Candy theme failed to load under Qt6 (QML
+    imports rewritten to `Qt5Compat.GraphicalEffects` / versionless
+    `QtQuick.VirtualKeyboard`, with the Qt5-compat QML modules installed).
+  - `fonts.sh` decided on directory existence rather than content, so an empty
+    `~/.local/share/fonts` (seen on openSUSE) skipped the clone; it now clones
+    into an empty dir and `git pull`s an existing clone.
+  - `awww-install.sh` installs the distro Rust toolchain when it meets the MSRV,
+    falling back to rustup only when it does not — avoiding the rustup download
+    on Fedora/openSUSE.
+  - `manual_package_installs.sh` removed from the core loop: it is a manual,
+    opt-in helper, not part of `1-install.sh`.
+
 - **Container package-name matrix (T1).** New
   `installer/scripts/verify/container-matrix.sh` resolves every native name from
   `hypr/packages/*.sh` + the vendored bar in a throwaway rootless-podman

@@ -103,6 +103,31 @@ install_hyprland_apt() {
     _apt -o Dpkg::Options::=--force-overwrite -f install -y
 }
 
+# ── Hyprland (Fedora/RHEL) ─────────────────────────────────────────────────
+# Fedora does not package Hyprland in its base repos; the maintained COPRs do.
+# Enable one that carries the running release — the release-tracking
+# lionheartp/Hyprland first (it ships current Fedora, e.g. 0.56.2 on F44),
+# then solopasha/hyprland (upstream; rawhide-only). Non-fatal: if no COPR
+# applies, pkg_install below reports hyprland as unavailable.
+install_hyprland_dnf() {
+    [ "$HYPRTK_PM" = dnf ] || return 0
+    pkg_is_installed hyprland && return 0
+    if [ -n "${HYPRTK_DRYRUN:-}" ]; then
+        echo "  would enable the Fedora Hyprland COPR (lionheartp/Hyprland)"
+        return 0
+    fi
+    pkg_install dnf-plugins-core
+    local copr
+    for copr in lionheartp/Hyprland solopasha/hyprland; do
+        if hyprtk_run_root dnf copr enable -y "$copr" >/dev/null 2>&1; then
+            echo "  Enabled the Hyprland COPR: $copr"
+            return 0
+        fi
+        echo "  ! COPR $copr has no build for this release — trying the next" >&2
+    done
+    echo "  ! No Hyprland COPR for this release — see PORTABILITY.md" >&2
+}
+
 # Void Linux does not package Hyprland (a packaging-philosophy conflict), so the
 # xbps list has no `hyprland` to install. The documented path is the community
 # binary repository; the installer does not add a third-party repo on its own, so
@@ -121,6 +146,7 @@ if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; ex
 
 echo " Hyprland "
 [ "$HYPRTK_PM" = apt ] && install_hyprland_apt
+[ "$HYPRTK_PM" = dnf ] && install_hyprland_dnf
 pkg_install "${PKGS[@]}"
 aur_install "${AUR[@]}"
 note_void_hyprland

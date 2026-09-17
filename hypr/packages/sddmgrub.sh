@@ -37,6 +37,50 @@ else
     echo "Sugar-Candy theme not installed — SDDM will use its built-in theme."
 fi
 echo ""
+
+# ── Cross-distro SDDM greeter fixes ────────────────────────────────────────
+# SDDM 0.21 builds against Qt6, and its Wayland greeter is fragile on several
+# distros (on a fresh Fedora the greeter session opens and closes instantly
+# with no visible error). The X11 greeter is reliable wherever the X server is
+# present, so keep Wayland on Arch (the known-good AUR theme + weston path) and
+# use X11 everywhere else.
+declare -A SDDM_QT6_COMPAT SDDM_XSERVER
+SDDM_QT6_COMPAT[apt]="qml6-module-qt5compat-graphicaleffects qml6-module-qtquick-virtualkeyboard"
+SDDM_QT6_COMPAT[dnf]="qt6-qt5compat qt6-qtvirtualkeyboard"
+SDDM_QT6_COMPAT[zypper]="qt6-qt5compat-imports qt6-qtvirtualkeyboard-imports"
+SDDM_QT6_COMPAT[xbps]="qt6-5compat qt6-virtualkeyboard"
+SDDM_QT6_COMPAT[apk]="qt6-qt5compat qt6-qtvirtualkeyboard"
+SDDM_XSERVER[apt]="xserver-xorg"
+SDDM_XSERVER[dnf]="xorg-x11-server-Xorg"
+SDDM_XSERVER[zypper]="xorg-x11-server"
+SDDM_XSERVER[xbps]="xorg-server"
+SDDM_XSERVER[apk]="xorg-server"
+
+_sddm_uses_qt6() {
+    command -v sddm >/dev/null 2>&1 || return 1
+    ldd "$(command -v sddm)" 2>/dev/null | grep -q 'libQt6'
+}
+
+if [ "$HYPRTK_PM" != pacman ]; then
+    [ -n "${SDDM_XSERVER[$HYPRTK_PM]:-}" ] && pkg_install ${SDDM_XSERVER[$HYPRTK_PM]} || true
+    hyprtk_run_root mkdir -p /etc/sddm.conf.d
+    # zz- so it overrides the copied sddm.conf (shared with the Arch look).
+    printf '[General]\nDisplayServer=x11\n' \
+        | hyprtk_run_root tee /etc/sddm.conf.d/zz-hyprtk-display.conf >/dev/null
+    echo "SDDM greeter set to X11 (off-Arch)."
+
+    # Sugar-Candy is written for Qt5; under a Qt6 SDDM its Qt5-only imports
+    # stop the theme loading. Install the Qt5-compat QML modules and rewrite
+    # the imports to their Qt6 equivalents (idempotent).
+    if [ -d "$SUGAR_THEME" ] && _sddm_uses_qt6; then
+        [ -n "${SDDM_QT6_COMPAT[$HYPRTK_PM]:-}" ] && pkg_install ${SDDM_QT6_COMPAT[$HYPRTK_PM]} || true
+        hyprtk_run_root find "$SUGAR_THEME" -name '*.qml' -exec \
+            sed -i -e 's/import QtGraphicalEffects 1\.0/import Qt5Compat.GraphicalEffects/' \
+                   -e 's/import QtQuick\.VirtualKeyboard [0-9.]*/import QtQuick.VirtualKeyboard/' {} +
+        echo "Sugar-Candy theme patched for Qt6."
+    fi
+fi
+echo ""
 hyprtk_run_root cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png 2>/dev/null || true
 echo ""
 echo " Configure grub theme "

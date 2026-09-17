@@ -53,6 +53,17 @@ BUILD_DEPS[zypper]="gcc gcc-c++ make pkg-config git curl ca-certificates wayland
 BUILD_DEPS[xbps]="base-devel pkg-config git curl wayland-devel wayland-protocols liblz4-devel libxkbcommon-devel"
 BUILD_DEPS[apk]="build-base pkgconf git curl wayland-dev wayland-protocols lz4-dev libxkbcommon-dev"
 
+# Distro Rust toolchain, tried before the rustup bootstrap. Most current
+# releases ship a cargo at or above AWWW_MSRV, so installing it from the distro
+# is far cheaper than downloading a whole rustup toolchain; when the packaged
+# compiler is too old, ensure_cargo falls back to rustup as before.
+declare -A RUST_PKG
+RUST_PKG[apt]="cargo rustc"
+RUST_PKG[dnf]="cargo rust"
+RUST_PKG[zypper]="cargo rust"
+RUST_PKG[xbps]="cargo rust"
+RUST_PKG[apk]="cargo rust"
+
 # ── Dry run ────────────────────────────────────────────────────────────────
 if [ -n "${HYPRTK_DRYRUN:-}" ]; then
     echo "awww: would install the wallpaper daemon for $HYPRTK_PM"
@@ -99,6 +110,16 @@ wayland_new_enough() {
 # rustup (the MSRV moves ahead of every LTS release's packaged rustc).
 ensure_cargo() {
     cargo_new_enough && return 0
+
+    # Prefer the distro toolchain when one is packaged — it is a normal package
+    # install instead of a ~200 MB rustup download. Only used if it satisfies
+    # the MSRV; otherwise fall through to rustup.
+    if [ -n "${RUST_PKG[$HYPRTK_PM]:-}" ]; then
+        say "no cargo >= $AWWW_MSRV yet — trying the distro toolchain (${RUST_PKG[$HYPRTK_PM]})"
+        pkg_install ${RUST_PKG[$HYPRTK_PM]} || true
+        export PATH="$HOME/.cargo/bin:$PATH"
+        cargo_new_enough && return 0
+    fi
 
     say "no cargo >= $AWWW_MSRV on the system — installing Rust via rustup"
     local tmp
