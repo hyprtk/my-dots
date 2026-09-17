@@ -43,7 +43,7 @@ apk)
     PKGS=(sddm blueman fzf font-manager font-awesome font-fira-code-nerd eza py3-pip
           py3-psutil py3-rich py3-click xdg-desktop-portal-gtk xdg-user-dirs
           xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring gtk4-layer-shell
-          hyprpicker)
+          hyprpicker eudev eudev-openrc)
     ;;
 esac
 
@@ -81,5 +81,52 @@ if [ ! -x "$_PKGDIR/../../installer/standalone/papirus-folders" ]; then
     [ -s "$tmp" ] && env PREFIX="$HOME/.local" bash "$tmp" || \
         echo "  ! papirus-folders install skipped (no network / fetch failed)" >&2
     rm -f -- "$tmp"
+fi
+echo ""
+
+# ── Alpine: device manager, OpenRC services, XDG_RUNTIME_DIR ───────────────
+# Alpine defaults to busybox mdev, which never applies the elogind udev rules,
+# so the DRM device is not tagged `master-of-seat`; elogind then reports
+# CanGraphical=no and SDDM never starts a greeter (the seat has no graphics).
+# eudev (via its udev/udev-trigger/udev-settle services) tags the DRM card and
+# makes the graphical seat work. Enabled on next boot. Also enable the OpenRC
+# services the desktop needs (dbus, elogind, sddm) — Alpine enables none of
+# them for us. And provide an XDG_RUNTIME_DIR fallback for logins that do not
+# go through PAM/elogind (busybox login is not PAM-aware, so a plain tty login
+# gets no runtime dir, and Hyprland refuses to start without one).
+if [ "$HYPRTK_PM" = apk ]; then
+    if command -v rc-update >/dev/null 2>&1; then
+        hyprtk_run_root rc-update del mdev sysinit 2>/dev/null || true
+        for _svc_ru in "udev sysinit" "udev-trigger sysinit" "udev-settle sysinit"; do
+            # shellcheck disable=SC2086
+            hyprtk_run_root rc-update add $_svc_ru 2>/dev/null || true
+        done
+        hyprtk_run_root rc-update add udev-postmount default 2>/dev/null || true
+        hyprtk_run_root rc-update add dbus default 2>/dev/null || true
+        hyprtk_run_root rc-update add elogind default 2>/dev/null || true
+        hyprtk_run_root rc-update add sddm default 2>/dev/null || true
+        echo "  ! eudev + dbus/elogind/sddm enabled — reboot so the graphical seat works"
+    fi
+
+    _xdg_pd="/etc/profile.d/99-xdg-runtime-dir.sh"
+    _xdg_tmp="$(mktemp)"
+    cat > "$_xdg_tmp" <<'XDGEOF'
+# hyprtk: ensure XDG_RUNTIME_DIR for logins that bypass PAM/elogind (e.g. a
+# plain busybox tty login on OpenRC systems). Prefer the elogind-managed dir,
+# else a private per-user directory.
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    if [ -d "/run/user/$(id -u)" ]; then
+        XDG_RUNTIME_DIR="/run/user/$(id -u)"
+    else
+        XDG_RUNTIME_DIR="${TMPDIR:-/tmp}/xdg-runtime-$(id -u)"
+        [ -d "$XDG_RUNTIME_DIR" ] || mkdir -m 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+    fi
+    [ -d "$XDG_RUNTIME_DIR" ] && export XDG_RUNTIME_DIR
+fi
+XDGEOF
+    hyprtk_run_root mkdir -p /etc/profile.d
+    hyprtk_run_root cp "$_xdg_tmp" "$_xdg_pd"
+    hyprtk_run_root chmod 0644 "$_xdg_pd"
+    rm -f "$_xdg_tmp"
 fi
 echo ""

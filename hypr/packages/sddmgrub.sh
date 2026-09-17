@@ -77,6 +77,14 @@ if [ "$HYPRTK_PM" != pacman ]; then
         hyprtk_run_root find "$SUGAR_THEME" -name '*.qml' -exec \
             sed -i -e 's/import QtGraphicalEffects 1\.0/import Qt5Compat.GraphicalEffects/' \
                    -e 's/import QtQuick\.VirtualKeyboard [0-9.]*/import QtQuick.VirtualKeyboard/' {} +
+        # SDDM 0.21 runs the Qt6 greeter (sddm-greeter-qt6). The upstream theme
+        # metadata carries no QtVersion, so SDDM looks for the Qt5 greeter
+        # (/usr/bin/sddm-greeter), does not find it, and silently falls back to
+        # its built-in theme. Declare QtVersion=6 so Sugar-Candy is used.
+        if [ -f "$SUGAR_THEME/metadata.desktop" ] \
+            && ! grep -q '^QtVersion=' "$SUGAR_THEME/metadata.desktop" 2>/dev/null; then
+            printf 'QtVersion=6\n' | hyprtk_run_root tee -a "$SUGAR_THEME/metadata.desktop" >/dev/null
+        fi
         echo "Sugar-Candy theme patched for Qt6."
     fi
 fi

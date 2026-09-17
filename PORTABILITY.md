@@ -199,9 +199,34 @@ minutes, expect that step to be the slowest part of a non-Arch install. Set
 `HYPRTK_DRYRUN=1` to have the script print its plan without building.
 
 ### sudo vs root
-`hyprtk_run_root` uses `sudo` when present and non-root. Minimal containers
-without `sudo` must run the installer as root.
+`hyprtk_run_root` uses `sudo` when present, then `doas`, and runs directly when
+already root. On doas-only systems (Alpine) `pkgmanager.sh` also defines and
+exports a `sudo`→`doas` compatibility function so every existing `sudo ...`
+call site (including `bash -c` subshells and scripts invoked as `bash foo.sh`)
+works unchanged, and `1-install.sh`'s `_sudo_bootstrap` authenticates once and
+installs a temporary `/etc/doas.d/99-hyprtk-install.conf` nopass drop-in for the
+rest of the install (removed on exit — doas.d is last-match, so the drop-in must
+sort last). Minimal containers without `sudo`/`doas` must run as root.
 
+### Alpine needs eudev, OpenRC services and XDG_RUNTIME_DIR
+Alpine defaults to busybox **mdev**, which never applies elogind's udev rules,
+so the DRM card is not tagged `master-of-seat`. elogind then reports
+`CanGraphical=no` and **SDDM never starts a greeter**, and a session started
+from a tty dies with `XDG_RUNTIME_DIR is not set`. The installer therefore, on
+`apk`:
+
+- installs **eudev**/**eudev-openrc** and enables the `udev`, `udev-trigger`,
+  `udev-settle` (sysinit) and `udev-postmount` (default) services, removing
+  `mdev` from sysinit — **a reboot is required** for the graphical seat;
+- enables the OpenRC services the desktop needs at boot (`dbus`, `elogind`,
+  `sddm`), which Alpine does not enable by itself;
+- writes `/etc/profile.d/99-xdg-runtime-dir.sh` so a plain tty login (busybox
+  `login` is not PAM-aware, so nothing sets `XDG_RUNTIME_DIR`) gets one.
+
+Alpine's SDDM is Qt6-only (`sddm-greeter-qt6`); the upstream Sugar-Candy theme
+metadata has no `QtVersion`, so SDDM looks for the Qt5 greeter, fails to find
+it and silently falls back to its built-in theme — `sddmgrub.sh` appends
+`QtVersion=6` to the theme metadata alongside the existing QML import patch.
 ### AUR helper on Arch
 `1-install.sh` builds `yay` on Arch when no helper is present (needs
 `base-devel` + `git`). Without a helper, AUR packages are skipped with a warning.

@@ -3,6 +3,43 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [Unreleased] - 2026-09-17
+
+### Added
+
+- **doas-only systems (Alpine).** The installer was hard-wired to `sudo`.
+  `installer/scripts/pkgmanager.sh` now exports a `sudo`→`doas` compatibility
+  function and `hyprtk_run_root` falls back to `doas`; `1-install.sh`'s
+  `_sudo_bootstrap` gained a doas branch that authenticates once and installs a
+  temporary `/etc/doas.d/99-hyprtk-install.conf` nopass drop-in (removed on
+  exit — doas.d is last-match, so it must sort last). Validated on Alpine with
+  `sudo` removed entirely.
+
+### Fixed
+
+- **Alpine: SDDM would not launch and tty sessions died with
+  "XDG_RUNTIME_DIR is not set".** Root cause: busybox mdev never applies the
+  elogind udev rules, so the DRM card is not tagged `master-of-seat`
+  (`CanGraphical=no`), and no OpenRC services were enabled. `system.sh` now
+  installs eudev and enables `udev`/`udev-trigger`/`udev-settle`/
+  `udev-postmount` (removing mdev from sysinit), enables `dbus`/`elogind`/`sddm`
+  at boot, and writes an `XDG_RUNTIME_DIR` fallback to
+  `/etc/profile.d/`. Verified: SDDM launches its greeter at boot and a session
+  gets `/run/user/<uid>`.
+- **Alpine: the bundled `gum` is a glibc binary** that cannot execute on musl,
+  and the dotfiles symlink it into `~/.local/bin` (on PATH), so `command -v gum`
+  resolved to the broken copy and the installer aborted at the first prompt.
+  `check_gum` now runs every candidate and falls back to a working system gum.
+- **Alpine: Sugar-Candy silently fell back to SDDM's built-in theme** (Qt6 SDDM
+  looked for the missing Qt5 greeter). `sddmgrub.sh` now appends `QtVersion=6`
+  to the theme metadata alongside the QML import patch.
+- **Alpine install steps**: the root Papirus icon install runs via `sudo` with
+  `DESTDIR`; `/root/.cache` is created before copying the root wallpaper;
+  bluetooth and samba use OpenRC (`rc-service`/`rc-update`) where systemd is
+  absent; cockpit is skipped with a warning on non-systemd systems.
+- **Re-runs**: the oh-my-zsh upstream installer is skipped when `~/.oh-my-zsh`
+  already exists (it exits non-zero on an existing install).
+
 ## [Unreleased] - 2026-09-14
 
 ### Added
