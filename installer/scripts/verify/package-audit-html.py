@@ -87,6 +87,8 @@ OVERRIDES = {
     ("apt", "bookworm", "cliphist"): ("source", "srcapps-install.sh (go build)"),
     ("apt", "bookworm", "eza"): ("source", "srcapps-install.sh (cargo)"),
     ("apk", "alpine", "ipp-usb"): ("source", "srcapps-install.sh (go build + udev rule)"),
+    ("apk", "alpine", "hyprpicker"): ("source", "srcapps-install.sh (Hyprland lib chain + cmake)"),
+    ("xbps", "void", "hyprsunset"): ("source", "srcapps-install.sh (Hyprland lib chain + cmake)"),
     # Installer-side name fallbacks (handled, not a gap).
     ("apt", "bookworm", "freerdp3-x11"): ("repo", "installer requests freerdp2-x11 on Debian 12"),
     ("apt", "trixie", "policykit-1-gnome"): ("extra-add", "Debian 13 dropped it; installer installs mate-polkit"),

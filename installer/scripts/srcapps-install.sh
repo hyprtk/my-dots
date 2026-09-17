@@ -11,6 +11,12 @@
 #   cliphist          sentriz/cliphist (go)            → clipboard history
 #   eza               eza-community/eza (cargo)        → `ls` replacement (Debian 12)
 #   ipp-usb           OpenPrinting/ipp-usb (go)        → driverless USB printing
+#   hyprpicker        hyprwm/hyprpicker (cmake)        → colour picker (Alpine)
+#   hyprsunset        hyprwm/hyprsunset (cmake)        → gamma/brightness (Void)
+#
+# hyprpicker/hyprsunset are NOT packaged on Alpine/Void, and neither are the
+# Hyprland libraries they link (hyprutils, hyprlang, hyprwayland-scanner,
+# hyprland-protocols), so those are built first (into /usr) and the app after.
 #
 # Each step is idempotent (skips when already present) and non-fatal: a failed
 # build warns and the rest of the install continues, exactly like awww. Set
@@ -77,11 +83,21 @@ IPPUSB_DEPS[zypper]="git go libusb-1_0-devel avahi-devel"
 IPPUSB_DEPS[xbps]="git go libusb-devel avahi-devel"
 IPPUSB_DEPS[apk]="git go libusb-dev avahi-dev"
 
+# Hyprland library chain + apps (cmake). Built into /usr so pkg-config finds
+# them. Only reached where hyprpicker/hyprsunset are unpackaged.
+declare -A HYPRCHAIN_DEPS
+HYPRCHAIN_DEPS[apt]="git cmake build-essential pkg-config libpixman-1-dev libpugixml-dev libwayland-dev wayland-protocols libxkbcommon-dev libcairo2-dev libpango1.0-dev libjpeg-dev"
+HYPRCHAIN_DEPS[dnf]="git cmake gcc gcc-c++ pkgconf-pkg-config pixman-devel pugixml-devel wayland-devel wayland-protocols-devel libxkbcommon-devel cairo-devel pango-devel libjpeg-turbo-devel"
+HYPRCHAIN_DEPS[zypper]="git cmake gcc gcc-c++ pkg-config libpixman-1-0-devel pugixml-devel wayland-devel wayland-protocols-devel libxkbcommon-devel cairo-devel pango-devel libjpeg-turbo-devel"
+HYPRCHAIN_DEPS[xbps]="git cmake base-devel pkg-config pixman-devel pugixml-devel wayland-devel wayland-protocols libxkbcommon-devel cairo-devel pango-devel libjpeg-turbo-devel"
+HYPRCHAIN_DEPS[apk]="git cmake build-base pkgconf pixman-dev pugixml-dev wayland-dev wayland-protocols libxkbcommon-dev cairo-dev pango-dev libjpeg-turbo-dev"
+
 # ── Dry run ─────────────────────────────────────────────────────────────────
 if [ -n "${HYPRTK_DRYRUN:-}" ]; then
     echo "srcapps: would install from source/upstream where missing:"
     echo "srcapps:   gtk4-layer-shell $G4_VER | swappy $SWAPPY_VER | nwg-look $NWG_VER | starship $STARSHIP_VER"
     echo "srcapps:   cliphist (go) | eza (cargo) | ipp-usb (go)"
+    echo "srcapps:   hyprpicker (Alpine) / hyprsunset (Void) + Hyprland lib chain"
     echo "srcapps:   build deps (gtk4): ${G4_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (swappy): ${SWAPPY_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (nwg-look): ${NWG_DEPS[$HYPRTK_PM]:-(none)}"
@@ -274,6 +290,68 @@ install_ippusb() {
     return 1
 }
 
+# Clone + cmake build + install into /usr. $1 = repo name, $2 = pkg-config
+# module to skip on (empty for the app itself).
+build_hypr_cmake() {
+    local repo="$1" mod="$2"
+    if [ -n "$mod" ] && pkg-config --exists "$mod" 2>/dev/null; then
+        say "  $repo: already present"
+        return 0
+    fi
+    local tmp
+    tmp="$(mktemp -d)" || return 1
+    say "  $repo: building"
+    if git clone --depth=1 "https://github.com/hyprwm/$repo" "$tmp/$repo" >/dev/null 2>&1 \
+       && ( cd "$tmp/$repo" \
+            && cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTING=OFF >/dev/null 2>&1 \
+            && cmake --build build -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1 \
+            && hyprtk_run_root cmake --install build >/dev/null 2>&1 ); then
+        hyprtk_run_root ldconfig >/dev/null 2>&1 || true
+        rm -rf "$tmp"
+        return 0
+    fi
+    rm -rf "$tmp"
+    say "  $repo: build failed" >&2
+    return 1
+}
+
+# Build the Hyprland libraries the app links. $1 = app id ("picker"|"sunset").
+ensure_hypr_libs() {
+    build_hypr_cmake hyprland-protocols hyprland-protocols || return 1
+    build_hypr_cmake hyprutils        hyprutils           || return 1
+    build_hypr_cmake hyprwayland-scanner hyprwayland-scanner || return 1
+    [ "$1" = sunset ] && { build_hypr_cmake hyprlang hyprlang || return 1; }
+    return 0
+}
+
+_build_hypr_app() {  # $1 repo/app $2 libs-app-id
+    local app="$1" id="$2"
+    if have "$app"; then say "$app: already present"; return 0; fi
+    [ -n "${HYPRCHAIN_DEPS[$HYPRTK_PM]:-}" ] && pkg_install ${HYPRCHAIN_DEPS[$HYPRTK_PM]} || true
+    if ! have cmake || ! have git || ! have pkg-config; then
+        say "$app: cmake/git/pkg-config unavailable — skipping" >&2
+        return 1
+    fi
+    say "$app: building the Hyprland library chain + app"
+    ensure_hypr_libs "$id" || { say "$app: library chain failed" >&2; return 1; }
+    build_hypr_cmake "$app" "" || { say "$app: build failed" >&2; return 1; }
+    say "$app: installed"
+    return 0
+}
+
+# hyprpicker is packaged on every family except Alpine (archive / cppiber PPA /
+# COPR elsewhere), so only build the chain there. hyprsunset likewise only goes
+# missing on Void. Both are no-ops (success) on the other families.
+install_hyprpicker() {
+    [ "$HYPRTK_PM" = apk ] || return 0
+    _build_hypr_app hyprpicker picker
+}
+
+install_hyprsunset() {
+    [ "$HYPRTK_PM" = xbps ] || return 0
+    _build_hypr_app hyprsunset sunset
+}
+
 install_starship() {
     if have starship; then say "starship: already present"; return 0; fi
     pkg_install curl ca-certificates
@@ -301,6 +379,8 @@ install_starship          || FAILED=$((FAILED + 1))
 install_cliphist          || FAILED=$((FAILED + 1))
 install_eza               || FAILED=$((FAILED + 1))
 install_ippusb            || FAILED=$((FAILED + 1))
+install_hyprpicker        || FAILED=$((FAILED + 1))
+install_hyprsunset        || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -ne 0 ]; then
     say "$FAILED app(s) could not be built — the rest of the install continues"

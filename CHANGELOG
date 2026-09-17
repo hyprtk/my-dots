@@ -35,19 +35,19 @@ documented in this file. Dates are in YYYY-MM-DD format.
     session previously called the polkit-gnome path unconditionally).
   - `freerdp3-x11` → `freerdp2-x11` fallback on Debian 12; dropped `gvfs-nfs`
     on Void (its gvfs is monolithic).
-  - `srcapps-install.sh` now builds `cliphist` (go), `eza` (cargo) and
-    `ipp-usb` (go + libusb + avahi, with its udev rule) where the archive lacks
-    them.
-  - After the change the audit's **Extra (TODO) column is 0 on every family**.
-    The remaining gaps are genuinely unavailable:
-    - Alpine: `nvidia`/`nvidia-settings` (binary driver, unpackaged), `unrar`
-      (not packaged), `nss-mdns` (**glibc-only** — needs `<nss.h>`, so it cannot
-      build against musl), `cockpit` (large Python/JS app), and
-      `hyprpicker`/`hyprsunset` (need the Hyprland library chain
-      hyprutils/hyprlang/hyprwayland-scanner, which Alpine does not package).
-    - Void: `cockpit`, `nvidia-settings` (not packaged), and `hyprsunset`
-      (likewise needs the Hyprland library chain; Void's community hyprland repo
-      is the intended route).
+  - `srcapps-install.sh` now builds `cliphist` (go), `eza` (cargo), `ipp-usb`
+    (go + libusb + avahi, with its udev rule), and — via a from-source build of
+    the **Hyprland library chain** (`hyprland-protocols`, `hyprutils`,
+    `hyprwayland-scanner`, plus `hyprlang` for sunset) — `hyprpicker` on Alpine
+    and `hyprsunset` on Void, where neither the apps nor their libraries are
+    packaged. Both chains were verified to build and run in their target distro.
+  - After the change the audit's **Extra (TODO) column is 0 on every family**,
+    and the buildable gap is closed. The 7 remaining gaps are not buildable in
+    practice:
+    - Alpine: `nvidia`/`nvidia-settings` (binary-only driver), `unrar`
+      (non-free), `nss-mdns` (**glibc-only** — needs `<nss.h>`, cannot build
+      against musl), `cockpit` (large Python/JS app).
+    - Void: `cockpit`, `nvidia-settings` (not packaged).
 
 - **Fedora install fixes (2026-09-17, found on a live F44 Xfce VM).**
   - `hyprland.sh` enables a Hyprland COPR on Fedora/RHEL
