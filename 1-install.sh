@@ -717,6 +717,14 @@ _ok "awww wallpaper daemon installed"
 _spin "Installing apps that need source builds..." "bash $SCRIPT_DIR/installer/scripts/srcapps-install.sh" "$LOG_FILE"
 _ok "Source-built apps processed"
 
+# ── Hyprland >= 0.55 (Lua config) ─────────────────────────────────────────
+# The dotfiles are Lua-based (hypr/hyprland.lua); Hyprland < 0.55 ignores them
+# and writes a stock hyprland.conf. Where the distro is older (Alpine ships
+# 0.54.3, even on edge) the pinned upstream release is built from source.
+# Idempotent (skips when already >= 0.55) and non-fatal.
+_spin "Ensuring Hyprland >= 0.55 (Lua config)..." "bash $SCRIPT_DIR/installer/scripts/hyprland-src-install.sh" "$LOG_FILE"
+_ok "Hyprland Lua-config release ensured"
+
 if type grudupdater >/dev/null 2>&1; then
     _spin "Running grub updater..." "grudupdater" "$LOG_FILE"
 fi

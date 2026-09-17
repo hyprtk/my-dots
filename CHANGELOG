@@ -14,6 +14,16 @@ documented in this file. Dates are in YYYY-MM-DD format.
   temporary `/etc/doas.d/99-hyprtk-install.conf` nopass drop-in (removed on
   exit — doas.d is last-match, so it must sort last). Validated on Alpine with
   `sudo` removed entirely.
+- **Hyprland ≥ 0.55 from source where the distro is older.** Hyprland 0.55
+  switched the config language to Lua, and the dotfiles are entirely Lua-based,
+  but Alpine (3.24 **and** edge) ships 0.54.3. The new
+  `installer/scripts/hyprland-src-install.sh` builds the pinned upstream
+  release (`v0.56.2`) into `/usr` — idempotent (skips when already ≥ 0.55) and
+  non-fatal — pulling in `wayland-protocols` 1.49 and `hyprutils` 0.14.2
+  (Alpine is too old for both) and patching the one C++23 call Alpine's
+  libstdc++ lacks (`std::ranges::starts_with`). Verified on Alpine: Hyprland
+  0.56.2 runs with `hyprctl configerrors` empty and 65 binds from the Lua
+  config (vs 48 stock).
 
 ### Fixed
 

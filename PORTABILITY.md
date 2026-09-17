@@ -80,7 +80,7 @@ no package at all and **build it from source** (see the gotcha below).
 
 | Area | Arch | Debian/Ubuntu | Fedora | openSUSE | Void | Alpine | Gentoo | Nix |
 |------|------|---------------|--------|----------|------|--------|--------|-----|
-| Hyprland + portals | ✅ repo | ✅ (0.56 PPA¹) | ⚠️ COPR³ | ✅ Tumbleweed | ⚠️ community repo³ | ✅ edge | ✅ | ✅ |
+| Hyprland + portals | ✅ repo | ✅ (0.56 PPA¹) | ⚠️ COPR³ | ✅ Tumbleweed | ⚠️ community repo³ | ✅ source⁴ | ✅ | ✅ |
 | GTK3/4 + gtk-layer-shell | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Python GI bindings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | XFCE fallback | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (plugins) | ✅ | ✅ |
@@ -105,7 +105,10 @@ not at all (a packaging-philosophy conflict) — the documented Void path is the
 community **[hyprland-void-packages](https://github.com/void-land/hyprland-void-packages)**
 binary repo. When the compositor is still missing after the package step,
 `hypr/packages/hyprland.sh` prints the exact repo-ready steps (the installer does
-not add a third-party repo by itself).
+not add a third-party repo by itself).<br>
+`⁴` = Alpine: no version of Hyprland ≥ 0.55 is packaged (3.24 **and** edge ship
+0.54.3), so `hyprland-src-install.sh` builds the pinned upstream release from
+source — see the Hyprland gotcha below.
 
 ## Gotchas
 
@@ -162,6 +165,24 @@ until Debian — or a backport — provides ≥ 0.55). Verify a live session wit
     Hyprland --version                 # >= 0.55
     hyprctl configerrors               # empty
     hyprctl binds | grep -c dispatcher # > 0
+
+**Alpine** ships 0.54.3 on 3.24 *and* edge, so `hyprland-src-install.sh` builds
+the pinned upstream release (`v0.56.2`) from source into `/usr` — idempotent
+(skips once `Hyprland --version` is ≥ 0.55) and non-fatal, like `awww-install.sh`.
+It also ensures the two deps Alpine is too old for:
+
+- **wayland-protocols ≥ 1.49** (3.24 has 1.48) — the XML-only release is built
+  with meson;
+- **hyprutils ≥ 0.14.0** (3.24/edge have 0.13.1) — built with cmake.
+
+The rest of the stack is already new enough (`aquamarine` 0.12, `hyprlang`
+0.6.8, `hyprcursor` 0.1.13, `hyprgraphics` 0.5.1, `hyprwayland-scanner` 0.4.6),
+and the build needs Lua **5.5** (`lua5.5-dev`), `glslang-dev`,
+`spirv-tools-dev` (glslang's CMake config pulls in `SPIRV-Tools-opt`),
+`libei-dev` (for `libeis-1.0`) and `readline-dev`. Alpine's libstdc++ (GCC
+15.2) has no `std::ranges::starts_with` (C++23), so the script patches that one
+call in `src/helpers/MiscFunctions.cpp` before configuring. Expect the build to
+take a few minutes; a reboot is required to start the new session.
 
 ### Wallpaper daemon (awww)
 `installer/scripts/awww-install.sh` (called by `1-install.sh` before the wrapper)
