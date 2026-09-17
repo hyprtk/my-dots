@@ -135,10 +135,6 @@ class Bar(Gtk.Box):
         self._scale_min = 0.35
         self._pill_spacing = 8
 
-        self._spacer = Gtk.Box()
-        self._spacer.set_size_request(6, -1)
-        self.pack_start(self._spacer, False, False, 0)
-
         self.pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=self._pill_spacing)
         self.pill.set_hexpand(True)
         self.pill.set_halign(Gtk.Align.FILL)

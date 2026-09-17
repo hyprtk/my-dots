@@ -13,7 +13,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("nm-applet --indicator")
     hl.exec_cmd("blueman-applet")
     hl.exec_cmd("wal -R -q")
-    hl.exec_cmd("bash -c \"sleep 3 && cd ~/.local/share/Matuwall && source .venv/bin/activate && LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so matuwall\"")
+    -- matuwall is a one-shot picker now (C/meson, no venv/GTK/LD_PRELOAD);
+    -- it is launched on demand by hypr/scripts/matuwall-toggle.sh (SUPER+W).
     hl.exec_cmd("rm -f /tmp/wobpipe && mkfifo /tmp/wobpipe && tail -f /tmp/wobpipe | wob -c ~/.config/wob/wob.ini &")
     hl.exec_cmd("~/hyprtk/installer/scripts/lockscreentime.sh")
     hl.exec_cmd("~/hyprtk/hypr/scripts/wallpaper-restore.sh")

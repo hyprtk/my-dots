@@ -1,12 +1,12 @@
 #!/bin/bash
-export LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so
-cd ~/.local/share/Matuwall
-source .venv/bin/activate
+# ── matuwall-toggle.sh — toggle the Matuwall wallpaper picker ──────────────
+# Matuwall is now a C11 + meson, one-shot layer-shell client: there is no venv,
+# no GTK4/gtk4-layer-shell LD_PRELOAD and no `--toggle` flag (the old Python app
+# had all three). Launch it on demand and kill it to hide the picker.
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Try toggle first
-matuwall --toggle 2>/dev/null
-
-# If daemon not running start it
-if [ $? -ne 0 ]; then
-    matuwall &
+if pgrep -x matuwall >/dev/null 2>&1; then
+    pkill -x matuwall
+else
+    nohup matuwall >/dev/null 2>&1 &
 fi

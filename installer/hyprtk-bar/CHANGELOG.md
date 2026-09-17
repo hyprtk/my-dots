@@ -36,6 +36,10 @@ Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Bar content was inset twice on the left.** A 6px spacer sat before the pill
+  on top of the pill's own 6px CSS margin, so at 100% the bar showed a ~12px gap
+  on the left but only 6px on the right (the content looked pushed right). The
+  spacer is gone; both ends are inset 6px, as the rounded pill intends.
 - **Icons spilled outside the bar's rounded border at narrow widths.** With a
   width smaller than the modules' natural width the overflow was clipped only by
   the layer surface, so it drew into the pill's 6px CSS margin — visible as icon
