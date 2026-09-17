@@ -33,6 +33,18 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **matuwall was silently never installed.** Upstream rewrote Matuwall as a
+  C11 + meson app, but `hypr/packages/matuwall.sh` still ran the old
+  `pip install .`, which failed (`Neither 'setup.py' nor 'pyproject.toml' found`)
+  and was ignored — so no `matuwall` binary existed. It also now reads a TOML
+  config (`~/.config/matuwall/config.toml`), not the shipped `config.json`. The
+  script installs the AUR package on Arch (helper present) or builds from source
+  with meson/ninja on the other families (per-family build deps:
+  wayland/xkbcommon/libpng/libjpeg-turbo/libwebp + meson/ninja), verifies the
+  binary and **fails the step** if it is missing. `configs/matuwall/config.toml`
+  replaces `config.json` — note upstream's own `config/example.toml` is stale
+  (the grid keys belong under `[grid]`) — with an `[hooks] on_apply` that runs
+  `wal -i {path} -n`.
 - **A dead lockscreen no longer leaves the session unrecoverable.** Locking can
   hit an upstream aquamarine DRM page-flip race (`drm: Cannot commit when a
   page-flip is awaiting` — hyprwm/Hyprland#15469, hyprwm/aquamarine#343) that

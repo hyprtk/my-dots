@@ -1,0 +1,37 @@
+# Matuwall — hyprtk wallpaper picker.
+# Schema follows src/config/config.c (the repo's config/example.toml is stale:
+# the grid keys belong under [grid], not at the top level).
+
+[general]
+# Wallpaper directory; defaults to ~/Pictures/Wallpapers when unset (where the
+# hyprtk wallpapers are cloned).
+# directory = "~/Pictures/Wallpapers"
+backend = "auto"
+
+[grid]
+columns = 5
+spacing = 16
+radius = 20
+border_width = 0
+shadow_width = 12
+ring_width = 0
+visible_rows = 1
+carousel = true
+edge_peek = false
+
+[thumbnail]
+width = 300
+height = 169
+
+[colors]
+# hyprtk palette (purple/cyan accents over the dark background).
+tile = "#1a1b26ff"
+border = "#585b70ff"
+shadow = "#00000066"
+ring = "#c084fcff"
+spinner = "#22d3eeff"
+
+[hooks]
+# The whole desktop is pywal-themed, so regenerate the palette when a wallpaper
+# is applied. `wal` is the bundled pywal16 symlinked into ~/.local/bin.
+on_apply = [ "wal -i {path} -n" ]
