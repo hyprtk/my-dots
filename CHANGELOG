@@ -33,6 +33,16 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **A dead lockscreen no longer leaves the session unrecoverable.** Locking can
+  hit an upstream aquamarine DRM page-flip race (`drm: Cannot commit when a
+  page-flip is awaiting` — hyprwm/Hyprland#15469, hyprwm/aquamarine#343) that
+  hangs the compositor; the dotfiles cannot fix the hang, but they now keep it
+  recoverable: `hypr/misc.lua` sets `misc.allow_session_lock_restore = true` and
+  the logout menu locks through the new `hypr/scripts/lock.sh`, which restarts
+  swaylock after an abnormal exit. Previously a crashed lock client left the
+  session locked with Hyprland refusing a replacement — recoverable only by
+  reboot. Verified on the Alpine VM: SIGKILLing the lockscreen brings a new one
+  up automatically.
 - **`_installSymLink` created the link at the wrong path.** It ran
   `ln -s "$linksource" "$linktarget"` instead of using the explicit link path
   (`$2`), so `ln` named the link after the source's basename. Every existing

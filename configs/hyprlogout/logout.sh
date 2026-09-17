@@ -75,7 +75,7 @@ run_cmd() {
         elif [[ $1 == '--hibernate' ]]; then
             systemctl hibernate
         elif [[ $1 == '--lock' ]]; then
-            swaylock
+            ~/.config/hypr/scripts/lock.sh
         fi
     else
         exit 0

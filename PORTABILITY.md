@@ -184,6 +184,20 @@ and the build needs Lua **5.5** (`lua5.5-dev`), `glslang-dev`,
 call in `src/helpers/MiscFunctions.cpp` before configuring. Expect the build to
 take a few minutes; a reboot is required to start the new session.
 
+### Session lock can hang the compositor (aquamarine DRM page-flip race)
+On some DRM drivers — most reliably in a VM (virtio-gpu) — aquamarine can hit
+`drm: Cannot commit when a page-flip is awaiting` during a modeset/commit; the
+compositor then hangs and the session is lost (no coredump). Locking the screen
+forces a commit, so it is a common way to trigger it. This is an upstream
+aquamarine/Hyprland bug (hyprwm/Hyprland#15469, hyprwm/aquamarine#343) — the
+dotfiles cannot fix the hang itself, but they keep the session **recoverable**:
+
+- `hypr/misc.lua` sets `misc.allow_session_lock_restore = true`, so a replacement
+  lockscreen can take over a session that is still locked after the lock client
+  died (Hyprland's default refuses it, which needs a reboot);
+- the logout menu locks through `hypr/scripts/lock.sh`, which restarts swaylock
+  after an abnormal exit instead of leaving the session locked.
+
 ### Wallpaper daemon (awww)
 `installer/scripts/awww-install.sh` (called by `1-install.sh` before the wrapper)
 acquires awww without the AUR:
