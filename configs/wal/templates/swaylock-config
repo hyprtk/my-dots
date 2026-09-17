@@ -1,0 +1,47 @@
+ignore-empty-password
+font="Cantarell"
+clock
+timestr=%R
+datestr=%a, %e of %B
+image=~/.cache/current-wallpaper.png
+fade-in=1
+effect-pixelate=5
+indicator
+indicator-radius=200
+indicator-thickness=20
+indicator-caps-lock
+
+# Colors — pywal (regenerated on every wallpaper change; {colorN.strip} is the
+# bare RRGGBB so a 2-digit alpha can be appended). Rendered to
+# ~/.cache/wal/swaylock-config and symlinked into ~/.config/swaylock/config.
+key-hl-color={color6.strip}44
+separator-color=00000000
+
+inside-color={color0.strip}44
+inside-clear-color={color4.strip}44
+inside-caps-lock-color={color5.strip}44
+inside-ver-color={color2.strip}44
+inside-wrong-color={color1.strip}44
+
+ring-color={color6.strip}
+ring-clear-color={color4.strip}
+ring-caps-lock-color={color6.strip}
+ring-ver-color={color2.strip}
+ring-wrong-color={color1.strip}
+
+line-color={color6.strip}44
+line-clear-color={color4.strip}44
+line-caps-lock-color={color6.strip}44
+line-ver-color={color2.strip}44
+line-wrong-color={color1.strip}44
+
+text-color={foreground.strip}
+text-clear-color={color6.strip}
+text-ver-color={color2.strip}
+text-wrong-color={color1.strip}
+
+bs-hl-color={color1.strip}
+caps-lock-key-hl-color={color2.strip}44
+caps-lock-bs-hl-color={color2.strip}44
+disable-caps-lock-text
+text-caps-lock-color={color6.strip}

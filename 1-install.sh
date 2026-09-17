@@ -902,14 +902,20 @@ else
         _spin "Installing fastfetch..." "_installSymLink fastfetch ~/.config/fastfetch $SCRIPT_DIR/configs/fastfetch/ ~/.config" "$LOG_FILE"
         # swaylock-effects is AUR-only, so most families get plain swaylock,
         # which rejects the effects config (clock/timestr/datestr, fade-in,
-        # effect-pixelate) and refuses to lock. Link the variant the installed
-        # binary actually accepts.
+        # effect-pixelate) and refuses to lock. Pick the variant the installed
+        # binary accepts, and point ~/.config/swaylock/config at the
+        # pywal-rendered config (configs/wal/templates/swaylock[-plain]-config)
+        # so the lock screen follows the wallpaper; the static repo config is the
+        # fallback when pywal has not rendered yet.
         if command -v swaylock >/dev/null 2>&1 && swaylock --help 2>&1 | grep -q -- '--effect-pixelate'; then
-            _swaylock_src="$SCRIPT_DIR/configs/swaylock/"
+            _swaylock_src="$SCRIPT_DIR/configs/swaylock/config"
+            _swaylock_rendered="$HOME/.cache/wal/swaylock-config"
         else
-            _swaylock_src="$SCRIPT_DIR/configs/swaylock-plain/"
+            _swaylock_src="$SCRIPT_DIR/configs/swaylock-plain/config"
+            _swaylock_rendered="$HOME/.cache/wal/swaylock-plain-config"
         fi
-        _spin "Installing swaylock..." "_installSymLink swaylock ~/.config/swaylock $_swaylock_src ~/.config" "$LOG_FILE"
+        [ -f "$_swaylock_rendered" ] || _swaylock_rendered="$_swaylock_src"
+        _spin "Installing swaylock..." "if [ -L ~/.config/swaylock ]; then rm -f ~/.config/swaylock; fi; mkdir -p ~/.config/swaylock; _installSymLink swaylock-config ~/.config/swaylock/config $_swaylock_rendered ~/.config/swaylock" "$LOG_FILE"
         _spin "Installing swappy..." "_installSymLink swappy ~/.config/swappy $SCRIPT_DIR/configs/swappy/ ~/.config" "$LOG_FILE"
         _spin "Installing hyprlogout..." "_installSymLink hyprlogout ~/.config/hyprlogout $SCRIPT_DIR/configs/hyprlogout/ ~/.config" "$LOG_FILE"
         _spin "Installing waypaper..." "_installSymLink waypaper ~/.config/waypaper $SCRIPT_DIR/configs/waypaper/ ~/.config" "$LOG_FILE"

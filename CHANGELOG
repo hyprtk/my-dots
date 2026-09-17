@@ -7,6 +7,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Dynamic swaylock colours (pywal).** New pywal templates
+  `configs/wal/templates/swaylock-config` (swaylock-effects) and
+  `swaylock-plain-config` render the lock-screen colours from the live palette on
+  every `wal` run; the installer now points `~/.config/swaylock/config` at the
+  rendered file (falling back to the static repo config), so the lock screen
+  follows the wallpaper instead of a frozen palette.
 - **doas-only systems (Alpine).** The installer was hard-wired to `sudo`.
   `installer/scripts/pkgmanager.sh` now exports a `sudo`→`doas` compatibility
   function and `hyprtk_run_root` falls back to `doas`; `1-install.sh`'s
