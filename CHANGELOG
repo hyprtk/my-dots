@@ -48,8 +48,9 @@ documented in this file. Dates are in YYYY-MM-DD format.
   `pip install .`, which failed (`Neither 'setup.py' nor 'pyproject.toml' found`)
   and was ignored — so no `matuwall` binary existed. It also now reads a TOML
   config (`~/.config/matuwall/config.toml`), not the shipped `config.json`. The
-  script installs the AUR package on Arch (helper present) or builds from source
-  with meson/ninja on the other families (per-family build deps:
+  script builds the upstream C version from source with meson/ninja on every
+  family (there is no package for the C rewrite — the AUR `matuwall` is still the
+  old Python app); per-family build deps:
   wayland/xkbcommon/libpng/libjpeg-turbo/libwebp + meson/ninja), verifies the
   binary and **fails the step** if it is missing. `configs/matuwall/config.toml`
   replaces `config.json` — note upstream's own `config/example.toml` is stale
