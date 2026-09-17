@@ -1,0 +1,5 @@
+# Generated artifacts / internal docs — never published
+output.html
+PLANNING.md
+install.log
+installer/scripts/verify/
