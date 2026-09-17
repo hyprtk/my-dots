@@ -127,15 +127,19 @@ class Bar(Gtk.Box):
         self._max_total = 0
         self._pending_total: int | None = None
         self._width_idle: int | None = None
+        # Fit-to-width content scale: 1.0 (no scaling) unless the configured
+        # width is smaller than the modules' natural width, in which case the
+        # glyphs/icons (and CSS font size) shrink so every module stays visible
+        # instead of being clipped.
+        self._content_scale = 1.0
+        self._scale_min = 0.35
+        self._pill_spacing = 8
 
         self._spacer = Gtk.Box()
         self._spacer.set_size_request(6, -1)
         self.pack_start(self._spacer, False, False, 0)
 
-        self.pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        # Equal-width cells: see the section loop below — this is what keeps the
-        # center cluster truly centered regardless of the side content widths.
-        self.pill.set_homogeneous(True)
+        self.pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=self._pill_spacing)
         self.pill.set_hexpand(True)
         self.pill.set_halign(Gtk.Align.FILL)
         # ClipBox owns the .taskbar background (+ margins/rounded ends) and
@@ -151,19 +155,19 @@ class Bar(Gtk.Box):
         for section_id in SECTION_ORDER:
             section = SectionBox(section_id, self)
             self._sections[section_id] = section
-            # Homogeneous pill cells: every section gets the same width, so the
-            # center cell's midpoint is the pill's midpoint and its content
-            # (workspaces) is dead-centered no matter how wide the left/right
-            # content is. Each section's inner box aligns its content within
-            # its cell (left hugs the left edge, right hugs the right edge).
-            section.set_hexpand(True)
-            if section_id == "center":
+            # The left/right sections are given EQUAL widths (_balance_sections)
+            # so the center's midpoint stays the pill's midpoint, but without the
+            # wasted space of fully homogeneous cells (which size every cell to
+            # the widest one). The center expands to take the rest.
+            is_center = section_id == "center"
+            section.set_hexpand(is_center)
+            if is_center:
                 section.box.set_halign(Gtk.Align.CENTER)
             elif section_id == "right":
                 section.box.set_halign(Gtk.Align.END)
             else:
                 section.box.set_halign(Gtk.Align.START)
-            self.pill.pack_start(section, True, True, 0)
+            self.pill.pack_start(section, is_center, is_center, 0)
 
         self.connect("size-allocate", self._on_bar_size_allocate)
         self._apply_width()
@@ -228,8 +232,9 @@ class Bar(Gtk.Box):
         The width is applied to the layer SURFACE (via left/right margins), not
         to the pill: the pill has a minimum width (~its content), so shrinking
         it fails on displays narrower than that minimum. The surface width is
-        set by the compositor, so small widths work and content clips if the
-        user asks for less than the modules need.
+        set by the compositor, so small widths work; the content is scaled
+        down to fit (see _update_content_scale) and only clipped if even the
+        minimum scale cannot fit it.
 
         The percentage base is the MONITOR width, not the (shrinking) surface
         allocation — using the allocation collapses it (50% of 50% of …) which
@@ -254,6 +259,71 @@ class Bar(Gtk.Box):
         self.pill.set_hexpand(True)
         self.pill.set_halign(Gtk.Align.FILL)
         self.pill.set_size_request(-1, -1)
+
+        self._update_content_scale(px)
+
+    # ── fit-to-width content scale ──────────────────────────────
+
+    def content_scale(self) -> float:
+        """Current fit-to-width content scale (1.0 = no scaling)."""
+        return self._content_scale
+
+    def _update_content_scale(self, px: int) -> None:
+        """Shrink the content so it fits *px*, keeping every module visible.
+
+        The modules have a natural width at scale 1. When the configured width
+        is smaller, scale the glyphs/icons and the CSS font size down so the
+        whole cluster still fits inside the border (rather than being clipped).
+        The natural width changes with the scale, so solve iteratively; the
+        0.02 epsilon stops it once it has converged.
+        """
+        if px <= 0:
+            return
+        self._balance_sections()
+        natural = self.pill.get_preferred_width()[1]
+        if natural <= 0:
+            return
+        target = (px * self._content_scale) / natural
+        target = max(self._scale_min, min(1.0, target))
+        # Damp the step: the natural width has a fixed part (spacing/padding), so
+        # the naive solve can overshoot; a half-step converges stably.
+        new = self._content_scale + 0.5 * (target - self._content_scale)
+        new = max(self._scale_min, min(1.0, new))
+        if abs(new - self._content_scale) < 0.01:
+            return
+        self._content_scale = new
+        self._apply_content_spacing()
+        if self._theme_cb is not None:
+            self._theme_cb()
+
+    def _balance_sections(self) -> None:
+        """Give the left/right sections equal width so the center stays centered.
+
+        Fully homogeneous cells size every cell to the widest one, which wastes
+        ~2x the space and forces the fit-to-width scale far lower than needed.
+        Equal left/right widths keep the center's midpoint at the pill's
+        midpoint while letting the center take the remaining space.
+        """
+        left = self._sections.get("left")
+        right = self._sections.get("right")
+        if left is None or right is None:
+            return
+        # Use the inner box's natural width: the SectionBox's own preferred
+        # width is pinned by the size_request we set, which would otherwise
+        # freeze the balance at its first value.
+        w = max(
+            left.box.get_preferred_width()[1],
+            right.box.get_preferred_width()[1],
+        )
+        if getattr(self, "_balanced_w", None) == w:
+            return
+        self._balanced_w = w
+        left.set_size_request(w, -1)
+        right.set_size_request(w, -1)
+
+    def _apply_content_spacing(self) -> None:
+        """Scale the pill's inter-module gap with the content scale."""
+        self.pill.set_spacing(max(2, int(round(self._pill_spacing * self._content_scale))))
 
     # ── layout ──────────────────────────────────────────────────
 
@@ -372,10 +442,11 @@ class Bar(Gtk.Box):
 
     def apply_palette_layout(self, palette: dict) -> None:
         """Apply theme-derived layout (module spacing) to the bar sections."""
+        self._apply_content_spacing()
         spacing = palette.get("spacing")
         if spacing is None:
             return
-        s = max(0, int(round(spacing)))
+        s = max(0, int(round(spacing * self._content_scale)))
         for section in self._sections.values():
             section.box.set_spacing(s)
 

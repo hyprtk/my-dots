@@ -7,6 +7,15 @@ Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Fit-to-width content scaling.** When the configured width is smaller than
+  the modules' natural width the bar now scales the glyphs/icons, the CSS
+  font/chip sizes, the spacings and the button paddings down (to a floor) so
+  every module's glyph stays visible inside the border instead of being clipped,
+  and returns to 1.0 when there is room. The left/right sections are also given
+  **equal widths** instead of fully homogeneous cells (which sized every cell to
+  the widest one and wasted ~2x the space) — the center stays centered because
+  the side widths match, but narrow widths now actually fit. `window` (fixed
+  title width) and `tray` (icon size) gained `apply_font` so they scale too.
 - **`install.sh --wal-only`** — provisions just the vendored pywal16 (vendor
   tree + venv + `wal` launcher) and exits. The merged `1-install.sh` calls it
   early, before its pywal init steps and the late full bar install.

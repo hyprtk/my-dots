@@ -218,16 +218,33 @@ class BarWindow(Gtk.Window):
     # ── theming ───────────────────────────────────────────────────
 
     def _apply_theme(self) -> None:
+        try:
+            scale = self._bar.content_scale()
+        except Exception:
+            scale = 1.0
         palette = resolve_palette(self._cfg)
+        palette["content_scale"] = scale
+        # Fit-to-width: shrink the bar font (and chip text) with the content
+        # scale so a narrow bar keeps every module's glyph visible instead of
+        # clipping it.
+        if scale < 1.0:
+            for key in ("font_size", "chip_font_size"):
+                size = palette.get(key)
+                if size:
+                    palette[key] = max(7, int(round(float(size) * scale)))
         self._palette_cache = palette
         self._border_base = palette.get("border_color") or palette.get("accent") or ""
         css = build_css(palette, self._cfg)
         self._provider.load_from_data(css.encode())
         self._bar.apply_palette_layout(palette)
-        self._bar.apply_font(
-            palette.get("font_size"),
-            (self._cfg.get("font") or {}).get("icon_size", 0),
-        )
+        icon_size = (self._cfg.get("font") or {}).get("icon_size", 0)
+        try:
+            icon_size = int(icon_size)
+        except (TypeError, ValueError):
+            icon_size = 0
+        if icon_size > 0 and scale < 1.0:
+            icon_size = max(8, int(round(icon_size * scale)))
+        self._bar.apply_font(palette.get("font_size"), icon_size)
         # Force a redraw + re-layout so module text re-renders at the new font
         # size immediately (not only on the next pointer event).
         self._bar.queue_resize()

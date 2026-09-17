@@ -41,7 +41,7 @@ class Glyph(Gtk.Label):
     def set_pixel_size(self, size: int) -> None:
         attrs = Pango.AttrList()
         attrs.insert(Pango.attr_family_new(self._font))
-        attrs.insert(Pango.attr_size_new_absolute(int(max(size, 10)) * Pango.SCALE))
+        attrs.insert(Pango.attr_size_new_absolute(int(max(size, 6)) * Pango.SCALE))
         self.set_attributes(attrs)
 
 

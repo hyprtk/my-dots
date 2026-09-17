@@ -790,8 +790,8 @@ def icon_size_for(font_size, icon_size=0) -> int:
     except (TypeError, ValueError):
         icon_size = 0
     if icon_size > 0:
-        return max(14, icon_size)
+        return max(8, icon_size)
     try:
-        return max(14, int(round(int(font_size) * 1.25)))
+        return max(8, int(round(int(font_size) * 1.25)))
     except (TypeError, ValueError):
         return 20

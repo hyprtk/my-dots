@@ -39,6 +39,7 @@ from dbus_next.service import (  # noqa: E402
 )
 from dbus_next import Message  # noqa: E402
 
+from .config import icon_size_for  # noqa: E402
 from .popup import bind_hover_tooltip  # noqa: E402
 from .widgets import HoverButton, safe_icon_name  # noqa: E402
 
@@ -532,6 +533,12 @@ class TrayButton(HoverButton):
             y = base_y + screen_h - bar_alloc.height + alloc.y + alloc.height // 2
         return x, y
 
+    def set_icon_size(self, size: int) -> None:
+        """Resize the tray icon (fit-to-width scaling)."""
+        self._icon_size = size
+        self._image.set_pixel_size(size)
+        self.refresh()
+
     def refresh(self) -> None:
         item = self._item
         pixbuf = item.best_pixbuf()
@@ -651,6 +658,13 @@ class Tray(Gtk.Box):
         self._bar_edge = edge
         for btn in self._buttons.values():
             btn._bar_edge = edge
+
+    def apply_font(self, font_size, icon_size=0) -> None:
+        """Scale the tray icons with the bar's content scale."""
+        size = icon_size_for(font_size, icon_size)
+        self._icon_size = size
+        for btn in self._buttons.values():
+            btn.set_icon_size(size)
 
 
 class TrayController:

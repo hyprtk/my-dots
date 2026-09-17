@@ -34,6 +34,11 @@ class Window(HoverButton):
             self._width = max(60, int(self._cfg.get("width", 220)))
         except (TypeError, ValueError):
             self._width = 220
+        self._base_width = self._width
+        try:
+            self._base_font = float((cfg.get("font") or {}).get("size", 16)) or 16.0
+        except (TypeError, ValueError):
+            self._base_font = 16.0
         self._app_class = ""
         self._tip = ""
 
@@ -51,6 +56,16 @@ class Window(HoverButton):
         # A TRUE fixed width: size_request alone is only a minimum and a long
         # title would still widen the module (shifting its neighbors).
         return self._width, self._width
+
+    def apply_font(self, font_size, icon_size=0) -> None:
+        """Scale the fixed title box with the bar's fit-to-width content scale."""
+        try:
+            scale = min(1.0, float(font_size) / self._base_font) if self._base_font else 1.0
+        except (TypeError, ValueError):
+            scale = 1.0
+        self._width = max(40, int(round(self._base_width * scale)))
+        self.set_size_request(self._width, -1)
+        self.queue_resize()
 
     def update(self, title: str | None, app_class: str | None = None) -> None:
         title = (title or "").strip()

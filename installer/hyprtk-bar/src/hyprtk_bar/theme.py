@@ -173,6 +173,15 @@ def _vertical_padding(nums: list) -> float:
     return nums[0] + nums[2]
 
 
+def _scale_nums(nums, scale: float) -> list:
+    """Scale a list of px values by the fit-to-width content scale."""
+    if not nums:
+        return []
+    if not scale or scale >= 1.0:
+        return list(nums)
+    return [n * scale for n in nums]
+
+
 def gap_value(cfg: dict, key: str, default: int) -> int:
     """Coerce a gap config value to ``int >= 0``; ``default`` for missing/None.
 
@@ -210,6 +219,13 @@ def build_css(palette: dict, cfg: dict) -> str:
     # The imported theme's background alpha (if any) maps to the bar opacity;
     # otherwise the configured opacity applies.
     opacity = palette.get("background_alpha", cfg.get("opacity", 0.95))
+    # Fit-to-width content scale (set by the app when the configured width is
+    # smaller than the modules' natural width). 1.0 = unscaled.
+    scale = palette.get("content_scale") or 1.0
+    try:
+        scale = min(1.0, max(0.1, float(scale)))
+    except (TypeError, ValueError):
+        scale = 1.0
 
     bg = rgba(palette["background"], opacity)
     hover = hover_color(palette["hover"])
@@ -267,6 +283,7 @@ def build_css(palette: dict, cfg: dict) -> str:
     padding_rule = ""
     padding = palette.get("padding")
     if padding:
+        padding = _scale_nums(padding, scale)
         padding_rule = f"  padding: {_padding_css(padding)};\n"
         extra_v += _vertical_padding(padding)
     min_height = max(20, int(round(height - extra_v)))
@@ -275,9 +292,9 @@ def build_css(palette: dict, cfg: dict) -> str:
     chip_padding_rule = ""
     chip_padding = palette.get("chip_padding")
     if chip_padding:
-        chip_padding_rule = f"  padding: {_padding_css(chip_padding)};\n"
+        chip_padding_rule = f"  padding: {_padding_css(_scale_nums(chip_padding, scale))};\n"
     else:
-        chip_padding_rule = "  padding: 0 10px;\n"
+        chip_padding_rule = f"  padding: 0 {max(4, int(round(10 * scale)))}px;\n"
     chip_radius = palette.get("chip_radius", max(radius - 6, 4))
     chip_border_rule = ""
     chip_bw = palette.get("chip_border_width")
@@ -333,18 +350,18 @@ def build_css(palette: dict, cfg: dict) -> str:
   min-height: {min_height}px;
   color: {fg};
 {font_size_rule}{border_rule}{bar_shadow_rule}{padding_rule}{font_rule}}}
-.task-button {{ padding: 2px 6px; border-radius: {max(radius - 6, 4)}px; }}
+.task-button {{ padding: {max(1, int(round(2 * scale)))}px {max(3, int(round(6 * scale)))}px; border-radius: {max(radius - 6, 4)}px; }}
 .task-button.hover {{ background-color: {hover}; }}
 .quicklink-glyph {{ color: {glyph_color}; font-family: {glyph_font}; }}
 .accent-icon {{ color: {accent}; }}
 {module_rules}
-.tray-button {{ padding: 2px 6px; border-radius: {max(radius - 6, 4)}px; }}
+.tray-button {{ padding: {max(1, int(round(2 * scale)))}px {max(3, int(round(6 * scale)))}px; border-radius: {max(radius - 6, 4)}px; }}
 .tray-button.hover {{ background-color: {hover}; }}
 .dimmed {{ opacity: 0.45; }}
 .task-dot {{
-  min-width: {dot_size}px;
-  min-height: {dot_size}px;
-  border-radius: {dot_size // 2}px;
+  min-width: {max(3, int(round(dot_size * scale)))}px;
+  min-height: {max(3, int(round(dot_size * scale)))}px;
+  border-radius: {max(2, int(round((dot_size // 2) * scale)))}px;
   background-color: {rgba(palette["foreground"], 0.55)};
 }}
 .task-button.active .task-dot {{
@@ -353,7 +370,7 @@ def build_css(palette: dict, cfg: dict) -> str:
   background-color: {accent};
 }}
 .workspace-chip {{
-  min-height: {max(height - 12, 16)}px;
+  min-height: {max(14, int(round(max(height - 12, 16) * scale)))}px;
   border-radius: {chip_radius}px;
   color: {chip_fg or fg};
 {chip_padding_rule}{chip_border_rule}{chip_bg_rule}{chip_fs_rule}{chip_fw_rule}}}
