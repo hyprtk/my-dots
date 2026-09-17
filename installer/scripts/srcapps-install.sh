@@ -10,6 +10,7 @@
 #   starship          starship.rs install.sh           → shell prompt
 #   cliphist          sentriz/cliphist (go)            → clipboard history
 #   eza               eza-community/eza (cargo)        → `ls` replacement (Debian 12)
+#   ipp-usb           OpenPrinting/ipp-usb (go)        → driverless USB printing
 #
 # Each step is idempotent (skips when already present) and non-fatal: a failed
 # build warns and the rest of the install continues, exactly like awww. Set
@@ -30,6 +31,7 @@ G4_GIT="https://github.com/wmww/gtk4-layer-shell.git"
 SWAPPY_GIT="https://github.com/jtheoof/swappy.git"
 NWG_GIT="https://github.com/nwg-piotr/nwg-look.git"
 CLIPHIST_GIT="https://github.com/sentriz/cliphist.git"
+IPPUSB_GIT="https://github.com/OpenPrinting/ipp-usb.git"
 
 say() { echo "srcapps: $*"; }
 
@@ -66,16 +68,26 @@ CLIPHIST_DEPS[apk]="git go wl-clipboard"
 declare -A EZA_DEPS
 EZA_DEPS[apt]="cargo"
 
+# ipp-usb is Go with cgo (libusb) + an avahi client; only built where unpackaged
+# (Alpine). It also needs its udev rule installed to be triggered on device add.
+declare -A IPPUSB_DEPS
+IPPUSB_DEPS[apt]="git golang-go libusb-1.0-0-dev libavahi-client-dev"
+IPPUSB_DEPS[dnf]="git golang libusb1-devel avahi-devel"
+IPPUSB_DEPS[zypper]="git go libusb-1_0-devel avahi-devel"
+IPPUSB_DEPS[xbps]="git go libusb-devel avahi-devel"
+IPPUSB_DEPS[apk]="git go libusb-dev avahi-dev"
+
 # ── Dry run ─────────────────────────────────────────────────────────────────
 if [ -n "${HYPRTK_DRYRUN:-}" ]; then
     echo "srcapps: would install from source/upstream where missing:"
     echo "srcapps:   gtk4-layer-shell $G4_VER | swappy $SWAPPY_VER | nwg-look $NWG_VER | starship $STARSHIP_VER"
-    echo "srcapps:   cliphist (go) | eza (cargo)"
+    echo "srcapps:   cliphist (go) | eza (cargo) | ipp-usb (go)"
     echo "srcapps:   build deps (gtk4): ${G4_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (swappy): ${SWAPPY_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (nwg-look): ${NWG_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (cliphist): ${CLIPHIST_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (eza): ${EZA_DEPS[$HYPRTK_PM]:-(none)}"
+    echo "srcapps:   build deps (ipp-usb): ${IPPUSB_DEPS[$HYPRTK_PM]:-(none)}"
     exit 0
 fi
 
@@ -232,6 +244,36 @@ install_eza() {
     return 1
 }
 
+install_ippusb() {
+    have ipp-usb || [ -x /usr/sbin/ipp-usb ] && { say "ipp-usb: already present"; return 0; }
+    [ -n "${IPPUSB_DEPS[$HYPRTK_PM]:-}" ] && pkg_install ${IPPUSB_DEPS[$HYPRTK_PM]} || true
+    if ! have go || ! have git; then
+        say "ipp-usb: go/git unavailable — skipping" >&2
+        return 1
+    fi
+    say "ipp-usb: building from source (driverless USB printing)"
+    local tmp
+    tmp="$(mktemp -d)" || return 1
+    if git clone --depth=1 "$IPPUSB_GIT" "$tmp/src" >/dev/null 2>&1 \
+       && ( cd "$tmp/src" && go build -ldflags "-s -w" -tags nethttpomithttp2 -mod=vendor -o "$tmp/ipp-usb" . >/dev/null 2>&1 ) \
+       && [ -x "$tmp/ipp-usb" ]; then
+        hyprtk_run_root mkdir -p /usr/sbin /etc/udev/rules.d /etc/ipp-usb /usr/share/ipp-usb/quirks
+        hyprtk_run_root install -m755 "$tmp/ipp-usb" /usr/sbin/ipp-usb
+        [ -f "$tmp/src/systemd-udev/71-ipp-usb.rules" ] \
+            && hyprtk_run_root install -m644 "$tmp/src/systemd-udev/71-ipp-usb.rules" /etc/udev/rules.d/71-ipp-usb.rules
+        [ -f "$tmp/src/ipp-usb.conf" ] \
+            && hyprtk_run_root install -m644 "$tmp/src/ipp-usb.conf" /etc/ipp-usb/ipp-usb.conf
+        [ -d "$tmp/src/ipp-usb-quirks" ] \
+            && hyprtk_run_root cp -r "$tmp/src/ipp-usb-quirks/." /usr/share/ipp-usb/quirks/ 2>/dev/null || true
+        rm -rf "$tmp"
+        say "ipp-usb: installed (binary + udev rule)"
+        return 0
+    fi
+    rm -rf "$tmp"
+    say "ipp-usb: build failed" >&2
+    return 1
+}
+
 install_starship() {
     if have starship; then say "starship: already present"; return 0; fi
     pkg_install curl ca-certificates
@@ -258,6 +300,7 @@ install_nwg_look          || FAILED=$((FAILED + 1))
 install_starship          || FAILED=$((FAILED + 1))
 install_cliphist          || FAILED=$((FAILED + 1))
 install_eza               || FAILED=$((FAILED + 1))
+install_ippusb            || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -ne 0 ]; then
     say "$FAILED app(s) could not be built — the rest of the install continues"
