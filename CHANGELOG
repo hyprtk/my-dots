@@ -43,6 +43,11 @@ documented in this file. Dates are in YYYY-MM-DD format.
     effects-only options (`clock`, `timestr`, `datestr`, `fade-in`,
     `effect-pixelate`, bare `indicator`) and refused to lock, so non-effects
     builds now get the plain variant while Arch keeps the effects config.
+  - New `installer/scripts/xdg-autostart-cleanup.sh`, run during configuration:
+    uwsm sessions run `systemd-xdg-autostart`, so distro defaults for another
+    desktop also launch under Hyprland. Fedora Xfce's `dnfdragora-updater`
+    crashes there (python SIGABRT) and pops an ABRT "Oops!" dialog at every
+    login; it is suppressed per-user with a `Hidden=true` override.
 
 - **Container package-name matrix (T1).** New
   `installer/scripts/verify/container-matrix.sh` resolves every native name from

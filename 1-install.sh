@@ -725,6 +725,13 @@ else
     _spin "Enabling bluetooth..." "sudo systemctl start bluetooth && sudo systemctl enable bluetooth" "$LOG_FILE"
     _ok "Bluetooth enabled"
 
+    # ── Cross-desktop autostart cleanup ──────────────────────────────────
+    # uwsm sessions run systemd-xdg-autostart, so distro defaults for another
+    # desktop (e.g. Fedora Xfce's dnfdragora-updater) also launch under
+    # Hyprland and can crash. Suppress the known-bad ones per-user.
+    _spin "Cleaning up cross-desktop autostart..." "bash $SCRIPT_DIR/installer/scripts/xdg-autostart-cleanup.sh" "$LOG_FILE"
+    _ok "Cross-desktop autostart cleaned up"
+
     # ── Cockpit / os-release ─────────────────────────────────────────────
     _step "Enabling Cockpit"
     if type install_os_release >/dev/null 2>&1; then
