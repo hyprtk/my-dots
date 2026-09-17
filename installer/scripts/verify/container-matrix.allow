@@ -36,6 +36,7 @@ apt/trixie  xautolock                       # removed from the Debian archive in
 #
 # ── dnf: RPMFusion / COPR or not packaged ───────────────────────────────────
 dnf  akmod-nvidia                       # RPMFusion (NVIDIA driver)
+dnf  brave-browser                      # Brave's own RPM repo (added by webtools.sh at install time)
 dnf  font-manager                       # COPR only
 dnf  hyprland                           # COPR (solopasha/hyprland); not in Fedora base
 dnf  hyprpicker                         # COPR (Hyprland ecosystem)
@@ -46,6 +47,9 @@ dnf  nwg-look                           # COPR only; srcapps-install.sh builds i
 dnf  polkit-gnome                       # not packaged in Fedora
 dnf  starship                           # COPR/EPEL only; srcapps-install.sh runs the upstream installer
 dnf  xorg-x11-drv-nvidia-cuda           # RPMFusion
+#
+# ── zypper: not in the OSS repos ────────────────────────────────────────────
+zypper  brave-browser                   # Brave's own RPM repo (added by webtools.sh at install time)
 #
 # ── xbps: Void — not packaged, or the nonfree repo is not enabled ───────────
 xbps  cockpit           # not packaged for Void

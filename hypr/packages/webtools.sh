@@ -51,9 +51,37 @@ install_brave_apt() {
     pkg_install brave-browser
 }
 
+# Fedora/RHEL and openSUSE get Brave from its official RPM repo (same source of
+# truth as the apt repo above and the AUR package on Arch).
+install_brave_rpm() {
+    case "$HYPRTK_PM" in dnf|zypper) ;; *) return 0 ;; esac
+    pkg_is_installed brave-browser && return 0
+    local base=https://brave-browser-rpm-release.s3.brave.com
+    echo "  Enabling Brave's RPM repository"
+    hyprtk_run_root rpm --import "$base/brave-core.asc" 2>/dev/null || true
+    if [ "$HYPRTK_PM" = dnf ]; then
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL "$base/brave-browser.repo" \
+                | hyprtk_run_root tee /etc/yum.repos.d/brave-browser.repo >/dev/null \
+                || { echo "  ! could not add the Brave repo"; return 0; }
+        elif command -v wget >/dev/null 2>&1; then
+            wget -qO- "$base/brave-browser.repo" \
+                | hyprtk_run_root tee /etc/yum.repos.d/brave-browser.repo >/dev/null \
+                || { echo "  ! could not add the Brave repo"; return 0; }
+        else
+            echo "  ! curl/wget missing — skipping Brave"; return 0
+        fi
+        hyprtk_run_root dnf install -y brave-browser || echo "  ! brave-browser install failed"
+    else
+        hyprtk_run_root zypper --non-interactive addrepo --refresh "$base/x86_64/" brave-browser 2>/dev/null || true
+        hyprtk_run_root zypper --non-interactive --gpg-auto-import-keys install brave-browser \
+            || echo "  ! brave-browser install failed"
+    fi
+}
+
 if [ "${1:-}" = "--list" ]; then
     printf '%s ' "${PKGS[@]}" "${AUR[@]}"
-    [ "$HYPRTK_PM" = apt ] && printf 'brave-browser '
+    case "$HYPRTK_PM" in apt|dnf|zypper) printf 'brave-browser ' ;; esac
     echo; exit 0
 fi
 
@@ -61,4 +89,5 @@ echo ""
 pkg_install "${PKGS[@]}"
 aur_install "${AUR[@]}"
 [ "$HYPRTK_PM" = apt ] && install_brave_apt
+case "$HYPRTK_PM" in dnf|zypper) install_brave_rpm ;; esac
 echo ""

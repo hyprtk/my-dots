@@ -837,6 +837,13 @@ else
         _spin "Creating ~/.local/bin..." "mkdir -p ~/.local/bin" "$LOG_FILE"
         _ok "Hyprland configs installed"
 
+        # ── Preferred apps (XDG) ───────────────────────────────────────
+        # Point XDG at the suite's file manager/browser so desktop integration
+        # and hyprtk-bar's quick links resolve thunar/brave, not the distro's
+        # defaults. The session terminal is $TERMINAL in hypr/environment.lua.
+        _spin "Registering preferred apps..." "bash $SCRIPT_DIR/installer/scripts/set-default-apps.sh" "$LOG_FILE"
+        _ok "Preferred apps registered"
+
         # ── ZSH ──────────────────────────────────────────────────────
         _step "Installing ZSH"
         _spin "Installing zsh..." "_installPackagesPacman zsh" "$LOG_FILE"
