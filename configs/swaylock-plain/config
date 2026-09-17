@@ -1,0 +1,44 @@
+ignore-empty-password
+font="Cantarell"
+image=~/.cache/current-wallpaper.png
+indicator-radius=200
+indicator-thickness=20
+indicator-caps-lock
+
+# Plain-swaylock variant: no swaylock-effects options (clock/timestr/datestr,
+# fade-in, effect-pixelate, bare `indicator`). The installer links this config
+# when the installed swaylock does not advertise --effect-pixelate; the plain
+# indicator is shown by default, so nothing is lost. See 1-install.sh.
+
+# Colors:
+key-hl-color=AD998744
+separator-color=00000000
+
+inside-color=0F182544
+inside-clear-color=637B8144
+inside-caps-lock-color=614E9444
+inside-ver-color=65A79844
+inside-wrong-color=5F5A5844
+
+ring-color=AD9987
+ring-clear-color=637B81
+ring-caps-lock-color=65A798
+ring-ver-color=65A798
+ring-wrong-color=5F5A58
+
+line-color=AD998744
+line-clear-color=637B8144
+line-caps-lock-color=65A79844
+line-ver-color=65A79844
+line-wrong-color=5F5A5844
+
+text-color=C3C5C8
+text-clear-color=096B94
+text-ver-color=C94AA7
+text-wrong-color=981C71
+
+bs-hl-color=5F5A58
+caps-lock-key-hl-color=65A79844
+caps-lock-bs-hl-color=65A79844
+disable-caps-lock-text
+text-caps-lock-color=65A798

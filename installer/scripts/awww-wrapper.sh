@@ -24,13 +24,29 @@ fi
 mkdir -p "$HOME/.local/bin"
 
 if [ -n "$REAL_AWW" ]; then
-    cat > "$HOME/.local/bin/awww" << AWWWEOF
+    cat > "$HOME/.local/bin/awww" << 'AWWWEOF'
 #!/bin/bash
-# hyprtk awww wrapper — runs the real awww, then triggers the pywal pipeline
-REAL_AWW="$REAL_AWW"
-WALLPAPER="\${@: -1}"
-"\$REAL_AWW" "\$@"
-[ -f "\$WALLPAPER" ] && bash ~/.config/hypr/scripts/wallpaper-colors.sh "\$WALLPAPER" &
+# hyprtk awww wrapper — run the real awww/swww, then drive the pywal pipeline.
+# Resolve the real binary at runtime: Arch's AUR uses /usr/bin, the cross-distro
+# source build uses /usr/local/bin, and Void/Alpine ship it as swww.
+REAL_AWW=""
+for c in /usr/local/bin/awww /usr/bin/awww /bin/awww \
+         /usr/local/bin/swww /usr/bin/swww /bin/swww; do
+    if [ -x "$c" ] && [ "$c" != "$0" ]; then REAL_AWW="$c"; break; fi
+done
+if [ -z "$REAL_AWW" ]; then
+    echo "awww: no awww/swww binary found" >&2
+    exit 127
+fi
+WALLPAPER=""
+for _a in "$@"; do [ -f "$_a" ] && WALLPAPER="$_a"; done
+"$REAL_AWW" "$@"
+rc=$?
+# wallpaper-colors.sh only regenerates the palette; it must not re-call awww.
+if [ -f "$WALLPAPER" ]; then
+    bash "$HOME/.config/hypr/scripts/wallpaper-colors.sh" "$WALLPAPER" &
+fi
+exit "$rc"
 AWWWEOF
     chmod +x "$HOME/.local/bin/awww"
 

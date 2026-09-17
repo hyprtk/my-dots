@@ -810,7 +810,16 @@ else
         fi
         _spin "Installing hypr..." "_installSymLink hypr ~/.config/hypr $SCRIPT_DIR/hypr/ ~/.config" "$LOG_FILE"
         _spin "Installing fastfetch..." "_installSymLink fastfetch ~/.config/fastfetch $SCRIPT_DIR/configs/fastfetch/ ~/.config" "$LOG_FILE"
-        _spin "Installing swaylock..." "_installSymLink swaylock ~/.config/swaylock $SCRIPT_DIR/configs/swaylock/ ~/.config" "$LOG_FILE"
+        # swaylock-effects is AUR-only, so most families get plain swaylock,
+        # which rejects the effects config (clock/timestr/datestr, fade-in,
+        # effect-pixelate) and refuses to lock. Link the variant the installed
+        # binary actually accepts.
+        if command -v swaylock >/dev/null 2>&1 && swaylock --help 2>&1 | grep -q -- '--effect-pixelate'; then
+            _swaylock_src="$SCRIPT_DIR/configs/swaylock/"
+        else
+            _swaylock_src="$SCRIPT_DIR/configs/swaylock-plain/"
+        fi
+        _spin "Installing swaylock..." "_installSymLink swaylock ~/.config/swaylock $_swaylock_src ~/.config" "$LOG_FILE"
         _spin "Installing swappy..." "_installSymLink swappy ~/.config/swappy $SCRIPT_DIR/configs/swappy/ ~/.config" "$LOG_FILE"
         _spin "Installing hyprlogout..." "_installSymLink hyprlogout ~/.config/hyprlogout $SCRIPT_DIR/configs/hyprlogout/ ~/.config" "$LOG_FILE"
         _spin "Installing waypaper..." "_installSymLink waypaper ~/.config/waypaper $SCRIPT_DIR/configs/waypaper/ ~/.config" "$LOG_FILE"
@@ -850,8 +859,13 @@ else
         # chsh needs a password; use sudo (already authorised). Never fall back
         # to a non-root `chsh`: it prompts on /dev/tty, which is invisible under
         # the installer, so it would hang forever waiting for input.
+        # Name the target user explicitly: `chsh` with no user argument changes
+        # the *invoking* user's shell, which under sudo is root.
         ZSH_BIN="$(command -v zsh || echo /bin/zsh)"
-        sudo chsh -s "$ZSH_BIN" || _fail "could not set the default shell to zsh"
+        _target_user="${SUDO_USER:-$(id -un)}"
+        grep -qx "$ZSH_BIN" /etc/shells 2>/dev/null \
+            || echo "$ZSH_BIN" | sudo tee -a /etc/shells >/dev/null
+        sudo chsh -s "$ZSH_BIN" "$_target_user" || _fail "could not set the default shell to zsh"
         _ok ".zshrc updated"
 
         # ── Standalone apps ──────────────────────────────────────────

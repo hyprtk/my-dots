@@ -2,8 +2,9 @@
 WALLPAPER="$1"
 [ -f "$WALLPAPER" ] || exit 1
 
-# Set wallpaper with awww
-awww img "$WALLPAPER" --transition-type fade --transition-duration 2 --transition-fps 60 2>/dev/null
+# The awww wrapper (~/.local/bin/awww) already applied the wallpaper with the
+# real binary before calling this script; do NOT call `awww` here or the
+# wrapper recurses (it runs this after every `awww img`).
 
 # Run pywal
 wal -i "$WALLPAPER" -n -q

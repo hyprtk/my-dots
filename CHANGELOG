@@ -26,6 +26,23 @@ documented in this file. Dates are in YYYY-MM-DD format.
     on Fedora/openSUSE.
   - `manual_package_installs.sh` removed from the core loop: it is a manual,
     opt-in helper, not part of `1-install.sh`.
+- **More Fedora fixes (2026-09-17, second pass on the same VM).**
+  - `installer/standalone/awww` (the wrapper that lands on PATH) hardcoded
+    `REAL_AWW=/usr/bin/awww`, so on Fedora — where awww is a `/usr/local/bin`
+    source build — every wallpaper change failed silently. It now resolves the
+    real awww/swww at runtime, and both it and `awww-wrapper.sh` pick the image
+    argument that names a real file (flags may follow the path).
+  - `hypr/scripts/wallpaper-colors.sh` no longer calls `awww img`: the wrapper
+    already applied the wallpaper before invoking it, so the call made the
+    wrapper recurse on every change.
+  - `1-install.sh` runs `chsh` with an explicit target user (`SUDO_USER`); with
+    no user argument `chsh` under sudo changed **root**'s shell, so the user's
+    login shell stayed bash. zsh is also ensured present in `/etc/shells`.
+  - New `configs/swaylock-plain/config` and a capability check in `1-install.sh`
+    (`swaylock --help | grep -- --effect-pixelate`): plain swaylock rejects the
+    effects-only options (`clock`, `timestr`, `datestr`, `fade-in`,
+    `effect-pixelate`, bare `indicator`) and refused to lock, so non-effects
+    builds now get the plain variant while Arch keeps the effects config.
 
 - **Container package-name matrix (T1).** New
   `installer/scripts/verify/container-matrix.sh` resolves every native name from
