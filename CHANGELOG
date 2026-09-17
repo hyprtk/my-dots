@@ -44,7 +44,15 @@ documented in this file. Dates are in YYYY-MM-DD format.
   binary and **fails the step** if it is missing. `configs/matuwall/config.toml`
   replaces `config.json` — note upstream's own `config/example.toml` is stale
   (the grid keys belong under `[grid]`) — with an `[hooks] on_apply` that runs
-  `wal -i {path} -n`.
+  `wal -i {path} -n`. The new config **carries the old settings over**
+  (`directory`, `position = "left"`, `columns = 4`, `mouse = true`,
+  `close_on_focus_loss = false`, 300px thumbnails), and a new pywal template
+  (`configs/wal/templates/matuwall-config.toml`) renders the `[colors]` and the
+  panel background from the live palette; the installer points
+  `~/.config/matuwall/config.toml` at the rendered file (static config as
+  fallback), so the picker follows the wallpaper like the old Python version.
+  Upstream dropped the `wall_awww_flags` transition and the panel exclusive
+  zone, so those have no equivalent.
 - **A dead lockscreen no longer leaves the session unrecoverable.** Locking can
   hit an upstream aquamarine DRM page-flip race (`drm: Cannot commit when a
   page-flip is awaiting` — hyprwm/Hyprland#15469, hyprwm/aquamarine#343) that

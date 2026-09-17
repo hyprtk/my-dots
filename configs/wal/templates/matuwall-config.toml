@@ -1,0 +1,47 @@
+# Matuwall — hyprtk wallpaper picker (pywal).
+#
+# Rendered by `wal` to ~/.cache/wal/matuwall-config.toml on every wallpaper
+# change; the installer symlinks ~/.config/matuwall/config.toml to it so the
+# picker follows the pywal palette (its own UI colours, like the old Matuwall).
+# Schema per src/config/config.c (upstream's config/example.toml is stale — the
+# grid keys belong under [grid]).
+
+[general]
+directory = "~/Pictures/Wallpapers"
+backend = "auto"
+
+[window]
+position = "left"
+background = "{background}f2"
+edge_margin = 45
+close_on_focus_loss = false
+
+[input]
+mouse = true
+
+[grid]
+columns = 4
+spacing = 16
+radius = 20
+border_width = 0
+shadow_width = 12
+ring_width = 0
+visible_rows = 1
+carousel = true
+edge_peek = false
+
+[thumbnail]
+width = 300
+height = 169
+
+[colors]
+tile = "{color0}"
+border = "{color8}"
+shadow = "#00000066"
+ring = "{color5}"
+spinner = "{color6}"
+
+[hooks]
+# matuwall substitutes {path}; pywal escapes it as {{path}} so the render keeps
+# it literal.
+on_apply = [ "wal -i {{path}} -n" ]

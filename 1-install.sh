@@ -921,7 +921,13 @@ else
         _spin "Installing waypaper..." "_installSymLink waypaper ~/.config/waypaper $SCRIPT_DIR/configs/waypaper/ ~/.config" "$LOG_FILE"
         _spin "Installing zshrc..." "_installSymLink zshrc ~/.config/zshrc $SCRIPT_DIR/configs/zshrc/ ~/.config" "$LOG_FILE"
         _spin "Installing ohmyposh..." "_installSymLink ohmyposh ~/.config/ohmyposh $SCRIPT_DIR/configs/ohmyposh/ ~/.config" "$LOG_FILE"
-        _spin "Installing matuwall..." "_installSymLink matuwall ~/.config/matuwall $SCRIPT_DIR/configs/matuwall/ ~/.config" "$LOG_FILE"
+        # matuwall reads ~/.config/matuwall/config.toml. Point that file at the
+        # pywal-rendered config (configs/wal/templates/matuwall-config.toml) so
+        # the picker follows the wallpaper; the static repo config is the
+        # fallback when pywal has not rendered yet.
+        _matuwall_rendered="$HOME/.cache/wal/matuwall-config.toml"
+        [ -f "$_matuwall_rendered" ] || _matuwall_rendered="$SCRIPT_DIR/configs/matuwall/config.toml"
+        _spin "Installing matuwall..." "if [ -L ~/.config/matuwall ]; then rm -f ~/.config/matuwall; fi; mkdir -p ~/.config/matuwall; _installSymLink matuwall-config ~/.config/matuwall/config.toml $_matuwall_rendered ~/.config/matuwall" "$LOG_FILE"
         _spin "Installing wob..." "_installSymLink wob ~/.config/wob $SCRIPT_DIR/configs/wob/ ~/.config" "$LOG_FILE"
         _spin "Creating ~/.local/bin..." "mkdir -p ~/.local/bin" "$LOG_FILE"
         _ok "Hyprland configs installed"
