@@ -47,14 +47,42 @@ hyprtk_pm_name() {
 }
 
 # ── Root ────────────────────────────────────────────────────────────────────
-# Run a command as root (directly when already root, else through sudo).
+# Alpine (and other doas-only systems) ship doas instead of sudo. When no real
+# sudo binary is present, define a `sudo` compatibility function that maps the
+# flags the dotfiles use onto doas, and export it so the `bash -c` subshells
+# used by _spin/_run (and scripts invoked as `bash script.sh`) inherit it. This
+# lets every existing `sudo ...` call site work unchanged. Never shadows a real
+# sudo. POSIX-safe (no arrays) so it is also usable from /bin/sh scripts.
+if ! type -P sudo >/dev/null 2>&1 && command -v doas >/dev/null 2>&1; then
+    sudo() {
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                -v|--validate) doas true; return $? ;;
+                -n|--non-interactive) shift ;;
+                -E|--preserve-env|-H|-S|-k|--stdin) shift ;;
+                -u|--user) shift; _hyprtk_su="$1"; shift; doas -u "$_hyprtk_su" "$@"; return $? ;;
+                --) shift; break ;;
+                -*) shift ;;
+                *) break ;;
+            esac
+        done
+        doas "$@"
+    }
+    export -f sudo 2>/dev/null || true
+fi
+
+# Run a command as root (directly when already root, else through sudo, then
+# doas — the fallback matters in non-bash contexts where the shim above is not
+# inherited).
 hyprtk_run_root() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
     elif command -v sudo >/dev/null 2>&1; then
         sudo "$@"
+    elif command -v doas >/dev/null 2>&1; then
+        doas "$@"
     else
-        echo "  ✗ need root to manage packages; sudo not found" >&2
+        echo "  ✗ need root to manage packages; neither sudo nor doas found" >&2
         return 1
     fi
 }

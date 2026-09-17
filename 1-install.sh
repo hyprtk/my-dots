@@ -70,22 +70,31 @@ export SCRIPT_DIR HYPRTK_PM
 GUM="$SCRIPT_DIR/installer/standalone/gum"
 
 check_gum() {
-    if [ -x "$GUM" ]; then
-        return
-    fi
-    if command -v gum &>/dev/null; then
-        GUM="$(command -v gum)"
-        return
-    fi
+    # The bundled gum is a glibc ELF binary. On a musl system (Alpine) the file
+    # exists and is executable but cannot actually run, so "exists"/"is on PATH"
+    # is not enough — prove each candidate runs before trusting it. This matters
+    # because the dotfiles symlink the bundled copy into ~/.local/bin (on PATH),
+    # so `command -v gum` can resolve to the broken copy too.
+    local cand
+    for cand in "$GUM" "$(command -v gum 2>/dev/null)" /usr/bin/gum /usr/local/bin/gum; do
+        [ -n "$cand" ] && [ -x "$cand" ] || continue
+        if "$cand" --version >/dev/null 2>&1; then
+            GUM="$cand"
+            return
+        fi
+    done
     echo -e "${CYAN}gum not found. Installing...${NC}"
     pkg_install gum
-    if command -v gum &>/dev/null; then
-        GUM="$(command -v gum)"
-    else
-        echo -e "${YELLOW}  ! Could not install gum automatically.${NC}"
-        echo -e "${WHITE}    Install it from your distro (or use the bundled copy) and re-run.${NC}"
-        exit 1
-    fi
+    for cand in /usr/bin/gum /usr/local/bin/gum "$(command -v gum 2>/dev/null)"; do
+        [ -n "$cand" ] && [ -x "$cand" ] || continue
+        if "$cand" --version >/dev/null 2>&1; then
+            GUM="$cand"
+            return
+        fi
+    done
+    echo -e "${YELLOW}  ! Could not install gum automatically.${NC}"
+    echo -e "${WHITE}    Install it from your distro (or use the bundled copy) and re-run.${NC}"
+    exit 1
 }
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -261,12 +270,19 @@ SUDO_KEEPALIVE_PID=""
 # for the rest of the install; it is removed on exit. Other distros keep the
 # classic `sudo -v` + keepalive path.
 HYPRTK_TMP_POLKIT="/etc/polkit-1/rules.d/51-hyprtk-install.rules"
+# doas-only systems (Alpine): doas has no timestamped credential cache like
+# sudo, so a temporary nopass drop-in authorises this user for the install; it
+# is removed on exit (same pattern as the run0 polkit rule below).
+HYPRTK_TMP_DOAS=""
 _cleanup_keepalive() {
     if [ -n "$SUDO_KEEPALIVE_PID" ] && kill -0 "$SUDO_KEEPALIVE_PID" 2>/dev/null; then
         kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
     fi
     if [ -e "$HYPRTK_TMP_POLKIT" ]; then
         sudo -n rm -f "$HYPRTK_TMP_POLKIT" 2>/dev/null || true
+    fi
+    if [ -n "${HYPRTK_TMP_DOAS:-}" ] && [ -e "$HYPRTK_TMP_DOAS" ]; then
+        doas -n rm -f "$HYPRTK_TMP_DOAS" 2>/dev/null || true
     fi
 }
 trap _cleanup_keepalive EXIT
@@ -317,6 +333,39 @@ POLKIT
             sleep 1
         done
         return 1
+    fi
+
+    # doas-only systems (Alpine): the `sudo` compatibility shim in
+    # pkgmanager.sh routes every sudo call to doas. doas keeps no credential
+    # cache, so authenticate once, then install a temporary nopass drop-in
+    # (doas.d is merged, like polkit's rules.d) for the rest of the install.
+    if ! type -P sudo >/dev/null 2>&1 && command -v doas >/dev/null 2>&1; then
+        doas -n true 2>/dev/null && return 0
+
+        echo -e "${WHITE}  Alpine doas detected — authorising this user once.${NC}"
+        echo ""
+        echo -e "${WHITE}  Enter your password to authorise the installation:${NC}"
+        if ! doas true; then
+            return 1
+        fi
+        local tmp drop
+        tmp="$(mktemp)"
+        printf 'permit nopass %s\n' "$(id -un)" > "$tmp"
+        # A lexically-last drop-in: doas evaluates /etc/doas.d/*.conf in order
+        # with later files winning, so a high number overrides the distro's own
+        # rules (e.g. 20-wheel.conf's `permit persist :wheel`).
+        drop="/etc/doas.d/99-hyprtk-install.conf"
+        doas mkdir -p /etc/doas.d
+        if ! doas cp "$tmp" "$drop"; then
+            rm -f "$tmp"
+            return 1
+        fi
+        doas chown root:root "$drop"
+        doas chmod 0644 "$drop"
+        rm -f "$tmp"
+        HYPRTK_TMP_DOAS="$drop"
+        doas -n true 2>/dev/null
+        return $?
     fi
 
     echo -e "${WHITE}  Enter your password to authorise the installation:${NC}"
@@ -687,7 +736,7 @@ _step "Installing Icons (root)"
 # a pipe lets a partial/failed download execute as root with no artifact to
 # inspect. Pin the URL to a specific commit/release when one is available.
 _spin "Installing Papirus icons for root..." \
-    "tmp=\$(mktemp) && wget -qO- --timeout=60 https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh > \"\$tmp\" && DESTDIR=/root/.local/share/icons sh \"\$tmp\"; rc=\$?; rm -f -- \"\$tmp\"; exit \$rc" \
+    "tmp=\$(mktemp) && wget -qO- --timeout=60 https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh > \"\$tmp\" && sudo env DESTDIR=/root/.local/share/icons sh \"\$tmp\"; rc=\$?; rm -f -- \"\$tmp\"; exit \$rc" \
     "$LOG_FILE"
 _ok "Icons installed for root"
 
@@ -706,7 +755,7 @@ _spin "Allowing pywal's ImageMagick TXT coder (if restricted)..." \
 _spin "Initializing pywal16..." "wal -n -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
 _ok "pywal16 initiated"
 
-_spin "Setting default wallpaper..." "cp $SCRIPT_DIR/assets/Wallpapers/default.png ~/.cache/current-wallpaper.png && sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png" "$LOG_FILE"
+_spin "Setting default wallpaper..." "cp $SCRIPT_DIR/assets/Wallpapers/default.png ~/.cache/current-wallpaper.png && sudo mkdir -p /root/.cache && sudo cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png" "$LOG_FILE"
 if type grub_wallpaper >/dev/null 2>&1; then
     _spin "Updating grub wallpaper..." "grub_wallpaper" "$LOG_FILE"
 fi
@@ -730,7 +779,14 @@ else
 
     # ── Bluetooth ────────────────────────────────────────────────────────
     _step "Enabling Bluetooth"
-    _spin "Enabling bluetooth..." "sudo systemctl start bluetooth && sudo systemctl enable bluetooth" "$LOG_FILE"
+    if command -v systemctl >/dev/null 2>&1; then
+        _spin "Enabling bluetooth..." "sudo systemctl start bluetooth && sudo systemctl enable bluetooth" "$LOG_FILE"
+    elif command -v rc-service >/dev/null 2>&1; then
+        # OpenRC (Alpine/Gentoo): service is `bluetooth`, enabled per runlevel.
+        _spin "Enabling bluetooth..." "sudo rc-service bluetooth start 2>/dev/null || true; sudo rc-update add bluetooth default 2>/dev/null || true" "$LOG_FILE"
+    else
+        _warn "No supported init system for bluetooth — not enabled"
+    fi
     _ok "Bluetooth enabled"
 
     # ── Cross-desktop autostart cleanup ──────────────────────────────────
@@ -752,13 +808,24 @@ else
     if type install_boot >/dev/null 2>&1; then
         _spin "Installing boot splash..." "install_boot" "$LOG_FILE"
     fi
-    _spin "Enabling cockpit..." "sudo cp $SCRIPT_DIR/configs/User-Management/manage-users.desktop /usr/share/applications/ && sudo systemctl enable --now cockpit.socket && sudo systemctl start cockpit.socket" "$LOG_FILE"
-    _ok "Cockpit enabled"
+    if command -v systemctl >/dev/null 2>&1; then
+        _spin "Enabling cockpit..." "sudo cp $SCRIPT_DIR/configs/User-Management/manage-users.desktop /usr/share/applications/ && sudo systemctl enable --now cockpit.socket && sudo systemctl start cockpit.socket" "$LOG_FILE"
+        _ok "Cockpit enabled"
+    else
+        _warn "cockpit requires systemd — not available on this system; skipping"
+    fi
 
     # ── Samba ────────────────────────────────────────────────────────────
     _step "Enabling Samba"
-    # Service names differ: Arch uses smb/nmb, most others smbd/nmbd.
-    _spin "Enabling samba..." "sudo mkdir -p /etc/samba && sudo cp $SCRIPT_DIR/configs/smb/smb.conf /etc/samba/ && (sudo systemctl enable --now smb nmb 2>/dev/null || sudo systemctl enable --now smbd nmbd 2>/dev/null); true" "$LOG_FILE"
+    # Service names differ: Arch uses smb/nmb, most others smbd/nmbd, and
+    # OpenRC (Alpine) the single `samba` service.
+    if command -v systemctl >/dev/null 2>&1; then
+        _spin "Enabling samba..." "sudo mkdir -p /etc/samba && sudo cp $SCRIPT_DIR/configs/smb/smb.conf /etc/samba/ && (sudo systemctl enable --now smb nmb 2>/dev/null || sudo systemctl enable --now smbd nmbd 2>/dev/null); true" "$LOG_FILE"
+    elif command -v rc-service >/dev/null 2>&1; then
+        _spin "Enabling samba..." "sudo mkdir -p /etc/samba && sudo cp $SCRIPT_DIR/configs/smb/smb.conf /etc/samba/ && (sudo rc-service samba start 2>/dev/null || true); (sudo rc-update add samba default 2>/dev/null || true); true" "$LOG_FILE"
+    else
+        _spin "Enabling samba..." "sudo mkdir -p /etc/samba && sudo cp $SCRIPT_DIR/configs/smb/smb.conf /etc/samba/; true" "$LOG_FILE"
+    fi
     _warn "Update interfaces in /etc/samba/smb.conf with your IP address"
     _ok "Samba enabled"
 
@@ -858,14 +925,20 @@ else
         # oh-my-zsh install needs interactive input - run without spin.
         # Fetch to a temp file and run it (avoids `sh -c "$(curl ...)"`, which
         # hides the fetched code and runs a partial download if the fetch fails).
-        echo -e "${CYAN}  → ${WHITE}Installing oh-my-zsh${NC}"
-        tmp="$(mktemp)" && curl -fsSL --max-time 90 \
-            https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh \
-            -o "$tmp" && bash "$tmp" --unattended
-        rc=$?
-        rm -f -- "$tmp"
-        if [ "$rc" -ne 0 ]; then
-            _fail "oh-my-zsh install exited $rc (network?)"
+        # Skip when already present: the upstream installer returns non-zero on
+        # an existing install, which would otherwise be reported as a failure.
+        if [ -d "$HOME/.oh-my-zsh" ]; then
+            echo -e "${CYAN}  → ${WHITE}oh-my-zsh already installed${NC}"
+        else
+            echo -e "${CYAN}  → ${WHITE}Installing oh-my-zsh${NC}"
+            tmp="$(mktemp)" && curl -fsSL --max-time 90 \
+                https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh \
+                -o "$tmp" && bash "$tmp" --unattended
+            rc=$?
+            rm -f -- "$tmp"
+            if [ "$rc" -ne 0 ]; then
+                _fail "oh-my-zsh install exited $rc (network?)"
+            fi
         fi
         _ok "ZSH installed"
 
