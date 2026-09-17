@@ -1,6 +1,12 @@
 #!/bin/bash
-# hyprtk-pkglist
-# ── manual_package_installs ─────────────────────────────────────────────────────────
+# ── manual_package_installs ─────────────────────────────────────────────────
+# MANUAL-ONLY helper. This file is intentionally NOT part of 1-install.sh and
+# must never be run by it on any distribution — it exists so a user can install
+# extra/optional applications on top of the base install by running it by hand.
+#
+# Because of that it is also excluded from the package audit/matrix tooling
+# (installer/scripts/verify/package-audit.sh, container-matrix.sh) and carries
+# no `hyprtk-pkglist` marker, so it never contributes to the installer surface.
 # The full default application set (browser, editor, media, file tools, …).
 _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 . "$_PKGDIR/../../installer/scripts/pkgmanager.sh"

@@ -1,0 +1,4473 @@
+<!DOCTYPE html>
+<html lang='en'><head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>hyprtk multi-distro package audit</title>
+<style>
+
+:root{--bg:#0f1017;--bg2:#16171f;--fg:#c9c9d1;--dim:#8b8b98;--purple:#c084fc;--cyan:#22d3ee;
+--green:#34d399;--amber:#fbbf24;--red:#f87171;--blue:#60a5fa;--violet:#a78bfa}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,#0b0c12,#12131c 60%,#0e0f16);color:var(--fg);
+font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 20px 80px}
+header h1{margin:0 0 4px;font-size:26px;color:#fff;letter-spacing:.3px}
+header h1:before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;
+background:var(--purple);margin-right:10px;box-shadow:0 0 14px var(--purple)}
+.sub{color:var(--dim);margin:0 0 8px}
+h2{color:var(--cyan);font-size:17px;margin:34px 0 10px;border-bottom:1px solid #262838;padding-bottom:6px}
+table{width:100%;border-collapse:collapse;background:rgba(255,255,255,.02);border-radius:10px;overflow:hidden}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid #22242f}
+th{background:#1a1c26;color:#dfe0ea;font-weight:600;position:sticky;top:0}
+td.num,th.num{text-align:center}
+td.pkg{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#e8e8f0;white-space:nowrap}
+.cell{text-align:center;font-size:12px;font-weight:600;white-space:nowrap}
+.notes{color:var(--dim);font-size:12px}
+.na{color:#3a3d4d}
+.legend{margin:14px 0 4px;display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid #2c2f3f;color:var(--fg)}
+.s-repo{color:var(--green)} .s-aur{color:var(--blue)} .s-extra{color:var(--cyan)}
+.s-todo{color:var(--amber)} .s-source{color:var(--violet)} .s-missing{color:var(--red)}
+.chip.s-repo{border-color:#1f5c46} .chip.s-aur{border-color:#22396b} .chip.s-extra{border-color:#1a5566}
+.chip.s-todo{border-color:#6b551c} .chip.s-source{border-color:#4a3a78} .chip.s-missing{border-color:#6b2b2b}
+td.cell.s-repo{color:var(--green)} td.cell.s-aur{color:var(--blue)} td.cell.s-extra{color:var(--cyan)}
+td.cell.s-todo{color:var(--amber)} td.cell.s-source{color:var(--violet)} td.cell.s-missing{color:var(--red)}
+tr:hover td{background:rgba(192,132,252,.05)}
+
+</style></head><body>
+<div class='wrap'>
+<header><h1>hyprtk multi-distro package audit</h1>
+<p class='sub'>Every package the installer requests, resolved against live repository metadata in throwaway containers. Generated 2026-09-17 10:13 UTC.</p></header>
+<section class='legend'>
+<span class='chip s-repo'>In distro repo</span>
+<span class='chip s-aur'>AUR</span>
+<span class='chip s-extra'>Extra repo (installer adds)</span>
+<span class='chip s-todo'>Extra repo (not wired up)</span>
+<span class='chip s-source'>Built from source</span>
+<span class='chip s-missing'>Not available</span>
+<span class='chip s-missing'>Unexpected miss</span>
+</section>
+<section><h2>Summary</h2><table class='summary'><thead><tr>
+<th>Distribution</th><th class='num'>Repo</th><th class='num'>AUR</th><th class='num'>Extra (added)</th><th class='num'>Extra (TODO)</th><th class='num'>Source</th><th class='num'>Unavailable</th><th class='num'>Unexpected</th></tr></thead><tbody>
+<tr><td>Arch Linux (pacman)</td><td class='num'>145</td><td class='num'>16</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>Debian / Ubuntu (apt)</td><td class='num'>565</td><td class='num'>0</td><td class='num'>23</td><td class='num'>11</td><td class='num'>12</td><td class='num'>4</td><td class='num'>0</td></tr>
+<tr><td>Fedora / RHEL (dnf)</td><td class='num'>114</td><td class='num'>0</td><td class='num'>5</td><td class='num'>4</td><td class='num'>2</td><td class='num'>1</td><td class='num'>0</td></tr>
+<tr><td>openSUSE (zypper)</td><td class='num'>117</td><td class='num'>0</td><td class='num'>1</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td><td class='num'>0</td></tr>
+<tr><td>Void Linux (xbps)</td><td class='num'>116</td><td class='num'>0</td><td class='num'>1</td><td class='num'>3</td><td class='num'>0</td><td class='num'>3</td><td class='num'>0</td></tr>
+<tr><td>Alpine Linux (apk)</td><td class='num'>106</td><td class='num'>0</td><td class='num'>0</td><td class='num'>3</td><td class='num'>2</td><td class='num'>5</td><td class='num'>0</td></tr>
+</tbody></table></section>
+<section><h2>Arch Linux (pacman)</h2>
+<table class='matrix'><thead><tr><th>Package</th>
+<th>Arch</th>
+<th>Route / notes</th></tr></thead><tbody>
+<tr>
+<td class='pkg'>7zip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>alacritty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>awesome-terminal-fonts</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>awww</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bambustudio-bin</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>bc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bibata-cursor-theme</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>blueman</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>brave-bin</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>brightnessctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>btop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>chromium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cliphist</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cockpit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>colord</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>corectrl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-browsed</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-filters</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-pdf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>curl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>desktop-file-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>dmidecode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>eza</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fastfetch</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ffmpeg</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>file-roller</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>freerdp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fzf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gdk-pixbuf2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>git</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>github-desktop-bin</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>gnome-disk-utility</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-keyring</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gobject-introspection-runtime</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gparted</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-afc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-dnssd</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-goa</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-gphoto2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-mtp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-nfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-onedrive</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-smb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-wsdd</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprland</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprpicker</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprquickframe-git</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>hyprsunset</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>imagemagick</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ipp-usb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>jq</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>kitty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libadwaita</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libnotify</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libpamac-full</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>libusb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libva</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libva-nvidia-driver-git</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>libvdpau</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>logrotate</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>matugen</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>micro</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mission-center</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mousepad</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mpv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nano</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>neovim</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>network-manager-applet</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>networkmanager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nss-mdns</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ntfs-3g</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-open-dkms</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-settings</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nwg-look</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>orca-slicer-bin</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>os-prober</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>otf-font-awesome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pacman-contrib</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pacseek</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>pamac-all</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>pamac-cli</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>pamixer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pango</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>papirus-icon-theme</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>parole</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pavucontrol</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pciutils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pcp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pcp-gui</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire-pulse</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>playerctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit-gnome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-click</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-gobject</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-pip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-psutil</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-rich</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python-virtualenv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>qt5-wayland</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>qt5ct</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>qt6-wayland</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>qt6ct</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ranger</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>rofi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>samba</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm-theme-sugar-candy-git</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>starship</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sublime-text-4</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>swappy</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swayidle</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swaylock-effects</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>system-config-printer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>thunar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>thunar-shares-plugin</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>timeshift</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>trizen</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>ttf-fira-code</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ttf-fira-sans</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ttf-firacode-nerd</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler-extra-thumbnailers</td>
+<td class='cell s-aur' title='AUR: Installed by the AUR helper (yay/paru)'>AUR</td>
+<td class='notes'>Installed by the AUR helper (yay/paru)</td>
+</tr>
+<tr>
+<td class='pkg'>unrar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unzip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vdpauinfo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vlc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vulkan-intel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vulkan-radeon</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wf-recorder</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wireplumber</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wl-clipboard</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wob</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xclip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-wlr</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xf86-video-amdgpu</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xf86-video-intel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-goodies</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-power-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-terminal</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xorg-xhost</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+</tbody></table></section>
+<section><h2>Debian / Ubuntu (apt)</h2>
+<table class='matrix'><thead><tr><th>Package</th>
+<th>Debian 12</th>
+<th>Debian 13</th>
+<th>Ubuntu 24.04</th>
+<th>Ubuntu 26.04</th>
+<th>Mint 22.3</th>
+<th>Route / notes</th></tr></thead><tbody>
+<tr>
+<td class='pkg'>7zip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>alacritty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>blueman</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>brave-browser</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave apt repo'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave apt repo'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave apt repo'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave apt repo'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave apt repo'>Extra repo (installer adds)</td>
+<td class='notes'>Brave apt repo</td>
+</tr>
+<tr>
+<td class='pkg'>brightnessctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>btop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>chromium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cliphist</td>
+<td class='cell s-missing' title='Not available: Debian 12 lacks it; Ubuntu 24.04+ has it'>Not available</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>Debian 12 lacks it; Ubuntu 24.04+ has it</td>
+</tr>
+<tr>
+<td class='pkg'>cockpit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>colord</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-filters</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>curl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>desktop-file-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>dmidecode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>eza</td>
+<td class='cell s-missing' title='Not available: Debian 12 ships exa; eza added in Ubuntu/newer Debian'>Not available</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>Debian 12 ships exa; eza added in Ubuntu/newer Debian</td>
+</tr>
+<tr>
+<td class='pkg'>fastfetch</td>
+<td class='cell s-extra' title='Extra repo (installer adds): not in the archive; zhangsongcui3371 PPA on the Ubuntu family'>Extra repo (installer adds)</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-extra' title='Extra repo (installer adds): not in the archive; zhangsongcui3371 PPA on the Ubuntu family'>Extra repo (installer adds)</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-extra' title='Extra repo (installer adds): not in the archive; zhangsongcui3371 PPA on the Ubuntu family'>Extra repo (installer adds)</td>
+<td class='notes'>not in the archive; zhangsongcui3371 PPA on the Ubuntu family</td>
+</tr>
+<tr>
+<td class='pkg'>ffmpeg</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>file-roller</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fonts-firacode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fonts-font-awesome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>freerdp3-x11</td>
+<td class='cell s-missing' title='Not available: Debian 12 ships freerdp2-x11; freerdp3 is Ubuntu-only'>Not available</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>Debian 12 ships freerdp2-x11; freerdp3 is Ubuntu-only</td>
+</tr>
+<tr>
+<td class='pkg'>fzf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gir1.2-cairo-1.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gir1.2-gdkpixbuf-2.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gir1.2-gtk-3.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gir1.2-gtklayershell-0.1</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gir1.2-pango-1.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gir1.2-xlib-2.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>git</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-disk-utility</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-keyring</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gparted</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-backends</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprland</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA on the Ubuntu family (0.56.2); not in Debian'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA on the Ubuntu family (0.56.2); not in Debian'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA (archive Hyprland &lt; 0.55)'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA (archive Hyprland &lt; 0.55)'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA (archive Hyprland &lt; 0.55)'>Extra repo (installer adds)</td>
+<td class='notes'>cppiber/hyprland PPA (archive Hyprland &lt; 0.55); cppiber/hyprland PPA on the Ubuntu family (0.56.2); not in Debian</td>
+</tr>
+<tr>
+<td class='pkg'>hyprpicker</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA'>Extra repo (installer adds)</td>
+<td class='notes'>Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora; cppiber/hyprland PPA</td>
+</tr>
+<tr>
+<td class='pkg'>hyprsunset</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA'>Extra repo (installer adds)</td>
+<td class='cell s-extra' title='Extra repo (installer adds): cppiber/hyprland PPA'>Extra repo (installer adds)</td>
+<td class='notes'>Hyprland ecosystem; same PPA on Ubuntu, COPR on Fedora; cppiber/hyprland PPA</td>
+</tr>
+<tr>
+<td class='pkg'>i965-va-driver</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>imagemagick</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>intel-media-va-driver-non-free</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free component not enabled by default'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free component not enabled by default'>Extra repo (not wired up)</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>Debian non-free component not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>ipp-usb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>jq</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>kitty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libadwaita-1-0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libgtk-3-0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libgtk-4-1</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libgtk-layer-shell0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libgtk4-layer-shell0</td>
+<td class='cell s-source' title='Built from source: no archive pkg (Debian 12 / Ubuntu 24.04); srcapps-install.sh builds it'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg (Debian 12 / Ubuntu 24.04); srcapps-install.sh builds it'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg (Debian 12 / Ubuntu 24.04); srcapps-install.sh builds it'>Built from source</td>
+<td class='notes'>no archive pkg (Debian 12 / Ubuntu 24.04); srcapps-install.sh builds it</td>
+</tr>
+<tr>
+<td class='pkg'>libnotify-bin</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libnss-mdns</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libusb-1.0-0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libva-drm2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libva2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libvdpau-va-gl1</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>logrotate</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-va-drivers</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vulkan-drivers</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>micro</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mousepad</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mpv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nano</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>neovim</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>network-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>network-manager-gnome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ntfs-3g</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-driver</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)'>Extra repo (not wired up)</td>
+<td class='notes'>Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)</td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-settings</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free component not enabled by default'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free component not enabled by default'>Extra repo (not wired up)</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>Debian non-free component not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>nwg-look</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh builds it (go)'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh builds it (go)'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh builds it (go)'>Built from source</td>
+<td class='notes'>no archive pkg; srcapps-install.sh builds it (go)</td>
+</tr>
+<tr>
+<td class='pkg'>os-prober</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pamixer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>papirus-icon-theme</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>parole</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pavucontrol</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pciutils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire-pulse</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pkexec</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>playerctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>policykit-1-gnome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-missing' title='Not available: dropped in Debian 13 (use mate-polkit / lxpolkit)'>Not available</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>dropped in Debian 13 (use mate-polkit / lxpolkit)</td>
+</tr>
+<tr>
+<td class='pkg'>polkitd</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>printer-driver-cups-pdf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-click</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gi-cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-pip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-psutil</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-rich</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-venv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ranger</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>rofi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>samba</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>starship</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh runs the upstream installer'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh runs the upstream installer'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh runs the upstream installer'>Built from source</td>
+<td class='notes'>no archive pkg; srcapps-install.sh runs the upstream installer</td>
+</tr>
+<tr>
+<td class='pkg'>swappy</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh builds it (meson)'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh builds it (meson)'>Built from source</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-source' title='Built from source: no archive pkg; srcapps-install.sh builds it (meson)'>Built from source</td>
+<td class='notes'>no archive pkg; srcapps-install.sh builds it (meson)</td>
+</tr>
+<tr>
+<td class='pkg'>swayidle</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swaylock</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>system-config-printer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>thunar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>timeshift</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unrar</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free component not enabled by default'>Extra repo (not wired up)</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Debian non-free component not enabled by default'>Extra repo (not wired up)</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'>Debian non-free component not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>unzip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vlc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wf-recorder</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wireplumber</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wl-clipboard</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wob</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>x11-xserver-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xclip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-wlr</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-goodies</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-power-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-terminal</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+</tbody></table></section>
+<section><h2>Fedora / RHEL (dnf)</h2>
+<table class='matrix'><thead><tr><th>Package</th>
+<th>Fedora</th>
+<th>Route / notes</th></tr></thead><tbody>
+<tr>
+<td class='pkg'>7zip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ImageMagick</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>NetworkManager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>Thunar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>akmod-nvidia</td>
+<td class='cell s-todo' title='Extra repo (not wired up): RPMFusion (NVIDIA driver)'>Extra repo (not wired up)</td>
+<td class='notes'>RPMFusion (NVIDIA driver)</td>
+</tr>
+<tr>
+<td class='pkg'>alacritty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>blueman</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>brave-browser</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave RPM repo'>Extra repo (installer adds)</td>
+<td class='notes'>Brave RPM repo</td>
+</tr>
+<tr>
+<td class='pkg'>brightnessctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>btop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>chromium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cliphist</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cockpit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>colord</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-filters</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-pdf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>curl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>desktop-file-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>dmidecode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>eza</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fastfetch</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ffmpeg-free</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>file-roller</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fira-code-fonts</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-manager</td>
+<td class='cell s-extra' title='Extra repo (installer adds): COPR only'>Extra repo (installer adds)</td>
+<td class='notes'>COPR only</td>
+</tr>
+<tr>
+<td class='pkg'>fontawesome-fonts-all</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>freerdp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fzf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gdk-pixbuf2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>git</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-disk-utility</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-keyring</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gobject-introspection</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gparted</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-afc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-goa</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-gphoto2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-mtp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-nfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-smb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprland</td>
+<td class='cell s-extra' title='Extra repo (installer adds): lionheartp/Hyprland COPR'>Extra repo (installer adds)</td>
+<td class='notes'>lionheartp/Hyprland COPR</td>
+</tr>
+<tr>
+<td class='pkg'>hyprpicker</td>
+<td class='cell s-extra' title='Extra repo (installer adds): lionheartp/Hyprland COPR'>Extra repo (installer adds)</td>
+<td class='notes'>lionheartp/Hyprland COPR</td>
+</tr>
+<tr>
+<td class='pkg'>hyprsunset</td>
+<td class='cell s-extra' title='Extra repo (installer adds): lionheartp/Hyprland COPR'>Extra repo (installer adds)</td>
+<td class='notes'>lionheartp/Hyprland COPR</td>
+</tr>
+<tr>
+<td class='pkg'>ipp-usb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>jq</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>kitty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libadwaita</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libnotify</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libusb1</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libva-intel-media-driver</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>logrotate</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-dri-drivers</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-va-drivers</td>
+<td class='cell s-todo' title='Extra repo (not wired up): RPMFusion (mesa-va-drivers-freeworld); Fedora base ships ffmpeg-free'>Extra repo (not wired up)</td>
+<td class='notes'>RPMFusion (mesa-va-drivers-freeworld); Fedora base ships ffmpeg-free</td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vulkan-drivers</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>micro</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mousepad</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mpv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nano</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>neovim</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>network-manager-applet</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nss-mdns</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ntfs-3g</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-settings</td>
+<td class='cell s-todo' title='Extra repo (not wired up): RPMFusion'>Extra repo (not wired up)</td>
+<td class='notes'>RPMFusion</td>
+</tr>
+<tr>
+<td class='pkg'>nwg-look</td>
+<td class='cell s-source' title='Built from source: srcapps-install.sh (go build) — COPR also carries it'>Built from source</td>
+<td class='notes'>srcapps-install.sh (go build) — COPR also carries it</td>
+</tr>
+<tr>
+<td class='pkg'>os-prober</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pamixer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pango</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>papirus-icon-theme</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>parole</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pavucontrol</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pciutils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire-pulseaudio</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>playerctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit-gnome</td>
+<td class='cell s-missing' title='Not available: not packaged in Fedora'>Not available</td>
+<td class='notes'>not packaged in Fedora</td>
+</tr>
+<tr>
+<td class='pkg'>python3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-click</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gobject</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-pip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-psutil</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-rich</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-virtualenv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ranger</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>rofi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>samba</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>starship</td>
+<td class='cell s-source' title='Built from source: COPR/EPEL only; srcapps-install.sh runs the upstream installer'>Built from source</td>
+<td class='notes'>COPR/EPEL only; srcapps-install.sh runs the upstream installer</td>
+</tr>
+<tr>
+<td class='pkg'>swappy</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swayidle</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swaylock</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>system-config-printer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>timeshift</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unrar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unzip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vlc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wf-recorder</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wireplumber</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wl-clipboard</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wob</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xclip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-wlr</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-panel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-power-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-session</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-settings</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-terminal</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfdesktop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfwm4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xhost</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xorg-x11-drv-nvidia-cuda</td>
+<td class='cell s-todo' title='Extra repo (not wired up): RPMFusion'>Extra repo (not wired up)</td>
+<td class='notes'>RPMFusion</td>
+</tr>
+</tbody></table></section>
+<section><h2>openSUSE (zypper)</h2>
+<table class='matrix'><thead><tr><th>Package</th>
+<th>Tumbleweed</th>
+<th>Route / notes</th></tr></thead><tbody>
+<tr>
+<td class='pkg'>ImageMagick</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>Mesa</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>Mesa-libva</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>NetworkManager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>NetworkManager-applet</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>alacritty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>blueman</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>brave-browser</td>
+<td class='cell s-extra' title='Extra repo (installer adds): Brave RPM repo'>Extra repo (installer adds)</td>
+<td class='notes'>Brave RPM repo</td>
+</tr>
+<tr>
+<td class='pkg'>brightnessctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>btop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>chromium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cliphist</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cockpit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>colord</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-filters</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-pdf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>curl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>desktop-file-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>dmidecode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>eza</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fastfetch</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ffmpeg</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>file-roller</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fira-code-fonts</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fontawesome-fonts</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>freerdp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fzf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>girepository-1_0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>git</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-disk-utility</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-keyring</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gparted</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-backends</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprland</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprpicker</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprsunset</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>intel-media-driver</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ipp-usb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>jq</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>kitty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libadwaita-1-0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libgtk-layer-shell0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libgtk4-layer-shell0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libnotify-tools</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libusb-1_0-0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>logrotate</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>micro-editor</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mousepad</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mpv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nano</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>neovim</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nss-mdns</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ntfs-3g</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-open-driver-G06-signed-kmp-default</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-settings</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nwg-look</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>os-prober</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>p7zip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pamixer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>papirus-icon-theme</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>parole</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>patterns-xfce-xfce</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pavucontrol</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pciutils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire-pulseaudio</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>playerctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit-gnome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-click</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gobject</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gobject-Gdk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gobject-cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-pip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-psutil</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-rich</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-virtualenv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ranger</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>rofi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>samba</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>starship</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swappy</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swayidle</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swaylock</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>system-config-printer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>thunar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>thunar-shares-plugin</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>timeshift</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>typelib-1_0-GdkPixbuf-2_0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>typelib-1_0-Gtk-3_0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>typelib-1_0-GtkLayerShell-0_1</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>typelib-1_0-Pango-1_0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unrar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unzip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vlc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wf-recorder</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wireplumber</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wl-clipboard</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wob</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xclip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-wlr</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-power-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-terminal</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xhost</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+</tbody></table></section>
+<section><h2>Void Linux (xbps)</h2>
+<table class='matrix'><thead><tr><th>Package</th>
+<th>Void</th>
+<th>Route / notes</th></tr></thead><tbody>
+<tr>
+<td class='pkg'>ImageMagick</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>NetworkManager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>Thunar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>alacritty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>blueman</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>brightnessctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>btop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cairo-devel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>chromium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cliphist</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cockpit</td>
+<td class='cell s-missing' title='Not available: not packaged for Void'>Not available</td>
+<td class='notes'>not packaged for Void</td>
+</tr>
+<tr>
+<td class='pkg'>colord</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-filters</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-pdf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>curl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>desktop-file-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>dmidecode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>eza</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fastfetch</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ffmpeg</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>file-roller</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-awesome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-firacode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fontmanager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>freerdp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fzf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gdk-pixbuf-devel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>git</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-disk-utility</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-keyring</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gobject-introspection</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gparted</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk+3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk+3-devel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk-layer-shell-devel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-afc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-goa</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-gphoto2</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-mtp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-nfs</td>
+<td class='cell s-missing' title='Not available: Void gvfs is monolithic; no separate nfs backend'>Not available</td>
+<td class='notes'>Void gvfs is monolithic; no separate nfs backend</td>
+</tr>
+<tr>
+<td class='pkg'>gvfs-smb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprland</td>
+<td class='cell s-extra' title='Extra repo: not in Void repos; community hyprland-void-packages repo (hyprland.sh prints the steps)'>Extra repo</td>
+<td class='notes'>not in Void repos; community hyprland-void-packages repo (hyprland.sh prints the steps)</td>
+</tr>
+<tr>
+<td class='pkg'>hyprpicker</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprsunset</td>
+<td class='cell s-missing' title='Not available: Hyprland ecosystem; not packaged for Void'>Not available</td>
+<td class='notes'>Hyprland ecosystem; not packaged for Void</td>
+</tr>
+<tr>
+<td class='pkg'>intel-video-accel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ipp-usb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>jq</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>kitty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libadwaita</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libnotify</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libusb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>logrotate</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-dri</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vaapi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vulkan-intel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vulkan-radeon</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>micro</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mousepad</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mpv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nano</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>neovim</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>network-manager-applet</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nss-mdns</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ntfs-3g</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Void nonfree repo not enabled by default'>Extra repo (not wired up)</td>
+<td class='notes'>Void nonfree repo not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-settings</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Void nonfree repo not enabled by default'>Extra repo (not wired up)</td>
+<td class='notes'>Void nonfree repo not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>nwg-look</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>os-prober</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>p7zip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pamixer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pango-devel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>papirus-icon-theme</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>parole</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pavucontrol</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pciutils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>playerctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit-gnome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-click</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-gobject</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-pip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-psutil</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-rich</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3-virtualenv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ranger</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>rofi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>samba</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>starship</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swappy</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swayidle</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swaylock</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>system-config-printer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>timeshift</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unrar</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Void nonfree repo not enabled by default'>Extra repo (not wired up)</td>
+<td class='notes'>Void nonfree repo not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>unzip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vlc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wf-recorder</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wireplumber</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wl-clipboard</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wob</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xclip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-wlr</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-plugins</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-power-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-terminal</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xhost</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+</tbody></table></section>
+<section><h2>Alpine Linux (apk)</h2>
+<table class='matrix'><thead><tr><th>Package</th>
+<th>Alpine</th>
+<th>Route / notes</th></tr></thead><tbody>
+<tr>
+<td class='pkg'>7zip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>alacritty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>blueman</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>bluez</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>brightnessctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>btop</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cairo-dev</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>chromium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cliphist</td>
+<td class='cell s-missing' title='Not available: not packaged for Alpine'>Not available</td>
+<td class='notes'>not packaged for Alpine</td>
+</tr>
+<tr>
+<td class='pkg'>cockpit</td>
+<td class='cell s-missing' title='Not available: not packaged for Alpine'>Not available</td>
+<td class='notes'>not packaged for Alpine</td>
+</tr>
+<tr>
+<td class='pkg'>colord</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-filters</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>cups-pdf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>curl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>desktop-file-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>dmidecode</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>eza</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fastfetch</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ffmpeg</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>file-roller</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-awesome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-fira-code-nerd</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>font-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>freerdp</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>fzf</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gdk-pixbuf-dev</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>git</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-disk-utility</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gnome-keyring</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gobject-introspection-dev</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gparted</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk+3.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk+3.0-dev</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk-layer-shell-dev</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4-layer-shell</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gtk4.0</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>gvfs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprland</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>hyprpicker</td>
+<td class='cell s-missing' title='Not available: not packaged for Alpine (Hyprland itself is)'>Not available</td>
+<td class='notes'>not packaged for Alpine (Hyprland itself is)</td>
+</tr>
+<tr>
+<td class='pkg'>imagemagick</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>intel-media-driver</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ipp-usb</td>
+<td class='cell s-missing' title='Not available: not packaged for Alpine'>Not available</td>
+<td class='notes'>not packaged for Alpine</td>
+</tr>
+<tr>
+<td class='pkg'>jq</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>kitty</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libadwaita</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libnotify</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>libusb</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>logrotate</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-dri-gallium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-va-gallium</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vulkan-ati</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mesa-vulkan-intel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>micro</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mousepad</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>mpv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nano</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>neovim</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>network-manager-applet</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>networkmanager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>networkmanager-wifi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nss-mdns</td>
+<td class='cell s-missing' title='Not available: not packaged for Alpine'>Not available</td>
+<td class='notes'>not packaged for Alpine</td>
+</tr>
+<tr>
+<td class='pkg'>ntfs-3g</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>nvidia</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Alpine nonfree repo not enabled by default'>Extra repo (not wired up)</td>
+<td class='notes'>Alpine nonfree repo not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>nvidia-settings</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Alpine nonfree repo not enabled by default'>Extra repo (not wired up)</td>
+<td class='notes'>Alpine nonfree repo not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>nwg-look</td>
+<td class='cell s-source' title='Built from source: not packaged for Alpine; srcapps-install.sh builds it'>Built from source</td>
+<td class='notes'>not packaged for Alpine; srcapps-install.sh builds it</td>
+</tr>
+<tr>
+<td class='pkg'>os-prober</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pamixer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pango-dev</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>papirus-icon-theme</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>parole</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pavucontrol</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pciutils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>pipewire</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>playerctl</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>polkit-gnome</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-cairo</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-click</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-gobject3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-pip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-psutil</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-rich</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>py3-virtualenv</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>python3</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>ranger</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>rofi</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>samba</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>sddm</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>starship</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swappy</td>
+<td class='cell s-source' title='Built from source: not packaged for Alpine; srcapps-install.sh builds it'>Built from source</td>
+<td class='notes'>not packaged for Alpine; srcapps-install.sh builds it</td>
+</tr>
+<tr>
+<td class='pkg'>swayidle</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>swaylock</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>system-config-printer</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>thunar</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>tumbler</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>unrar</td>
+<td class='cell s-todo' title='Extra repo (not wired up): Alpine nonfree repo not enabled by default'>Extra repo (not wired up)</td>
+<td class='notes'>Alpine nonfree repo not enabled by default</td>
+</tr>
+<tr>
+<td class='pkg'>unzip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>vlc</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wf-recorder</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wireplumber</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wl-clipboard</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>wob</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xclip</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-desktop-portal-wlr</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-user-dirs-gtk</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xdg-utils</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-panel</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-power-manager</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xfce4-terminal</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+<tr>
+<td class='pkg'>xhost</td>
+<td class='cell s-repo' title='In distro repo'>In distro repo</td>
+<td class='notes'></td>
+</tr>
+</tbody></table></section>
+<section><h2>Components not from a distro repo</h2>
+<table class='matrix'><thead><tr><th>Component</th><th>How it is obtained</th></tr></thead><tbody>
+<tr><td class='pkg'>awww (wallpaper daemon)</td><td class='notes'>Arch: AUR (awww). Elsewhere: built from source by installer/scripts/awww-install.sh (cargo; needs Rust &gt;= 1.89). Void/Alpine: native swww.</td></tr>
+<tr><td class='pkg'>pywal16 (`wal`)</td><td class='notes'>Vendored inside hyprtk-bar (vendor/pywal16); exposed as ~/.local/bin/wal. No distro package needed.</td></tr>
+<tr><td class='pkg'>gtk4-layer-shell</td><td class='notes'>Built from source (meson) by srcapps-install.sh where the native package is missing (Debian 12 / Ubuntu 24.04).</td></tr>
+<tr><td class='pkg'>swappy</td><td class='notes'>Built from source (meson) by srcapps-install.sh where unpackaged (Debian/Ubuntu/Alpine).</td></tr>
+<tr><td class='pkg'>nwg-look</td><td class='notes'>Built from source (go) by srcapps-install.sh on Debian/Ubuntu/Fedora/Alpine/Void.</td></tr>
+<tr><td class='pkg'>starship</td><td class='notes'>Upstream binary installer (pinned v1.26.0) by srcapps-install.sh where unpackaged.</td></tr>
+<tr><td class='pkg'>gum, oh-my-posh, papirus-folders</td><td class='notes'>Bundled binaries in installer/standalone/, symlinked into ~/.local/bin.</td></tr>
+<tr><td class='pkg'>hyprtk-bar</td><td class='notes'>Python venv from installer/hyprtk-bar; deps from the distro (bar DEPS/EXTRAS).</td></tr>
+<tr><td class='pkg'>Papirus icon theme (root)</td><td class='notes'>Upstream installer fetched to a temp file and run with DESTDIR=/root/.local/share/icons.</td></tr>
+<tr><td class='pkg'>hyprtk/fonts, hyprtk/wallpaper</td><td class='notes'>git clone into ~/.local/share/fonts and ~/Pictures/Wallpapers.</td></tr>
+<tr><td class='pkg'>oh-my-zsh + plugins</td><td class='notes'>git clone (upstream installer) into ~/.oh-my-zsh.</td></tr>
+<tr><td class='pkg'>SDDM Sugar-Candy theme</td><td class='notes'>git clone from framagit, then patched for Qt6 + installed to /usr/share/sddm/themes.</td></tr>
+<tr><td class='pkg'>Matuwall</td><td class='notes'>git clone + python venv (pip install) into ~/.local/share/Matuwall.</td></tr>
+<tr><td class='pkg'>macOS-style cursors (bibata)</td><td class='notes'>pacman: AUR. Other families: not currently wired (allow-list/manual).</td></tr>
+</tbody></table></section>
+<section><h2>Action list (no working route today)</h2>
+<table class='matrix'><thead><tr><th>Distro</th><th>Package</th><th>Status</th><th>Why</th></tr></thead><tbody>
+<tr><td>apk/alpine</td><td class='pkg'>cliphist</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged for Alpine</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>cockpit</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged for Alpine</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>hyprpicker</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged for Alpine (Hyprland itself is)</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>ipp-usb</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged for Alpine</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>nss-mdns</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged for Alpine</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>nvidia</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Alpine nonfree repo not enabled by default</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>nvidia-settings</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Alpine nonfree repo not enabled by default</td></tr>
+<tr><td>apk/alpine</td><td class='pkg'>unrar</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Alpine nonfree repo not enabled by default</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>cliphist</td><td class='cell s-missing'>Not available</td><td class='notes'>Debian 12 lacks it; Ubuntu 24.04+ has it</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>eza</td><td class='cell s-missing'>Not available</td><td class='notes'>Debian 12 ships exa; eza added in Ubuntu/newer Debian</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>freerdp3-x11</td><td class='cell s-missing'>Not available</td><td class='notes'>Debian 12 ships freerdp2-x11; freerdp3 is Ubuntu-only</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>intel-media-va-driver-non-free</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free component not enabled by default</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>nvidia-driver</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>nvidia-settings</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free component not enabled by default</td></tr>
+<tr><td>apt/bookworm</td><td class='pkg'>unrar</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free component not enabled by default</td></tr>
+<tr><td>apt/mint22</td><td class='pkg'>nvidia-driver</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)</td></tr>
+<tr><td>apt/noble</td><td class='pkg'>nvidia-driver</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)</td></tr>
+<tr><td>apt/resolute</td><td class='pkg'>nvidia-driver</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)</td></tr>
+<tr><td>apt/trixie</td><td class='pkg'>intel-media-va-driver-non-free</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free component not enabled by default</td></tr>
+<tr><td>apt/trixie</td><td class='pkg'>nvidia-driver</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free; Ubuntu/Mint ship no generic meta (graphics-card.sh picks nvidia-driver-5xx)</td></tr>
+<tr><td>apt/trixie</td><td class='pkg'>nvidia-settings</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free component not enabled by default</td></tr>
+<tr><td>apt/trixie</td><td class='pkg'>policykit-1-gnome</td><td class='cell s-missing'>Not available</td><td class='notes'>dropped in Debian 13 (use mate-polkit / lxpolkit)</td></tr>
+<tr><td>apt/trixie</td><td class='pkg'>unrar</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Debian non-free component not enabled by default</td></tr>
+<tr><td>dnf/fedora</td><td class='pkg'>akmod-nvidia</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>RPMFusion (NVIDIA driver)</td></tr>
+<tr><td>dnf/fedora</td><td class='pkg'>mesa-va-drivers</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>RPMFusion (mesa-va-drivers-freeworld); Fedora base ships ffmpeg-free</td></tr>
+<tr><td>dnf/fedora</td><td class='pkg'>nvidia-settings</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>RPMFusion</td></tr>
+<tr><td>dnf/fedora</td><td class='pkg'>polkit-gnome</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged in Fedora</td></tr>
+<tr><td>dnf/fedora</td><td class='pkg'>xorg-x11-drv-nvidia-cuda</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>RPMFusion</td></tr>
+<tr><td>xbps/void</td><td class='pkg'>cockpit</td><td class='cell s-missing'>Not available</td><td class='notes'>not packaged for Void</td></tr>
+<tr><td>xbps/void</td><td class='pkg'>gvfs-nfs</td><td class='cell s-missing'>Not available</td><td class='notes'>Void gvfs is monolithic; no separate nfs backend</td></tr>
+<tr><td>xbps/void</td><td class='pkg'>hyprsunset</td><td class='cell s-missing'>Not available</td><td class='notes'>Hyprland ecosystem; not packaged for Void</td></tr>
+<tr><td>xbps/void</td><td class='pkg'>nvidia</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Void nonfree repo not enabled by default</td></tr>
+<tr><td>xbps/void</td><td class='pkg'>nvidia-settings</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Void nonfree repo not enabled by default</td></tr>
+<tr><td>xbps/void</td><td class='pkg'>unrar</td><td class='cell s-todo'>Extra repo (not wired up)</td><td class='notes'>Void nonfree repo not enabled by default</td></tr>
+</tbody></table></section>
+</div></body></html>

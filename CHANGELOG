@@ -7,6 +7,21 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Cross-distro package audit (2026-09-17).** New
+  `installer/scripts/verify/package-audit.sh` resolves every native name the
+  installer requests (via each `hypr/packages/*.sh --list` plus the vendored
+  bar's DEPS/EXTRAS) against live repository metadata in throwaway containers
+  and emits a per-name TSV; `installer/scripts/verify/package-audit-html.py`
+  renders it to `output.html` (per-distro tables + an action list).
+  Result across pacman/apt(×5)/dnf/zypper/xbps/apk: **1165 in-repo, 16 AUR,
+  78 allow-listed gaps, 0 unexpected**. The actionable gaps are the extra repos
+  the installer does not add yet — Fedora NVIDIA/mesa need **RPMFusion**,
+  Debian needs **non-free**, Void/Alpine need their **nonfree** repos — plus
+  genuinely unpackaged extras (cockpit on Void/Alpine, cliphist on Alpine,
+  hyprsunset on Void, polkit-gnome on Fedora, gvfs-nfs on Void).
+  `manual_package_installs.sh` lost its `hyprtk-pkglist` marker and is excluded
+  from the audit/matrix, so it no longer counts toward the installer surface.
+
 - **Fedora install fixes (2026-09-17, found on a live F44 Xfce VM).**
   - `hyprland.sh` enables a Hyprland COPR on Fedora/RHEL
     (`lionheartp/Hyprland`, falling back to `solopasha/hyprland`). Hyprland is

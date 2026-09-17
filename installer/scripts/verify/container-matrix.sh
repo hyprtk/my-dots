@@ -169,6 +169,9 @@ _script_names() {  # hypr/packages/*.sh names for a family (--list honours HYPRT
     local pm="$1" s out=""
     for s in "$ROOT"/hypr/packages/*.sh; do
         grep -q -- '--list' "$s" || continue
+        # manual_package_installs.sh is an opt-in helper, not part of
+        # 1-install.sh; it must never contribute to the installer surface.
+        case "$(basename "$s")" in manual_package_installs.sh) continue ;; esac
         out+=" $(HYPRTK_PM="$pm" timeout 15 bash "$s" --list 2>/dev/null)"
     done
     printf '%s' "$out"
