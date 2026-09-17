@@ -27,6 +27,14 @@ Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Icons spilled outside the bar's rounded border at narrow widths.** With a
+  width smaller than the modules' natural width the overflow was clipped only by
+  the layer surface, so it drew into the pill's 6px CSS margin — visible as icon
+  edges poking out past the border. The `.taskbar` background, its margins and
+  the rounded ends now live on the `ClipBox` (a windowed `Gtk.EventBox`), so GTK
+  clips the overflowing content to the pill itself — nothing is drawn outside the
+  border. The input-shape inset follows the new allocation (the CSS margin is no
+  longer on the child).
 - **openSUSE deps use valid package names.** `DEPS[zypper]` requested
   `typelib-1_0-cairo-1_0` and `typelib-1_0-xlib-2_0`, which do not exist on
   openSUSE Tumbleweed (there is no per-namespace GIR package for cairo/xlib).

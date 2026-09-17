@@ -25,7 +25,7 @@ from .config import PYWAL_PATH, ROFI_SYNC_SH  # noqa: E402
 from .hypr_animations import active_border_colors, border_animation, lerp_color  # noqa: E402
 from .ipc import HyprIPC  # noqa: E402
 from .notifications import NotificationController  # noqa: E402
-from .theme import build_css, gap_value, pill_margins, resolve_palette  # noqa: E402
+from .theme import build_css, gap_value, resolve_palette  # noqa: E402
 from .theme_import import find_themes_dir  # noqa: E402
 
 log = logging.getLogger("hyprtk_bar.app")
@@ -545,7 +545,6 @@ class BarWindow(Gtk.Window):
         if wnd is None:
             return
         region = cairo.Region()
-        top_m, right_m, bottom_m, left_m = pill_margins(self._cfg)
 
         def add(widget, inset_left: int, inset_top: int, inset_right: int, inset_bottom: int) -> None:
             alloc = widget.get_allocation()
@@ -559,8 +558,10 @@ class BarWindow(Gtk.Window):
 
         for child in self._bar.get_children():
             if child is getattr(self._bar, "pill_clip", None):
-                # The pill's CSS margins inset it on all sides (gaps + rounded ends).
-                add(child, left_m, top_m, right_m, bottom_m)
+                # The pill_clip owns the .taskbar background and its CSS margins,
+                # so its allocation is already the pill's rect (GTK margins are
+                # outside the allocation).
+                add(child, 0, 0, 0, 0)
         wnd.input_shape_combine_region(region, 0, 0)
 
     # ── IPC ───────────────────────────────────────────────────────

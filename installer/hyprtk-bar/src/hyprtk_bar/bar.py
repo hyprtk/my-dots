@@ -79,17 +79,25 @@ class StartButton(HoverButton):
         return True
 
 
-class ClipBox(Gtk.Bin):
-    """Let the child be allocated smaller than its natural width.
+class ClipBox(Gtk.EventBox):
+    """Clip the pill's content to the pill's own box.
 
     A GTK box propagates its minimum size up to the window, so the bar's layer
     surface could never be narrower than the modules' total — on a small display
-    it grew wider than the monitor and extended off the right edge. Reporting a
-    0 minimum lets the surface fit the monitor; the child still gets the full
-    surface width (so the pill background spans the bar) and simply overflows
-    (clipped by the surface) when the width is genuinely smaller than the
+    it grew wider than the monitor and extended off the right edge. This reports
+    a 0 minimum so the surface fits the monitor: the child keeps its minimum
+    width and overflows when the configured width is genuinely smaller than the
     content.
+
+    The overflow must not be visible outside the bar's border. This widget owns
+    the ``.taskbar`` background (and its margins/rounded ends) and has its own
+    GdkWindow, so GTK clips the child's drawing to the pill — content overflows
+    only as far as the border, never into the surface's margin.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.set_visible_window(True)
 
     def do_get_preferred_width(self):
         child = self.get_child()
@@ -128,12 +136,15 @@ class Bar(Gtk.Box):
         # Equal-width cells: see the section loop below — this is what keeps the
         # center cluster truly centered regardless of the side content widths.
         self.pill.set_homogeneous(True)
-        self.pill.get_style_context().add_class("taskbar")
         self.pill.set_hexpand(True)
         self.pill.set_halign(Gtk.Align.FILL)
-        # ClipBox: the bar's surface may be narrower than the pill's content.
+        # ClipBox owns the .taskbar background (+ margins/rounded ends) and
+        # clips the content to the pill: the bar's surface may be narrower than
+        # the pill's content, and the overflow must not spill outside the border.
         self.pill_clip = ClipBox()
+        self.pill_clip.get_style_context().add_class("taskbar")
         self.pill_clip.set_hexpand(True)
+        self.pill_clip.set_halign(Gtk.Align.FILL)
         self.pill_clip.add(self.pill)
         self.pack_start(self.pill_clip, True, True, 0)
 
