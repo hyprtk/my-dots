@@ -8,6 +8,8 @@
 #   swappy            jtheoof/swappy (meson)          → grim.sh screenshot editor
 #   nwg-look          nwg-piotr/nwg-look (go)         → GTK settings tool
 #   starship          starship.rs install.sh           → shell prompt
+#   cliphist          sentriz/cliphist (go)            → clipboard history
+#   eza               eza-community/eza (cargo)        → `ls` replacement (Debian 12)
 #
 # Each step is idempotent (skips when already present) and non-fatal: a failed
 # build warns and the rest of the install continues, exactly like awww. Set
@@ -27,6 +29,7 @@ STARSHIP_VER="v1.26.0"
 G4_GIT="https://github.com/wmww/gtk4-layer-shell.git"
 SWAPPY_GIT="https://github.com/jtheoof/swappy.git"
 NWG_GIT="https://github.com/nwg-piotr/nwg-look.git"
+CLIPHIST_GIT="https://github.com/sentriz/cliphist.git"
 
 say() { echo "srcapps: $*"; }
 
@@ -50,13 +53,29 @@ NWG_DEPS[zypper]="git go gtk3-devel gcc"
 NWG_DEPS[xbps]="git go gtk+3-devel gcc"
 NWG_DEPS[apk]="git go gtk+3.0-dev gcc"
 
+# cliphist is a small Go program; wl-clipboard provides wl-paste at runtime.
+declare -A CLIPHIST_DEPS
+CLIPHIST_DEPS[apt]="git golang-go wl-clipboard"
+CLIPHIST_DEPS[dnf]="git golang wl-clipboard"
+CLIPHIST_DEPS[zypper]="git go wl-clipboard"
+CLIPHIST_DEPS[xbps]="git go wl-clipboard"
+CLIPHIST_DEPS[apk]="git go wl-clipboard"
+
+# eza is Rust; only built where the archive lacks it (Debian 12), which is also
+# where awww already bootstrapped a recent cargo via rustup.
+declare -A EZA_DEPS
+EZA_DEPS[apt]="cargo"
+
 # ── Dry run ─────────────────────────────────────────────────────────────────
 if [ -n "${HYPRTK_DRYRUN:-}" ]; then
     echo "srcapps: would install from source/upstream where missing:"
     echo "srcapps:   gtk4-layer-shell $G4_VER | swappy $SWAPPY_VER | nwg-look $NWG_VER | starship $STARSHIP_VER"
+    echo "srcapps:   cliphist (go) | eza (cargo)"
     echo "srcapps:   build deps (gtk4): ${G4_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (swappy): ${SWAPPY_DEPS[$HYPRTK_PM]:-(none)}"
     echo "srcapps:   build deps (nwg-look): ${NWG_DEPS[$HYPRTK_PM]:-(none)}"
+    echo "srcapps:   build deps (cliphist): ${CLIPHIST_DEPS[$HYPRTK_PM]:-(none)}"
+    echo "srcapps:   build deps (eza): ${EZA_DEPS[$HYPRTK_PM]:-(none)}"
     exit 0
 fi
 
@@ -164,6 +183,55 @@ install_nwg_look() {
     return 1
 }
 
+install_cliphist() {
+    if have cliphist; then say "cliphist: already present"; return 0; fi
+    [ -n "${CLIPHIST_DEPS[$HYPRTK_PM]:-}" ] && pkg_install ${CLIPHIST_DEPS[$HYPRTK_PM]} || true
+    if ! have go || ! have git; then
+        say "cliphist: go/git unavailable — skipping" >&2
+        return 1
+    fi
+    say "cliphist: building from source (clipboard history)"
+    local tmp
+    tmp="$(mktemp -d)" || return 1
+    if git clone --depth=1 "$CLIPHIST_GIT" "$tmp/src" >/dev/null 2>&1 \
+       && ( cd "$tmp/src" && go build -o "$tmp/cliphist" . >/dev/null 2>&1 ) \
+       && [ -x "$tmp/cliphist" ]; then
+        hyprtk_run_root install -Dm755 "$tmp/cliphist" "$BINDIR/cliphist"
+        rm -rf "$tmp"
+        say "cliphist: installed"
+        return 0
+    fi
+    rm -rf "$tmp"
+    say "cliphist: build failed" >&2
+    return 1
+}
+
+install_eza() {
+    if have eza; then say "eza: already present"; return 0; fi
+    # Prefer awww's rustup toolchain (recent); fall back to the distro cargo.
+    [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+    if ! have cargo; then
+        [ -n "${EZA_DEPS[$HYPRTK_PM]:-}" ] && pkg_install ${EZA_DEPS[$HYPRTK_PM]} || true
+        [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+    fi
+    if ! have cargo; then
+        say "eza: cargo unavailable — skipping" >&2
+        return 1
+    fi
+    say "eza: building from source (cargo)"
+    local tmp
+    tmp="$(mktemp -d)" || return 1
+    if cargo install eza --locked --root "$tmp" >/dev/null 2>&1 && [ -x "$tmp/bin/eza" ]; then
+        hyprtk_run_root install -Dm755 "$tmp/bin/eza" "$BINDIR/eza"
+        rm -rf "$tmp"
+        say "eza: installed"
+        return 0
+    fi
+    rm -rf "$tmp"
+    say "eza: build failed" >&2
+    return 1
+}
+
 install_starship() {
     if have starship; then say "starship: already present"; return 0; fi
     pkg_install curl ca-certificates
@@ -188,6 +256,8 @@ install_gtk4_layer_shell || FAILED=$((FAILED + 1))
 install_swappy            || FAILED=$((FAILED + 1))
 install_nwg_look          || FAILED=$((FAILED + 1))
 install_starship          || FAILED=$((FAILED + 1))
+install_cliphist          || FAILED=$((FAILED + 1))
+install_eza               || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -ne 0 ]; then
     say "$FAILED app(s) could not be built — the rest of the install continues"

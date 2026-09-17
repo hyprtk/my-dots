@@ -24,7 +24,7 @@ if [ "${1:-}" = "--list" ]; then
         ;;
     dnf)
         printf '%s ' mesa-dri-drivers mesa-vulkan-drivers libva-intel-media-driver \
-            mesa-va-drivers akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-settings
+            mesa-va-drivers-freeworld akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-settings
         ;;
     zypper)
         printf '%s ' Mesa Mesa-libva intel-media-driver \
@@ -133,7 +133,7 @@ case "$GRAPHICSCARD" in
     case "$HYPRTK_PM" in
         pacman) PKGS=(xf86-video-amdgpu mesa vulkan-radeon vdpauinfo corectrl libvdpau) ;;
         apt)    PKGS=(mesa-vulkan-drivers mesa-va-drivers libvdpau-va-gl1) ;;
-        dnf)    PKGS=(mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers) ;;
+        dnf)    PKGS=(mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers-freeworld) ;;
         zypper) PKGS=(Mesa Mesa-libva) ;;
         xbps)   PKGS=(mesa-dri mesa-vulkan-radeon mesa-vaapi) ;;
         apk)    PKGS=(mesa-vulkan-ati mesa-va-gallium mesa-dri-gallium) ;;

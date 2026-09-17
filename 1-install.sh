@@ -620,6 +620,14 @@ if ! $GUM confirm --prompt.foreground=5 "Install core apps now?"; then
     exit 0
 fi
 
+# ── Extra repositories ────────────────────────────────────────────────────
+# Some packages live outside the base repos: RPMFusion on Fedora (NVIDIA,
+# mesa-*-freeworld), Debian contrib/non-free, Void nonfree. Enable them first
+# so every later package step can resolve its names.
+_step "Enabling Extra Repositories"
+_spin "Enabling extra repositories..." "bash $SCRIPT_DIR/installer/scripts/enable-extra-repos.sh" "$LOG_FILE"
+_ok "Extra repositories enabled"
+
 # ── Core packages ─────────────────────────────────────────────────────────
 _step "Installing Core Packages"
 # Mint/Ubuntu run background updaters that can hold the dpkg lock; announce a

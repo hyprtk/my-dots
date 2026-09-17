@@ -82,6 +82,16 @@ OVERRIDES = {
     ("apt", "noble", "brave-browser"): ("extra-add", "Brave apt repo"),
     ("apt", "resolute", "brave-browser"): ("extra-add", "Brave apt repo"),
     ("apt", "mint22", "brave-browser"): ("extra-add", "Brave apt repo"),
+    # srcapps-install.sh now builds these where the archive lacks them.
+    ("apk", "alpine", "cliphist"): ("source", "srcapps-install.sh (go build)"),
+    ("apt", "bookworm", "cliphist"): ("source", "srcapps-install.sh (go build)"),
+    ("apt", "bookworm", "eza"): ("source", "srcapps-install.sh (cargo)"),
+    # Installer-side name fallbacks (handled, not a gap).
+    ("apt", "bookworm", "freerdp3-x11"): ("repo", "installer requests freerdp2-x11 on Debian 12"),
+    ("apt", "trixie", "policykit-1-gnome"): ("extra-add", "Debian 13 dropped it; installer installs mate-polkit"),
+    ("apt", "noble", "nvidia-driver"): ("extra-add", "Ubuntu ships no meta; installer picks nvidia-driver-5xx"),
+    ("apt", "resolute", "nvidia-driver"): ("extra-add", "Ubuntu ships no meta; installer picks nvidia-driver-5xx"),
+    ("apt", "mint22", "nvidia-driver"): ("extra-add", "Ubuntu ships no meta; installer picks nvidia-driver-5xx"),
 }
 
 

@@ -294,3 +294,85 @@ hyprtk_apt_add_ppa() {
     _apt update || true
     return 0
 }
+
+# ── Extra repositories ──────────────────────────────────────────────────────
+# Some packages the dotfiles need live outside the base repos. Enable the
+# standard extra repo per family (idempotent, best-effort):
+#   dnf  → RPMFusion free + nonfree (NVIDIA, mesa-*-freeworld, unrar)
+#   apt  → Debian contrib/non-free/non-free-firmware (nvidia, unrar, intel-media)
+#   xbps → current/nonfree (nvidia, unrar)
+#   apk  → none exists; Alpine genuinely has no NVIDIA/unrar packages.
+
+# Debian proper (incl. Kali/Parrot-style derivatives), NOT the Ubuntu family
+# (Ubuntu already ships universe/multiverse/restricted).
+hyprtk_is_debian_family() {
+    [ -r /etc/os-release ] || return 1
+    local id like
+    id=$(grep -E '^ID=' /etc/os-release | head -1 | cut -d= -f2 | tr -d "\"'")
+    like=$(grep -E '^ID_LIKE=' /etc/os-release | head -1 | cut -d= -f2 | tr -d "\"'")
+    case "$id $like" in *ubuntu*|*mint*) return 1 ;; esac
+    case "$id" in debian) return 0 ;; esac
+    case "$like" in *debian*) return 0 ;; esac
+    return 1
+}
+
+hyprtk_dnf_enable_rpmfusion() {
+    [ "$HYPRTK_PM" = dnf ] || return 0
+    rpm -q rpmfusion-free-release >/dev/null 2>&1 \
+        && rpm -q rpmfusion-nonfree-release >/dev/null 2>&1 && return 0
+    local rel
+    rel="$(rpm -E %fedora 2>/dev/null)"
+    [ -n "$rel" ] || { echo "  ! cannot determine the Fedora release for RPMFusion" >&2; return 1; }
+    echo "  Enabling RPMFusion (free + nonfree) for Fedora $rel"
+    hyprtk_run_root dnf install -y \
+        "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-${rel}.noarch.rpm" \
+        "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${rel}.noarch.rpm" \
+        || { echo "  ! RPMFusion could not be enabled" >&2; return 1; }
+}
+
+hyprtk_apt_enable_nonfree() {
+    [ "$HYPRTK_PM" = apt ] || return 0
+    hyprtk_is_debian_family || return 0
+    local f changed=0
+    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+        [ -f "$f" ] || continue
+        if grep -qE '^Components:' "$f"; then
+            grep -qE '^Components:.*\bnon-free\b' "$f" && continue
+            hyprtk_run_root sed -i -E 's/^(Components:.*)$/\1 contrib non-free non-free-firmware/' "$f"
+            changed=1
+        elif grep -qE '^(deb|deb-src)[[:space:]]' "$f"; then
+            grep -q 'non-free' "$f" && continue
+            hyprtk_run_root sed -i -E \
+                's/^((deb|deb-src)[[:space:]]+[^ ]+[[:space:]]+[^ ]+[[:space:]]+[^ ]+)(.*)$/\1 contrib non-free non-free-firmware\3/' "$f"
+            changed=1
+        fi
+    done
+    if [ "$changed" = 1 ]; then
+        echo "  Enabled Debian contrib/non-free/non-free-firmware"
+        hyprtk_run_root apt-get update -qq || true
+    fi
+    return 0
+}
+
+hyprtk_xbps_enable_nonfree() {
+    [ "$HYPRTK_PM" = xbps ] || return 0
+    local conf=/etc/xbps.d/10-nonfree.conf
+    [ -f "$conf" ] && return 0
+    local base
+    base=$(grep -rhoE 'repository=https?://[^ ]*/current' /usr/share/xbps.d /etc/xbps.d 2>/dev/null \
+           | head -1 | cut -d= -f2)
+    [ -n "$base" ] || base=https://repo-default.voidlinux.org/current
+    echo "  Enabling the Void nonfree repo"
+    printf 'repository=%s/nonfree\n' "$base" | hyprtk_run_root tee "$conf" >/dev/null
+    hyprtk_run_root xbps-install -S || true
+    return 0
+}
+
+hyprtk_enable_extra_repos() {
+    case "$HYPRTK_PM" in
+        dnf)  hyprtk_dnf_enable_rpmfusion ;;
+        apt)  hyprtk_apt_enable_nonfree ;;
+        xbps) hyprtk_xbps_enable_nonfree ;;
+        *)    return 0 ;;
+    esac
+}

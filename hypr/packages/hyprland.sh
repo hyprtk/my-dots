@@ -41,7 +41,7 @@ xbps)
           curl ImageMagick jq bc brightnessctl playerctl libadwaita
           gtk+3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
           python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs gvfs-afc
-          gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb p7zip unzip unrar)
+          gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-smb p7zip unzip unrar)
     ;;
 apk)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look

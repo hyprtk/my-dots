@@ -24,7 +24,9 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("~/hyprtk/installer/scripts/bash-cleanup.sh")
     hl.exec_cmd("~/hyprtk/installer/scripts/set-timezone.sh")
     hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
-    hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
+    -- polkit-gnome is absent on Fedora and dropped in Debian 13; the wrapper
+    -- starts whichever agent (polkit-gnome / mate-polkit / lxpolkit) is present
+    hl.exec_cmd("~/.config/hypr/scripts/polkit-agent.sh &")
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
     hl.exec_cmd("xhost +local:")
     hl.exec_cmd("hyprctl dismissnotify")

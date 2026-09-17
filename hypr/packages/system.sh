@@ -21,9 +21,10 @@ apt)
           policykit-1-gnome gnome-keyring libgtk4-layer-shell0 hyprpicker)
     ;;
 dnf)
+    # polkit-gnome is not packaged on Fedora; mate-polkit provides the agent.
     PKGS=(sddm blueman fzf font-manager fontawesome-fonts-all fira-code-fonts eza
           python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
-          xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
+          xdg-user-dirs xdg-user-dirs-gtk os-prober mate-polkit gnome-keyring
           gtk4-layer-shell hyprpicker)
     ;;
 zypper)
@@ -45,6 +46,13 @@ apk)
           hyprpicker)
     ;;
 esac
+
+# Debian 13 dropped policykit-1-gnome; mate-polkit provides the agent there.
+# (The session wrapper hypr/scripts/polkit-agent.sh finds whichever is present.)
+if [ "$HYPRTK_PM" = apt ] && command -v apt-get >/dev/null 2>&1 \
+    && ! apt-get install -s -y policykit-1-gnome >/dev/null 2>&1; then
+    PKGS=("${PKGS[@]/policykit-1-gnome/mate-polkit}")
+fi
 
 if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 

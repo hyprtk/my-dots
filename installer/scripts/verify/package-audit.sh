@@ -66,6 +66,14 @@ done
 EOS
         ;;
         apt) cat <<'EOS'
+# Debian proper needs contrib/non-free (the installer enables it); Ubuntu
+# already ships universe/multiverse.
+if grep -q '^ID=debian' /etc/os-release 2>/dev/null; then
+    for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources; do
+        [ -f "$f" ] || continue
+        grep -qE '^Components:' "$f" && sed -i -E 's/^(Components:.*)$/\1 contrib non-free non-free-firmware/' "$f"
+    done
+fi
 apt-get update -qq >/dev/null 2>&1
 while IFS= read -r p; do
     [ -n "$p" ] || continue
@@ -74,6 +82,10 @@ done
 EOS
         ;;
         dnf) cat <<'EOS'
+# Mirror the installer: RPMFusion free + nonfree.
+dnf install -y "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
+               "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm" \
+    >/dev/null 2>&1
 dnf -q makecache >/dev/null 2>&1
 while IFS= read -r p; do
     [ -n "$p" ] || continue
@@ -93,6 +105,7 @@ EOS
         ;;
         xbps) cat <<'EOS'
 printf 'repository=https://repo-default.voidlinux.org/current\n' >/etc/xbps.d/00-repo.conf
+printf 'repository=https://repo-default.voidlinux.org/current/nonfree\n' >/etc/xbps.d/10-nonfree.conf
 xbps-install -S >/dev/null 2>&1
 while IFS= read -r p; do
     [ -n "$p" ] || continue

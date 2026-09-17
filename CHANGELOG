@@ -21,6 +21,30 @@ documented in this file. Dates are in YYYY-MM-DD format.
   hyprsunset on Void, polkit-gnome on Fedora, gvfs-nfs on Void).
   `manual_package_installs.sh` lost its `hyprtk-pkglist` marker and is excluded
   from the audit/matrix, so it no longer counts toward the installer surface.
+- **Extra repositories + source fallbacks (2026-09-17).** The audit's "Extra
+  (TODO)" gaps are now wired up:
+  - `pkgmanager.sh` gained `hyprtk_enable_extra_repos`, run by the new
+    `installer/scripts/enable-extra-repos.sh` before the core packages:
+    **RPMFusion** free+nonfree on Fedora, **contrib/non-free/non-free-firmware**
+    on Debian, and the **nonfree** repo on Void. Alpine ships no nonfree repo,
+    so its NVIDIA/unrar genuinely cannot be installed.
+  - Fedora AMD now requests `mesa-va-drivers-freeworld` (RPMFusion) instead of
+    the non-existent `mesa-va-drivers`.
+  - `polkit-gnome` → `mate-polkit` on Fedora and Debian 13, with a new
+    `hypr/scripts/polkit-agent.sh` that launches whichever agent exists (the
+    session previously called the polkit-gnome path unconditionally).
+  - `freerdp3-x11` → `freerdp2-x11` fallback on Debian 12; dropped `gvfs-nfs`
+    on Void (its gvfs is monolithic).
+  - `srcapps-install.sh` now builds `cliphist` (go) and `eza` (cargo) where the
+    archive lacks them.
+  - After the change the audit's **Extra (TODO) column is 0 on every family**.
+    The 10 remaining gaps are genuinely unavailable: Alpine has no NVIDIA driver
+    stack or `unrar` and packages no `cockpit`/`hyprpicker`/`ipp-usb`/`nss-mdns`
+    (the last three are buildable from source but need recipe/packaging work);
+    Void packages no `cockpit`/`hyprsunset`/`nvidia-settings`. `ipp-usb` and
+    `nss-mdns` are the best source-build candidates — `ipp-usb` builds (go + libusb
+    + avahi) but needs its udev rules/service, and nss-mdns's git master does not
+    compile cleanly on Alpine.
 
 - **Fedora install fixes (2026-09-17, found on a live F44 Xfce VM).**
   - `hyprland.sh` enables a Hyprland COPR on Fedora/RHEL
