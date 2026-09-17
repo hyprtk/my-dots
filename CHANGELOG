@@ -33,6 +33,16 @@ documented in this file. Dates are in YYYY-MM-DD format.
 - **Alpine: Sugar-Candy silently fell back to SDDM's built-in theme** (Qt6 SDDM
   looked for the missing Qt5 greeter). `sddmgrub.sh` now appends `QtVersion=6`
   to the theme metadata alongside the QML import patch.
+- **SDDM greeter: could not type the password.** The X11 greeter had no X input
+  driver (`xorg-server` alone is not enough; on Alpine Xorg logged "No input
+  driver specified" for every keyboard/pointer). `sddmgrub.sh` now installs
+  `xserver-xorg-input-libinput` / `xorg-x11-drv-libinput` / `xf86-input-libinput`
+  alongside the X server on every off-Arch family.
+- **SDDM greeter: black box behind the user icon, and login always failed with
+  an empty username** (Sugar-Candy under Qt6, seen on Alpine/Fedora/openSUSE).
+  `Components/Input.qml` is patched to give the user-icon `Button` a transparent
+  background and to fall back to the user selector's `currentText` when the
+  username TextField's `ForceLastUser` binding is empty at click time.
 - **Alpine install steps**: the root Papirus icon install runs via `sudo` with
   `DESTDIR`; `/root/.cache` is created before copying the root wallpaper;
   bluetooth and samba use OpenRC (`rc-service`/`rc-update`) where systemd is

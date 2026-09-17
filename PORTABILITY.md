@@ -227,6 +227,26 @@ Alpine's SDDM is Qt6-only (`sddm-greeter-qt6`); the upstream Sugar-Candy theme
 metadata has no `QtVersion`, so SDDM looks for the Qt5 greeter, fails to find
 it and silently falls back to its built-in theme — `sddmgrub.sh` appends
 `QtVersion=6` to the theme metadata alongside the existing QML import patch.
+
+### SDDM Sugar-Candy greeter (Qt6): input driver and theme patches
+The X11 greeter needs its own X input driver: `xorg-server` alone is not enough,
+and on Alpine (no `xf86-input-libinput`) Xorg logs *"No input driver specified,
+ignoring this device"* for every keyboard and pointer, so **the password box
+cannot be typed into at all**. `sddmgrub.sh` now installs the input driver
+alongside the X server for every off-Arch family
+(`xserver-xorg-input-libinput`, `xorg-x11-drv-libinput`, `xf86-input-libinput`).
+
+Two Sugar-Candy theme bugs also show up under Qt6 (`Components/Input.qml`),
+patched idempotently by `sddmgrub.sh` (`// hyprtk:` markers):
+
+- the user-field icon is a `Button` with no `background`, so Qt6's default style
+  paints a **black square behind the white user glyph** (seen on Alpine, Fedora
+  and openSUSE) — it gets a transparent background;
+- the login handler reads the `username` TextField, whose `ForceLastUser`
+  binding is empty at click time under Qt6, so SDDM authenticates with an empty
+  username and always fails — it now falls back to the user selector's
+  `currentText`.
+
 ### AUR helper on Arch
 `1-install.sh` builds `yay` on Arch when no helper is present (needs
 `base-devel` + `git`). Without a helper, AUR packages are skipped with a warning.

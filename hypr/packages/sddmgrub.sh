@@ -50,11 +50,15 @@ SDDM_QT6_COMPAT[dnf]="qt6-qt5compat qt6-qtvirtualkeyboard"
 SDDM_QT6_COMPAT[zypper]="qt6-qt5compat-imports qt6-qtvirtualkeyboard-imports"
 SDDM_QT6_COMPAT[xbps]="qt6-5compat qt6-virtualkeyboard"
 SDDM_QT6_COMPAT[apk]="qt6-qt5compat qt6-qtvirtualkeyboard"
-SDDM_XSERVER[apt]="xserver-xorg"
-SDDM_XSERVER[dnf]="xorg-x11-server-Xorg"
-SDDM_XSERVER[zypper]="xorg-x11-server"
-SDDM_XSERVER[xbps]="xorg-server"
-SDDM_XSERVER[apk]="xorg-server"
+# X server + the input driver the greeter needs. Without an X input driver
+# (e.g. Alpine ships xorg-server but no xf86-input-libinput), Xorg ignores every
+# keyboard/pointer — "No input driver specified" — and the greeter cannot be
+# typed into at all.
+SDDM_XSERVER[apt]="xserver-xorg xserver-xorg-input-libinput"
+SDDM_XSERVER[dnf]="xorg-x11-server-Xorg xorg-x11-drv-libinput"
+SDDM_XSERVER[zypper]="xorg-x11-server xf86-input-libinput"
+SDDM_XSERVER[xbps]="xorg-server xf86-input-libinput"
+SDDM_XSERVER[apk]="xorg-server xf86-input-libinput"
 
 _sddm_uses_qt6() {
     command -v sddm >/dev/null 2>&1 || return 1
@@ -84,6 +88,28 @@ if [ "$HYPRTK_PM" != pacman ]; then
         if [ -f "$SUGAR_THEME/metadata.desktop" ] \
             && ! grep -q '^QtVersion=' "$SUGAR_THEME/metadata.desktop" 2>/dev/null; then
             printf 'QtVersion=6\n' | hyprtk_run_root tee -a "$SUGAR_THEME/metadata.desktop" >/dev/null
+        fi
+        # Greeter fixes for the user field (Components/Input.qml):
+        #  1. the user-icon Button has no background override, so Qt6's default
+        #     style paints a black square behind the icon → give it a transparent
+        #     background;
+        #  2. the login handler reads the username TextField, whose ForceLastUser
+        #     binding is empty at click time under Qt6 (login then authenticates
+        #     with an empty username and always fails) → fall back to the user
+        #     selector's current text.
+        _sddm_input_qml="$SUGAR_THEME/Components/Input.qml"
+        if [ -f "$_sddm_input_qml" ]; then
+            if ! grep -q 'hyprtk: transparent user-icon background' "$_sddm_input_qml"; then
+                hyprtk_run_root sed -i \
+                    's#\(icon.source: Qt.resolvedUrl("../Assets/User.svgz")\)#\1; background: Rectangle { color: "transparent" } // hyprtk: transparent user-icon background#' \
+                    "$_sddm_input_qml"
+            fi
+            if ! grep -q 'hyprtk: robust login' "$_sddm_input_qml"; then
+                hyprtk_run_root sed -i \
+                    's#onClicked:.*#onClicked: { var u = (username.text !== "" ? username.text : selectUser.currentText); if (config.AllowBadUsernames == "false") u = u.toLowerCase(); sddm.login(u, password.text, sessionSelect.selectedSession); } // hyprtk: robust login#' \
+                    "$_sddm_input_qml"
+            fi
+            echo "Sugar-Candy user field patched (icon background + robust login)."
         fi
         echo "Sugar-Candy theme patched for Qt6."
     fi
