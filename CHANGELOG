@@ -27,6 +27,14 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **`_installSymLink` created the link at the wrong path.** It ran
+  `ln -s "$linksource" "$linktarget"` instead of using the explicit link path
+  (`$2`), so `ln` named the link after the source's basename. Every existing
+  call happened to have matching names except the plain-swaylock variant
+  (`configs/swaylock-plain/`), which produced `~/.config/swaylock-plain` —
+  swaylock then never read `~/.config/swaylock/config` (no wallpaper image, no
+  pywal colours). It now creates the link at `$2`. Verified on the Alpine VM:
+  the lock screen applies the config's image and colours.
 - **Alpine: SDDM would not launch and tty sessions died with
   "XDG_RUNTIME_DIR is not set".** Root cause: busybox mdev never applies the
   elogind udev rules, so the DRM card is not tagged `master-of-seat`
