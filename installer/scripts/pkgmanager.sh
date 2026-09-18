@@ -404,3 +404,15 @@ hyprtk_enable_extra_repos() {
         *)    return 0 ;;
     esac
 }
+
+# Export every helper so they survive the `bash -c` subshells the installer uses
+# for `gum spin` steps. Without this, `pkg_install` runs but its helpers
+# (`_apt`, `hyprtk_zypper_pyname`, …) are "command not found" there, so the
+# package name is dropped and the install silently does nothing (e.g. the zsh
+# step on apt/zypper). Exported via `export -f`; harmless elsewhere.
+export -f hyprtk_detect_pm hyprtk_pm_name hyprtk_run_root _apt \
+    hyprtk_apt_wait_lock hyprtk_zypper_pyname pkg_is_installed pkg_install \
+    pkg_remove aur_helper aur_available aur_install hyprtk_ubuntu_codename \
+    hyprtk_is_ubuntu_family hyprtk_apt_add_ppa hyprtk_is_debian_family \
+    hyprtk_dnf_enable_rpmfusion hyprtk_apt_enable_nonfree \
+    hyprtk_xbps_enable_nonfree hyprtk_enable_extra_repos 2>/dev/null || true
