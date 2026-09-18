@@ -87,12 +87,14 @@ documented in this file. Dates are in YYYY-MM-DD format.
     on sight, so upgrading from the old venv app leaves nothing behind.
 - **Papirus-root step still failed on Void (exit 127).** The Papirus `install.sh`
   it downloads uses `wget` internally, and Void ships none — the earlier curl change
-  only fixed fetching the script. `wget` is now a core package on every family, so
-  the step completes (found by the real Void re-run).
-- **btop theme link failed on a fresh clone.** `configs/btop/themes/` is an
-  untracked (empty) directory, so the installer's `ln` had no parent dir and the
-  link silently failed. The step now `mkdir -p`s first, and the directory ships a
-  `.gitkeep` so it exists after checkout.
+  only fixed fetching the script. `wget` is now a core package (`wget2-wget` on
+  Fedora, which no longer ships a `wget` package), so the step completes (found by
+  the real Void re-run).
+- **btop theme link failed on a fresh clone.** `~/.config/btop` was a directory
+  symlink into the repo, so the generated theme link had to be written into the
+  clone (read-only in the dry-run) and failed when `configs/btop/themes/` did not
+  exist. `~/.config/btop` is now a real directory with a linked `btop.conf` and a
+  per-user `themes/btopwal.theme` link, so nothing generated touches the repo.
 - **openSUSE: `zsh` never installed, then the shell change failed.** The zsh step
   calls `_installPackagesPacman` → `pkg_install` from a `gum spin` `bash -c`
   subshell, but only some helpers were exported — so on zypper
@@ -118,6 +120,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
   are not symlinks, stray `.git` dirs and known-obsolete artifacts, plus the
   expected runtime files. It caught the two leftovers and the btop hardcoded path
   above on real installs.
+- **Real re-installs on the four test VMs** (Void, Alpine, fedora44, openSUSE),
+  each driven end-to-end: **0 failed steps** and `verify-install-links.sh` **PASS**
+  on all four. These found the real-only bugs above that the stubbed container
+  checks could not: the missing `wget` (Papirus), the empty btop themes dir, the
+  unexported `pkgmanager` helpers (zsh never installed on zypper/apt) and the
+  openSUSE `chsh`/run0 failure.
 
 ## [Unreleased] - 2026-09-17
 

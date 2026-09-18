@@ -23,7 +23,7 @@ apt)
     ;;
 dnf)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist
-          xhost nwg-look curl wget ImageMagick jq bc
+          xhost nwg-look curl wget2-wget ImageMagick jq bc
           brightnessctl playerctl libadwaita gtk3 gtk-layer-shell gtk4
           desktop-file-utils python3 python3-pip python3-virtualenv python3-gobject
           wob hyprsunset swaylock gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
