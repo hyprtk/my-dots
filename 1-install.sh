@@ -989,11 +989,17 @@ else
         # the installer, so it would hang forever waiting for input.
         # Name the target user explicitly: `chsh` with no user argument changes
         # the *invoking* user's shell, which under sudo is root.
+        # Prefer `usermod -s`: on openSUSE the elevation wrapper is run0-sudo,
+        # whose own `-s` ("run a shell") flag shadows chsh's, and chsh also fails
+        # under run0's PAM session; the leading `--` stops option parsing in the
+        # wrapper either way. Fall back to chsh where usermod is unavailable.
         ZSH_BIN="$(command -v zsh || echo /bin/zsh)"
         _target_user="${SUDO_USER:-$(id -un)}"
         grep -qx "$ZSH_BIN" /etc/shells 2>/dev/null \
             || echo "$ZSH_BIN" | sudo tee -a /etc/shells >/dev/null
-        sudo chsh -s "$ZSH_BIN" "$_target_user" || _fail "could not set the default shell to zsh"
+        sudo -- usermod -s "$ZSH_BIN" "$_target_user" 2>/dev/null \
+            || sudo -- chsh -s "$ZSH_BIN" "$_target_user" \
+            || _fail "could not set the default shell to zsh"
         _ok ".zshrc updated"
 
         # ── Standalone apps ──────────────────────────────────────────

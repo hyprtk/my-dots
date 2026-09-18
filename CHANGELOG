@@ -93,6 +93,15 @@ documented in this file. Dates are in YYYY-MM-DD format.
   untracked (empty) directory, so the installer's `ln` had no parent dir and the
   link silently failed. The step now `mkdir -p`s first, and the directory ships a
   `.gitkeep` so it exists after checkout.
+- **openSUSE: `zsh` never installed, then the shell change failed.** The zsh step
+  calls `_installPackagesPacman` → `pkg_install` from a `gum spin` `bash -c`
+  subshell, but only some helpers were exported — so on zypper
+  `hyprtk_zypper_pyname` (and on apt `_apt`) were "command not found", the package
+  name was dropped, and zypper ran `install` with no argument ("Nothing to do") →
+  false success. All `pkgmanager.sh` helpers are now exported. The shell change
+  now uses `usermod -s` (with a `chsh` fallback and a leading `--`): openSUSE's
+  run0-sudo has its own `-s` ("run a shell") flag that shadows chsh's, and chsh
+  also fails under run0's PAM session. Found by the real openSUSE re-run.
 
 ### Verification
 
