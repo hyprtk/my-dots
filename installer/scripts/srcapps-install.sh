@@ -96,7 +96,7 @@ WOB_DEPS[xbps]="git meson ninja wayland-devel wayland-protocols inih-devel libse
 declare -A HYPRCHAIN_DEPS
 HYPRCHAIN_DEPS[apt]="git cmake build-essential pkg-config libpixman-1-dev libpugixml-dev libwayland-dev wayland-protocols libxkbcommon-dev libcairo2-dev libpango1.0-dev libjpeg-dev"
 HYPRCHAIN_DEPS[dnf]="git cmake gcc gcc-c++ pkgconf-pkg-config pixman-devel pugixml-devel wayland-devel wayland-protocols-devel libxkbcommon-devel cairo-devel pango-devel libjpeg-turbo-devel"
-HYPRCHAIN_DEPS[zypper]="git cmake gcc gcc-c++ pkg-config libpixman-1-0-devel pugixml-devel wayland-devel wayland-protocols-devel libxkbcommon-devel cairo-devel pango-devel libjpeg-turbo-devel"
+HYPRCHAIN_DEPS[zypper]="git cmake gcc gcc-c++ pkg-config libpixman-1-0-devel pugixml-devel wayland-devel wayland-protocols-devel libxkbcommon-devel cairo-devel pango-devel libjpeg8-devel"
 HYPRCHAIN_DEPS[xbps]="git cmake base-devel pkg-config pixman-devel pugixml-devel wayland-devel wayland-protocols libxkbcommon-devel cairo-devel pango-devel libjpeg-turbo-devel"
 HYPRCHAIN_DEPS[apk]="git cmake build-base pkgconf pixman-dev pugixml-dev wayland-dev wayland-protocols libxkbcommon-dev cairo-dev pango-dev libjpeg-turbo-dev"
 

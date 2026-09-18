@@ -11,9 +11,9 @@ _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 
 declare -A MATUWALL_DEPS
 MATUWALL_DEPS[pacman]="base-devel meson ninja git scdoc"
-MATUWALL_DEPS[apt]="build-essential meson ninja-build pkg-config git libwayland-dev wayland-protocols libxkbcommon-dev libpng-dev libjpeg-turbo8-dev libwebp-dev scdoc"
+MATUWALL_DEPS[apt]="build-essential meson ninja-build pkg-config git libwayland-dev wayland-protocols libxkbcommon-dev libpng-dev libjpeg-dev libwebp-dev scdoc"
 MATUWALL_DEPS[dnf]="gcc meson ninja-build pkgconf-pkg-config git wayland-devel wayland-protocols-devel libxkbcommon-devel libpng-devel libjpeg-turbo-devel libwebp-devel scdoc"
-MATUWALL_DEPS[zypper]="gcc meson ninja pkg-config git wayland-devel wayland-protocols-devel libxkbcommon-devel libpng16-devel libjpeg-turbo-devel libwebp-devel scdoc"
+MATUWALL_DEPS[zypper]="gcc meson ninja pkg-config git wayland-devel wayland-protocols-devel libxkbcommon-devel libpng16-devel libjpeg8-devel libwebp-devel scdoc"
 MATUWALL_DEPS[xbps]="base-devel meson ninja pkg-config git wayland-devel wayland-protocols libxkbcommon-devel libpng-devel libjpeg-turbo-devel libwebp-devel scdoc"
 MATUWALL_DEPS[apk]="build-base meson ninja pkgconf git wayland-dev wayland-protocols libxkbcommon-dev libpng-dev libjpeg-turbo-dev libwebp-dev scdoc"
 

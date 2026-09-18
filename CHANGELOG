@@ -67,6 +67,14 @@ documented in this file. Dates are in YYYY-MM-DD format.
   theme/size are now set via `XCURSOR_THEME`/`XCURSOR_SIZE` in `hypr/environment.lua`
   and the runtime `hyprctl setcursor` call is removed (it was never needed — the env
   is what Hyprland reads at startup).
+- **Debian/openSUSE: wrong libjpeg dev package names.** `matuwall.sh` used the
+  Ubuntu name `libjpeg-turbo8-dev` for apt (missing on Debian, which ships
+  `libjpeg62-turbo-dev`) and `libjpeg-turbo-devel` for zypper (missing on
+  openSUSE, which ships `libjpeg8-devel`), so the matuwall source build silently
+  lacked the libjpeg-turbo headers it requires (`JCS_EXT_BGRA`). The apt entry now
+  uses `libjpeg-dev` (the turbo dev meta, present on both Debian and Ubuntu), and
+  zypper uses `libjpeg8-devel` (also corrected in the srcapps zypper chain list).
+  `container-matrix.sh` is green again: 1284 resolvable, 0 unexpected.
 
 ## [Unreleased] - 2026-09-17
 
