@@ -876,6 +876,10 @@ else
         _spin "Installing rofi..." "_installSymLink rofi ~/.config/rofi $SCRIPT_DIR/configs/rofi/ ~/.config" "$LOG_FILE"
         _spin "Installing wal..." "_installSymLink wal ~/.config/wal $SCRIPT_DIR/configs/wal/ ~/.config" "$LOG_FILE"
         _spin "Installing btop..." "_installSymLink btop ~/.config/btop $SCRIPT_DIR/configs/btop/ ~/.config" "$LOG_FILE"
+        # Point btop at the pywal-rendered theme with a per-user link (the repo
+        # must not ship an absolute home path). pywal writes the theme to
+        # ~/.cache/wal/btopwal.theme from the bundled template.
+        _spin "Linking btop theme..." "ln -sfn \"\$HOME/.cache/wal/btopwal.theme\" \"\$HOME/.config/btop/themes/btopwal.theme\"" "$LOG_FILE"
         _ok "General configs installed"
 
         # ── Re-init pywal16 ───────────────────────────────────────────

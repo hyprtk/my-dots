@@ -36,6 +36,14 @@ echo ""
 
 SRC="$HOME/.local/share/Matuwall"
 
+# The app was a Python venv app before the C11/meson rewrite; a system upgraded
+# from the old installer keeps the orphaned venv (and its packaging metadata).
+# Remove it on sight so upgrades leave no dead weight behind.
+if [ -d "$SRC/.venv" ] || [ -d "$SRC/matuwall.egg-info" ]; then
+    rm -rf -- "$SRC/.venv" "$SRC/matuwall.egg-info" 2>/dev/null || true
+    echo " Removed the orphaned Python-era Matuwall venv. "
+fi
+
 if command -v matuwall >/dev/null 2>&1; then
     echo " Matuwall already installed! "
     sleep 2

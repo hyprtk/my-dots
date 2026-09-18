@@ -75,6 +75,16 @@ documented in this file. Dates are in YYYY-MM-DD format.
   uses `libjpeg-dev` (the turbo dev meta, present on both Debian and Ubuntu), and
   zypper uses `libjpeg8-devel` (also corrected in the srcapps zypper chain list).
   `container-matrix.sh` is green again: 1284 resolvable, 0 unexpected.
+- **Leftovers and a hardcoded path found by the new link audit.**
+  - `configs/root/.config/alacritty/alacritty.yml.bak` was a committed stray file
+    (nothing references it) — removed.
+  - The btop pywal theme used a committed **absolute** symlink *and* an absolute
+    `color_theme`, both hardcoded to `/home/hyprtk`; so btop had no theme for any
+    other user. `color_theme` is now the portable name `btopwal`, and the installer
+    creates a per-user `themes/btopwal.theme` symlink to the pywal-rendered file
+    (`configs/btop/themes/btopwal.theme` is now generated/gitignored).
+  - `matuwall.sh` now removes the orphaned Python-era `~/.local/share/Matuwall/.venv`
+    on sight, so upgrading from the old venv app leaves nothing behind.
 
 ### Verification
 
@@ -86,6 +96,11 @@ documented in this file. Dates are in YYYY-MM-DD format.
   `audit-installer.sh`, `audit-references.sh` and `verify-completeness.sh` all pass.
   A pre/post matrix run on the same host confirms the changes add no missing package
   on any family; the only deltas are the intended xbps-only ones.
+- New `installer/scripts/verify/verify-install-links.sh` (dev tooling): audits the
+  hyprtk-owned paths for dangling symlinks, temp/leftover files, core configs that
+  are not symlinks, stray `.git` dirs and known-obsolete artifacts, plus the
+  expected runtime files. It caught the two leftovers and the btop hardcoded path
+  above on real installs.
 
 ## [Unreleased] - 2026-09-17
 
