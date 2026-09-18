@@ -879,7 +879,7 @@ else
         # Point btop at the pywal-rendered theme with a per-user link (the repo
         # must not ship an absolute home path). pywal writes the theme to
         # ~/.cache/wal/btopwal.theme from the bundled template.
-        _spin "Linking btop theme..." "ln -sfn \"\$HOME/.cache/wal/btopwal.theme\" \"\$HOME/.config/btop/themes/btopwal.theme\"" "$LOG_FILE"
+        _spin "Linking btop theme..." "mkdir -p \"\$HOME/.config/btop/themes\" && ln -sfn \"\$HOME/.cache/wal/btopwal.theme\" \"\$HOME/.config/btop/themes/btopwal.theme\"" "$LOG_FILE"
         _ok "General configs installed"
 
         # ── Re-init pywal16 ───────────────────────────────────────────

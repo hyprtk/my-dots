@@ -85,6 +85,14 @@ documented in this file. Dates are in YYYY-MM-DD format.
     (`configs/btop/themes/btopwal.theme` is now generated/gitignored).
   - `matuwall.sh` now removes the orphaned Python-era `~/.local/share/Matuwall/.venv`
     on sight, so upgrading from the old venv app leaves nothing behind.
+- **Papirus-root step still failed on Void (exit 127).** The Papirus `install.sh`
+  it downloads uses `wget` internally, and Void ships none — the earlier curl change
+  only fixed fetching the script. `wget` is now a core package on every family, so
+  the step completes (found by the real Void re-run).
+- **btop theme link failed on a fresh clone.** `configs/btop/themes/` is an
+  untracked (empty) directory, so the installer's `ln` had no parent dir and the
+  link silently failed. The step now `mkdir -p`s first, and the directory ships a
+  `.gitkeep` so it exists after checkout.
 
 ### Verification
 
