@@ -48,6 +48,13 @@ documented in this file. Dates are in YYYY-MM-DD format.
 - **`std::ranges::starts_with` patch is not Alpine-only.** Void's GCC 14.2
   libstdc++ lacks it as well, so the Hyprland source patch now applies whenever the
   source contains the call.
+- **Black screen on login where there is no D-Bus session bus.** `hypr/autostart.lua`
+  ran `hyprctl setcursor Adwaita 24`; that drives hyprcursor's GSettings/dconf
+  lookup on the compositor's main thread, which blocks forever on a system with no
+  session bus (Void/runit) and leaves the session on a black screen. The cursor
+  theme/size are now set via `XCURSOR_THEME`/`XCURSOR_SIZE` in `hypr/environment.lua`
+  and the runtime `hyprctl setcursor` call is removed (it was never needed — the env
+  is what Hyprland reads at startup).
 
 ## [Unreleased] - 2026-09-17
 

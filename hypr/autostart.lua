@@ -8,7 +8,11 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprsunset --identity &")
     -- hyprtk-bar owns org.freedesktop.Notifications (built-in notification center)
     hl.exec_cmd("~/.local/bin/hyprtk-bar &")
-    hl.exec_cmd("hyprctl setcursor Adwaita 24")
+    -- Cursor theme/size come from XCURSOR_THEME/XCURSOR_SIZE (see
+    -- environment.lua). Do NOT call `hyprctl setcursor` here: it runs
+    -- hyprcursor's GSettings/dconf lookup on the compositor's main thread, which
+    -- blocks forever on systems with no D-Bus session bus (e.g. Void/runit) and
+    -- leaves the session on a black screen.
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("nm-applet --indicator")
     hl.exec_cmd("blueman-applet")
