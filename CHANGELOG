@@ -33,6 +33,16 @@ documented in this file. Dates are in YYYY-MM-DD format.
   only Alpine's OpenRC was handled), and the `XDG_RUNTIME_DIR` profile fallback
   now covers runit as well as OpenRC — without these there is no seat and no
   greeter on the next boot.
+- **D-Bus session bus for the compositor session (non-systemd).** systemd distros
+  get a per-session bus from `pam_systemd`; Void/runit (and OpenRC) start none at
+  all, which broke GSettings/dconf (hyprcursor's cursor-theme lookup → compositor
+  deadlock), `xdg-desktop-portal` and notifications. New
+  `installer/scripts/hyprtk-session.sh` + `/usr/local/bin/hyprtk-session` launcher
+  (installed and wired into the Hyprland session `.desktop` by
+  `hypr/packages/sddmgrub.sh`); it runs the session under `dbus-run-session` only
+  when `DBUS_SESSION_BUS_ADDRESS` is unset, so it is a no-op on systemd. Verified
+  on Void: `org.freedesktop.Notifications` is now owned on the session bus and
+  `hyprctl setcursor` returns instead of blocking.
 
 ### Fixed
 
