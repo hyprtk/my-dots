@@ -122,19 +122,26 @@ fi
 # deadlock), xdg-desktop-portal and the notification daemon. Route the session
 # through a wrapper that starts `dbus-run-session` only when there is no bus
 # (a no-op on systemd, where DBUS_SESSION_BUS_ADDRESS is already set).
-_sess_wrapper="$_PKGDIR/../../installer/scripts/hyprtk-session.sh"
-if [ -f "$_sess_wrapper" ]; then
-    hyprtk_run_root install -Dm755 "$_sess_wrapper" /usr/local/bin/hyprtk-session
-    for _sess in /usr/share/wayland-sessions/hyprland.desktop \
-                 /usr/local/share/wayland-sessions/hyprland.desktop; do
-        [ -f "$_sess" ] || continue
-        _exec="$(sed -n 's/^Exec=//p' "$_sess" | head -1)"
-        [ -n "$_exec" ] || continue
-        case "$_exec" in */hyprtk-session\ *) continue ;; esac
-        hyprtk_run_root sed -i "s|^Exec=.*|Exec=/usr/local/bin/hyprtk-session $_exec|" "$_sess"
-        echo "D-Bus session launcher: $_sess"
-    done
-fi
+#
+# Gated to the non-systemd families on purpose: on Arch/Fedora/Debian/openSUSE
+# the session file is package-owned and needs no change, so leave it untouched.
+case "$HYPRTK_PM" in
+apk|xbps)
+    _sess_wrapper="$_PKGDIR/../../installer/scripts/hyprtk-session.sh"
+    if [ -f "$_sess_wrapper" ]; then
+        hyprtk_run_root install -Dm755 "$_sess_wrapper" /usr/local/bin/hyprtk-session
+        for _sess in /usr/share/wayland-sessions/hyprland.desktop \
+                     /usr/local/share/wayland-sessions/hyprland.desktop; do
+            [ -f "$_sess" ] || continue
+            _exec="$(sed -n 's/^Exec=//p' "$_sess" | head -1)"
+            [ -n "$_exec" ] || continue
+            case "$_exec" in */hyprtk-session\ *) continue ;; esac
+            hyprtk_run_root sed -i "s|^Exec=.*|Exec=/usr/local/bin/hyprtk-session $_exec|" "$_sess"
+            echo "D-Bus session launcher: $_sess"
+        done
+    fi
+    ;;
+esac
 echo ""
 hyprtk_run_root cp ~/.cache/current-wallpaper.png /root/.cache/current-wallpaper.png 2>/dev/null || true
 echo ""

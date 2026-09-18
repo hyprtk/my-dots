@@ -40,8 +40,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
   `installer/scripts/hyprtk-session.sh` + `/usr/local/bin/hyprtk-session` launcher
   (installed and wired into the Hyprland session `.desktop` by
   `hypr/packages/sddmgrub.sh`); it runs the session under `dbus-run-session` only
-  when `DBUS_SESSION_BUS_ADDRESS` is unset, so it is a no-op on systemd. Verified
-  on Void: `org.freedesktop.Notifications` is now owned on the session bus and
+  when `DBUS_SESSION_BUS_ADDRESS` is unset, so it is a no-op on systemd. The wrap
+  step is gated to the non-systemd families (`apk`/`xbps`) so the package-owned
+  session file on Arch/Fedora/Debian/openSUSE is never touched. Verified on Void:
+  `org.freedesktop.Notifications` is now owned on the session bus and
   `hyprctl setcursor` returns instead of blocking.
 
 ### Fixed
