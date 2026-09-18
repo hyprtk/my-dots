@@ -76,6 +76,17 @@ documented in this file. Dates are in YYYY-MM-DD format.
   zypper uses `libjpeg8-devel` (also corrected in the srcapps zypper chain list).
   `container-matrix.sh` is green again: 1284 resolvable, 0 unexpected.
 
+### Verification
+
+- Cross-distro check after these changes. `installer/scripts/verify/container-dryrun.sh`
+  (the whole installer with every mutating command stubbed) passes on all ten family
+  variants — arch; debian bookworm/trixie; ubuntu 24.04/26.04; mint 22; fedora;
+  openSUSE; void; alpine — and `container-matrix.sh` reports **1284 resolvable / 0
+  unexpected** (the three pre-existing matuwall jpeg gaps above are fixed).
+  `audit-installer.sh`, `audit-references.sh` and `verify-completeness.sh` all pass.
+  A pre/post matrix run on the same host confirms the changes add no missing package
+  on any family; the only deltas are the intended xbps-only ones.
+
 ## [Unreleased] - 2026-09-17
 
 ### Added

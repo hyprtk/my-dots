@@ -52,8 +52,13 @@ splash, os-release branding) are skipped with a warning elsewhere. The
 wallpaper daemon is the exception — **awww** comes from the AUR on Arch, the
 native `swww` package on Void/Alpine, and is otherwise built from source by the
 installer. On Ubuntu the installer also adds a PPA so **Hyprland ≥ 0.55** (which
-the Lua config requires) is installed. See
-[`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
+the Lua config requires) is installed. Where a distro ships no **Hyprland ≥ 0.55**
+and no hyprwm libraries — **Alpine** (0.54.3) and **Void** (packages neither) —
+the installer builds the pinned upstream release **and** the library chain from
+source (plus `wob` on Void). On systems without a systemd user session
+(**Void/runit**, **Alpine/OpenRC**) it also launches the compositor through a
+`dbus-run-session` wrapper so D-Bus — portals, notifications and cursor theming —
+works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 
 ## Features
 
@@ -72,7 +77,7 @@ the Lua config requires) is installed. See
 | **Logout** | hyprlogout |
 | **Files** | Thunar |
 | **Icons** | Papirus (recolored to match the theme) |
-| **Cursor** | Bibata Modern Ice |
+| **Cursor** | Adwaita (session theme via `XCURSOR_THEME`/`XCURSOR_SIZE`) |
 | **Browser** | Brave / Chromium |
 | **VMs** | QEMU/KVM, VMware |
 
