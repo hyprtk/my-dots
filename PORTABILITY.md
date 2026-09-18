@@ -100,12 +100,12 @@ no package at all and **build it from source** (see the gotcha below).
 `²` = built from source by `awww-install.sh`; needs a Rust toolchain (rustup when
 the distro's rustc is older than upstream's MSRV) and the build deps listed in
 the gotcha below.<br>
-`³` = Fedora packages Hyprland only in a **COPR** (`solopasha/hyprland`) and Void
-not at all (a packaging-philosophy conflict) — the documented Void path is the
+`³` = Fedora packages Hyprland only in a **COPR** (`solopasha/hyprland`); Void
+packages it — and none of its libraries — not at all (a packaging-philosophy
+conflict). On Void `hyprland-src-install.sh` builds the pinned release **and** the
+whole hyprwm library chain from source (see the Hyprland gotcha below); the
 community **[hyprland-void-packages](https://github.com/void-land/hyprland-void-packages)**
-binary repo. When the compositor is still missing after the package step,
-`hypr/packages/hyprland.sh` prints the exact repo-ready steps (the installer does
-not add a third-party repo by itself).<br>
+binary repo is the documented manual fallback if that build fails.<br>
 `⁴` = Alpine: no version of Hyprland ≥ 0.55 is packaged (3.24 **and** edge ship
 0.54.3), so `hyprland-src-install.sh` builds the pinned upstream release from
 source — see the Hyprland gotcha below.
@@ -150,7 +150,8 @@ entirely Lua-based (`hypr/hyprland.lua` + `require(...)`), so **Hyprland < 0.55
 ignores them and generates a stock `hyprland.conf`** — autostart, keybindings and
 windowrules then never apply.
 
-Arch/Void and rolling releases ship ≥ 0.55. Ubuntu 26.04's archive ships
+Arch and rolling releases ship ≥ 0.55; Void ships no Hyprland at all (built from
+source — see below). Ubuntu 26.04's archive ships
 `0.53.3`, so `hypr/packages/hyprland.sh` adds the community PPA
 [`ppa:cppiber/hyprland`](https://launchpad.net/~cppiber/+archive/ubuntu/hyprland)
 (0.56.2 for resolute) on Ubuntu before installing. The PPA's `libhyprcursor1` /
@@ -183,6 +184,38 @@ and the build needs Lua **5.5** (`lua5.5-dev`), `glslang-dev`,
 15.2) has no `std::ranges::starts_with` (C++23), so the script patches that one
 call in `src/helpers/MiscFunctions.cpp` before configuring. Expect the build to
 take a few minutes; a reboot is required to start the new session.
+
+**Void** packages neither Hyprland nor any of its libraries, so
+`hyprland-src-install.sh` builds the pinned `v0.56.2` **and** the whole hyprwm
+library chain into `/usr`, at the exact revisions Hyprland's `flake.lock` pins
+(so the ABI matches). This step now runs **before** `srcapps-install.sh`, so
+`hyprsunset`/`hyprpicker` link the same chain. Build order: `hyprland-protocols`,
+`hyprutils`, `hyprlang`, `hyprcursor`, `hyprgraphics`, `hyprwire`, `aquamarine`
+(`hyprwayland-scanner` only when the Void package ships no CMake config; `glaze`
+is fetched by Hyprland's own CMake). Because Void's `hyprutils` (0.11.0) and
+`hyprlang` are too old for 0.56, those two are version-checked and rebuilt from
+the pinned revision *first*, so every consumer links one `libhyprutils`;
+everything else is skipped when its `pkg-config` module resolves.
+
+Void's toolchain is **GCC 14.2**, whose libstdc++ predates several C++23/26
+library features the 0.56 stack uses, so the build patches them:
+
+- `std::vector::append_range` (hyprwire, 16×) and `insert_range` (Hyprland) —
+  replaced with a local helper (`_patch_gcc14_range_members`);
+- `std::ranges::starts_with` — one call in `MiscFunctions.cpp`;
+- `std::string + std::string_view` (C++26 P2591) — supplied by
+  `installer/scripts/hyprtk-gcc14-compat.hpp`, force-included via
+  `-DCMAKE_CXX_FLAGS`;
+- `#embed` (C++26) — the example config is re-emitted as a raw string literal;
+- `cond ? classWithPtrConversion : nullptr` — made explicit in `XWM.hpp`.
+
+`wayland-protocols` 1.49 is new enough. Build deps are the Void `-devel`
+packages (wayland, Mesa, cairo, pango, pixman, libXcursor, libei, libdrm,
+libinput, libliftoff, libseat, elogind, libdisplay-info, re2, muparser, udis86,
+xcb-\*, librsvg, file/libmagic, libwebp, libpng, tomlplusplus, readline) plus
+`base-devel cmake ninja samurai meson pkgconf git jq python3 lua55-devel glslang
+SPIRV-Tools-devel`. `wob` (the volume/brightness overlay) is unpackaged on Void
+and is built by `srcapps-install.sh` too.
 
 ### Session lock can hang the compositor (aquamarine DRM page-flip race)
 On some DRM drivers — most reliably in a VM (virtio-gpu) — aquamarine can hit

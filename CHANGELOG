@@ -3,6 +3,52 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [Unreleased] - 2026-09-18
+
+### Added
+
+- **Void: Hyprland + the hyprwm library chain from source.** Void packages neither
+  Hyprland nor its libraries. `installer/scripts/hyprland-src-install.sh` gained an
+  `xbps` branch that builds the pinned `v0.56.2` release and the chain it needs
+  (`hyprland-protocols`, `hyprutils`, `hyprlang`, `hyprcursor`, `hyprgraphics`,
+  `hyprwire`, `aquamarine`; `hyprwayland-scanner` only when the Void package ships
+  no CMake config) at the exact revisions Hyprland's `flake.lock` pins, so the ABI
+  matches; `glaze` is fetched by Hyprland's own CMake. The step now runs **before**
+  `srcapps-install.sh` so `hyprsunset`/`hyprpicker` link the same chain, and
+  `hyprutils`/`hyprlang` (Void ships 0.11.0 / an old release) are version-checked
+  and rebuilt from the pinned revision first so every consumer links one
+  `libhyprutils`. Verified on Void: Hyprland 0.56.2 + `hyprctl` build and run.
+- **Void/GCC 14 libstdc++ compatibility patches.** Void's GCC 14.2 predates several
+  C++23/26 library features Hyprland 0.56 uses: `std::vector::append_range`
+  (hyprwire, 16×) and `insert_range` (Hyprland) are replaced by a local helper;
+  `std::ranges::starts_with` and the `cond ? class : nullptr` type in `XWM.hpp` are
+  patched inline; `std::string + std::string_view` (C++26 P2591) is supplied by the
+  new `installer/scripts/hyprtk-gcc14-compat.hpp` (force-included); `#embed` is
+  re-emitted as a raw string literal. All are no-ops on GCC 15+.
+- **Void: `wob` from source.** The volume/brightness overlay is unpackaged on
+  Void; `srcapps-install.sh` now builds it (meson) via `install_wob` — xbps-only,
+  a no-op elsewhere.
+- **Void: runit services enabled.** `hypr/packages/system.sh` now links
+  `udevd`/`dbus`/`elogind`/`polkitd`/`sddm` into the runsvdir for xbps (previously
+  only Alpine's OpenRC was handled), and the `XDG_RUNTIME_DIR` profile fallback
+  now covers runit as well as OpenRC — without these there is no seat and no
+  greeter on the next boot.
+
+### Fixed
+
+- **Void: Papirus-icons-for-root step failed (exit 127).** It used `wget`, which
+  Void does not ship; the step now prefers `curl -fsSL` (a core-package dependency)
+  and falls back to `wget` only on systems that have neither.
+- **Void: `qt6-5compat` is the wrong package name.** The SDDM Sugar-Candy Qt6
+  compat modules are `qt6-qt5compat`/`qt6-virtualkeyboard` on Void, so the theme's
+  `Qt5Compat.GraphicalEffects` import failed and SDDM silently fell back to its
+  built-in theme (`hypr/packages/sddmgrub.sh`).
+- **Void: Bluetooth not enabled.** The bluetooth step only knew systemd/OpenRC; it
+  now also enables `/etc/sv/bluetoothd` on runit.
+- **`std::ranges::starts_with` patch is not Alpine-only.** Void's GCC 14.2
+  libstdc++ lacks it as well, so the Hyprland source patch now applies whenever the
+  source contains the call.
+
 ## [Unreleased] - 2026-09-17
 
 ### Added

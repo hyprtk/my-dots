@@ -107,13 +107,35 @@ if [ "$HYPRTK_PM" = apk ]; then
         hyprtk_run_root rc-update add sddm default 2>/dev/null || true
         echo "  ! eudev + dbus/elogind/sddm enabled — reboot so the graphical seat works"
     fi
+fi
 
+# ── Void: runit services ────────────────────────────────────────────────────
+# Void ships service directories under /etc/sv but enables nothing, so dbus,
+# elogind, polkit and SDDM never start — there is no seat and no greeter on the
+# next boot. On runit, "enabling" is a symlink into the runsvdir.
+if [ "$HYPRTK_PM" = xbps ]; then
+    if command -v sv >/dev/null 2>&1; then
+        _svdir="/var/service"
+        [ -d "$_svdir" ] || _svdir="/etc/runit/runsvdir/default"
+        for _svc_x in udevd dbus elogind polkitd sddm; do
+            [ -d "/etc/sv/$_svc_x" ] && \
+                hyprtk_run_root ln -sfn "/etc/sv/$_svc_x" "$_svdir/$_svc_x"
+        done
+        echo "  ! udev/dbus/elogind/polkitd/sddm enabled (runit) — reboot so the graphical seat works"
+    fi
+fi
+
+# ── XDG_RUNTIME_DIR fallback (non-systemd) ──────────────────────────────────
+# For logins that bypass PAM/elogind (a plain busybox tty login on OpenRC, or a
+# runit agetty), no runtime dir is created and Hyprland refuses to start without
+# one. Prefer the elogind-managed dir, else a private per-user directory.
+if [ "$HYPRTK_PM" = apk ] || [ "$HYPRTK_PM" = xbps ]; then
     _xdg_pd="/etc/profile.d/99-xdg-runtime-dir.sh"
     _xdg_tmp="$(mktemp)"
     cat > "$_xdg_tmp" <<'XDGEOF'
-# hyprtk: ensure XDG_RUNTIME_DIR for logins that bypass PAM/elogind (e.g. a
-# plain busybox tty login on OpenRC systems). Prefer the elogind-managed dir,
-# else a private per-user directory.
+# hyprtk: ensure XDG_RUNTIME_DIR for logins that bypass PAM/elogind (OpenRC
+# busybox login, runit agetty). Prefer the elogind-managed dir, else a private
+# per-user directory.
 if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
     if [ -d "/run/user/$(id -u)" ]; then
         XDG_RUNTIME_DIR="/run/user/$(id -u)"

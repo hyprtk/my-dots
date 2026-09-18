@@ -13,6 +13,7 @@
 #   ipp-usb           OpenPrinting/ipp-usb (go)        → driverless USB printing
 #   hyprpicker        hyprwm/hyprpicker (cmake)        → colour picker (Alpine)
 #   hyprsunset        hyprwm/hyprsunset (cmake)        → gamma/brightness (Void)
+#   wob               francma/wob (meson)              → volume/brightness overlay (Void)
 #
 # hyprpicker/hyprsunset are NOT packaged on Alpine/Void, and neither are the
 # Hyprland libraries they link (hyprutils, hyprlang, hyprwayland-scanner,
@@ -38,6 +39,8 @@ SWAPPY_GIT="https://github.com/jtheoof/swappy.git"
 NWG_GIT="https://github.com/nwg-piotr/nwg-look.git"
 CLIPHIST_GIT="https://github.com/sentriz/cliphist.git"
 IPPUSB_GIT="https://github.com/OpenPrinting/ipp-usb.git"
+WOB_VER="0.15.1"
+WOB_GIT="https://github.com/francma/wob.git"
 
 say() { echo "srcapps: $*"; }
 
@@ -82,6 +85,11 @@ IPPUSB_DEPS[dnf]="git golang libusb1-devel avahi-devel"
 IPPUSB_DEPS[zypper]="git go libusb-1_0-devel avahi-devel"
 IPPUSB_DEPS[xbps]="git go libusb-devel avahi-devel"
 IPPUSB_DEPS[apk]="git go libusb-dev avahi-dev"
+
+# wob is the volume/brightness overlay; only unpackaged on Void, so build from
+# source there (meson, wayland + inih). Everywhere else the native package wins.
+declare -A WOB_DEPS
+WOB_DEPS[xbps]="git meson ninja wayland-devel wayland-protocols inih-devel libseccomp-devel scdoc"
 
 # Hyprland library chain + apps (cmake). Built into /usr so pkg-config finds
 # them. Only reached where hyprpicker/hyprsunset are unpackaged.
@@ -290,6 +298,23 @@ install_ippusb() {
     return 1
 }
 
+install_wob() {
+    have wob && { say "wob: already present"; return 0; }
+    [ "$HYPRTK_PM" = xbps ] || return 0
+    [ -n "${WOB_DEPS[$HYPRTK_PM]:-}" ] && pkg_install ${WOB_DEPS[$HYPRTK_PM]} || true
+    if ! have meson || ! have ninja || ! have git; then
+        say "wob: meson/ninja/git unavailable — skipping" >&2
+        return 1
+    fi
+    say "wob: building $WOB_VER (volume/brightness overlay)"
+    if build_meson "$WOB_GIT" "$WOB_VER" --prefix=/usr; then
+        say "wob: installed"
+        return 0
+    fi
+    say "wob: build failed" >&2
+    return 1
+}
+
 # Clone + cmake build + install into /usr. $1 = repo name, $2 = pkg-config
 # module to skip on (empty for the app itself).
 build_hypr_cmake() {
@@ -381,6 +406,7 @@ install_eza               || FAILED=$((FAILED + 1))
 install_ippusb            || FAILED=$((FAILED + 1))
 install_hyprpicker        || FAILED=$((FAILED + 1))
 install_hyprsunset        || FAILED=$((FAILED + 1))
+install_wob               || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -ne 0 ]; then
     say "$FAILED app(s) could not be built — the rest of the install continues"

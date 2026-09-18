@@ -37,10 +37,15 @@ zypper)
           gvfs-backends p7zip unzip unrar)
     ;;
 xbps)
-    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+    # hyprland, wob and hyprsunset are not packaged on Void (a packaging-
+    # philosophy conflict) and are built from source instead: hyprland by
+    # installer/scripts/hyprland-src-install.sh, wob/hyprsunset by
+    # installer/scripts/srcapps-install.sh — so they are intentionally absent
+    # from this native package list.
+    PKGS=(xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
           curl ImageMagick jq bc brightnessctl playerctl libadwaita
           gtk+3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
-          python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs gvfs-afc
+          python3-virtualenv python3-gobject swaylock gvfs gvfs-afc
           gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-smb p7zip unzip unrar)
     ;;
 apk)
@@ -128,20 +133,6 @@ install_hyprland_dnf() {
     echo "  ! No Hyprland COPR for this release — see PORTABILITY.md" >&2
 }
 
-# Void Linux does not package Hyprland (a packaging-philosophy conflict), so the
-# xbps list has no `hyprland` to install. The documented path is the community
-# binary repository; the installer does not add a third-party repo on its own, so
-# print the exact steps when the compositor is still missing.
-note_void_hyprland() {
-    [ "$HYPRTK_PM" = xbps ] || return 0
-    pkg_is_installed hyprland && return 0
-    echo "  ! Void Linux does not package Hyprland. Add the community repository, then re-run:" >&2
-    echo "      echo 'repository=https://github.com/void-land/hyprland-void-packages/releases/latest/download/' \\" >&2
-    echo "        | sudo tee /etc/xbps.d/hyprland-packages.conf" >&2
-    echo "      sudo xbps-install -S && sudo xbps-install -Sy hyprland xdg-desktop-portal-hyprland" >&2
-    echo "    (or build from source: https://github.com/void-land/hyprland-void-packages)" >&2
-}
-
 if [ "${1:-}" = "--list" ]; then printf '%s ' "${PKGS[@]}" "${AUR[@]}"; echo; exit 0; fi
 
 echo " Hyprland "
@@ -149,4 +140,5 @@ echo " Hyprland "
 [ "$HYPRTK_PM" = dnf ] && install_hyprland_dnf
 pkg_install "${PKGS[@]}"
 aur_install "${AUR[@]}"
-note_void_hyprland
+# Void has no hyprland package: installer/scripts/hyprland-src-install.sh builds
+# the Lua-config release from source later in the run (see 1-install.sh).

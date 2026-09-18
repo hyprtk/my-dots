@@ -711,19 +711,21 @@ _spin "Installing awww wallpaper daemon..." "bash $SCRIPT_DIR/installer/scripts/
 _spin "Installing awww wrapper..." "bash $SCRIPT_DIR/installer/scripts/awww-wrapper.sh" "$LOG_FILE"
 _ok "awww wallpaper daemon installed"
 
+# ── Hyprland >= 0.55 (Lua config) ─────────────────────────────────────────
+# The dotfiles are Lua-based (hypr/hyprland.lua); Hyprland < 0.55 ignores them
+# and writes a stock hyprland.conf. Where the distro is older (Alpine ships
+# 0.54.3, even on edge) the pinned upstream release is built from source. On
+# Void this also builds the hyprwm library chain — and it runs *before*
+# srcapps-install.sh so hyprsunset/hyprpicker link the same chain. Idempotent
+# (skips when already >= 0.55) and non-fatal.
+_spin "Ensuring Hyprland >= 0.55 (Lua config)..." "bash $SCRIPT_DIR/installer/scripts/hyprland-src-install.sh" "$LOG_FILE"
+_ok "Hyprland Lua-config release ensured"
+
 # Apps some distros do not package (gtk4-layer-shell, swappy, nwg-look, starship)
 # are built from source / installed from upstream when the native package is
 # missing. Idempotent and non-fatal.
 _spin "Installing apps that need source builds..." "bash $SCRIPT_DIR/installer/scripts/srcapps-install.sh" "$LOG_FILE"
 _ok "Source-built apps processed"
-
-# ── Hyprland >= 0.55 (Lua config) ─────────────────────────────────────────
-# The dotfiles are Lua-based (hypr/hyprland.lua); Hyprland < 0.55 ignores them
-# and writes a stock hyprland.conf. Where the distro is older (Alpine ships
-# 0.54.3, even on edge) the pinned upstream release is built from source.
-# Idempotent (skips when already >= 0.55) and non-fatal.
-_spin "Ensuring Hyprland >= 0.55 (Lua config)..." "bash $SCRIPT_DIR/installer/scripts/hyprland-src-install.sh" "$LOG_FILE"
-_ok "Hyprland Lua-config release ensured"
 
 if type grudupdater >/dev/null 2>&1; then
     _spin "Running grub updater..." "grudupdater" "$LOG_FILE"
@@ -740,11 +742,13 @@ _ok "pywal16 ready (bundled wal)"
 
 # ── Icons root ────────────────────────────────────────────────────────────
 _step "Installing Icons (root)"
-# Download to a temp file and run it locally instead of `wget -qO- ... | sh`:
-# a pipe lets a partial/failed download execute as root with no artifact to
-# inspect. Pin the URL to a specific commit/release when one is available.
+# Download to a temp file and run it locally instead of `curl ... | sh`: a pipe
+# lets a partial/failed download execute as root with no artifact to inspect.
+# curl is a core-package dependency; fall back to wget only for minimal systems
+# that have neither in base (Void ships neither). Pin the URL to a specific
+# commit/release when one is available.
 _spin "Installing Papirus icons for root..." \
-    "tmp=\$(mktemp) && wget -qO- --timeout=60 https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh > \"\$tmp\" && sudo env DESTDIR=/root/.local/share/icons sh \"\$tmp\"; rc=\$?; rm -f -- \"\$tmp\"; exit \$rc" \
+    "tmp=\$(mktemp) && { if command -v curl >/dev/null 2>&1; then curl -fsSL --max-time 60 -o \"\$tmp\" https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh; else wget -qO \"\$tmp\" --timeout=60 https://raw.githubusercontent.com/PapirusDevelopmentTeam/papirus-icon-theme/master/install.sh; fi; } && sudo env DESTDIR=/root/.local/share/icons sh \"\$tmp\"; rc=\$?; rm -f -- \"\$tmp\"; exit \$rc" \
     "$LOG_FILE"
 _ok "Icons installed for root"
 
@@ -792,6 +796,11 @@ else
     elif command -v rc-service >/dev/null 2>&1; then
         # OpenRC (Alpine/Gentoo): service is `bluetooth`, enabled per runlevel.
         _spin "Enabling bluetooth..." "sudo rc-service bluetooth start 2>/dev/null || true; sudo rc-update add bluetooth default 2>/dev/null || true" "$LOG_FILE"
+    elif command -v sv >/dev/null 2>&1 && [ -d /etc/sv ]; then
+        # runit (Void): the service is /etc/sv/bluetoothd; enabling means
+        # symlinking it into the runsvdir. /var/service is the standard link to
+        # the runsvdir; fall back to the default dir when it is absent.
+        _spin "Enabling bluetooth..." "sudo sh -c 'd=/var/service; [ -d \"\$d\" ] || d=/etc/runit/runsvdir/default; [ -d /etc/sv/bluetoothd ] && ln -sfn /etc/sv/bluetoothd \"\$d/bluetoothd\"; sv start bluetoothd 2>/dev/null || true'" "$LOG_FILE"
     else
         _warn "No supported init system for bluetooth — not enabled"
     fi

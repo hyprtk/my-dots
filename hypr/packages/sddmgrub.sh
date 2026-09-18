@@ -48,7 +48,7 @@ declare -A SDDM_QT6_COMPAT SDDM_XSERVER
 SDDM_QT6_COMPAT[apt]="qml6-module-qt5compat-graphicaleffects qml6-module-qtquick-virtualkeyboard"
 SDDM_QT6_COMPAT[dnf]="qt6-qt5compat qt6-qtvirtualkeyboard"
 SDDM_QT6_COMPAT[zypper]="qt6-qt5compat-imports qt6-qtvirtualkeyboard-imports"
-SDDM_QT6_COMPAT[xbps]="qt6-5compat qt6-virtualkeyboard"
+SDDM_QT6_COMPAT[xbps]="qt6-qt5compat qt6-virtualkeyboard"
 SDDM_QT6_COMPAT[apk]="qt6-qt5compat qt6-qtvirtualkeyboard"
 # X server + the input driver the greeter needs. Without an X input driver
 # (e.g. Alpine ships xorg-server but no xf86-input-libinput), Xorg ignores every
