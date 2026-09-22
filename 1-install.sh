@@ -1013,6 +1013,11 @@ else
         _spin "Installing hyprtk-bar..." "bash $SCRIPT_DIR/installer/hyprtk-bar/install.sh" "$LOG_FILE"
         _ok "hyprtk-bar installed (autostarted by autostart.lua; owns the notification daemon; hosts the arc menu overlay)"
 
+        # ── hyprtk-usb (GUI) ────────────────────────────────────────
+        _step "Installing hyprtk-usb"
+        _spin "Installing hyprtk-usb..." "bash $SCRIPT_DIR/installer/hyprtk-usb/install.sh" "$LOG_FILE"
+        _ok "hyprtk-usb installed (CLI/TUI zipapp + hyprtk-usb-gui)"
+
         # ── Root user config ─────────────────────────────────────────
         _step "Setting Up Root User Config"
         echo -e "${CYAN}  → ${WHITE}Copying root config${NC}"

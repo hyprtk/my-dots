@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=hyprtk-usb
+GenericName=USB Writer
+Comment=Write a hyprtk ISO to a USB stick, with an optional persistence partition
+Exec=hyprtk-usb-gui
+Icon=hyprtk-usb
+Terminal=false
+Categories=Utility;System;
+Keywords=usb;iso;hyprtk;persistence;dd;
+StartupNotify=true
