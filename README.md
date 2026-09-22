@@ -79,6 +79,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | **Icons** | Papirus (recolored to match the theme) |
 | **Cursor** | Adwaita (session theme via `XCURSOR_THEME`/`XCURSOR_SIZE`) |
 | **Browser** | Brave / Chromium |
+| **USB writer** | hyprtk-usb — write a hyprtk ISO to a USB stick (+ optional persistence) |
 | **VMs** | QEMU/KVM, VMware |
 
 ## Keybindings

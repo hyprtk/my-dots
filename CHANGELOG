@@ -7,6 +7,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Vendored `hyprtk-usb`.** The single-file zipapp (Python, `rich` bundled)
+  lands in `installer/standalone/hyprtk-usb` and is exposed as `hyprtk-usb`
+  through the existing `installer/standalone` → `~/.local/bin` symlink, so it is
+  available after install with no extra step. It writes a hyprtk ISO to a USB
+  stick and adds the optional `hyprtk-persist` partition; it needs only
+  `python3`. Source: <https://github.com/hyprtk/hyprtk-usb>.
 - **Void: Hyprland + the hyprwm library chain from source.** Void packages neither
   Hyprland nor its libraries. `installer/scripts/hyprland-src-install.sh` gained an
   `xbps` branch that builds the pinned `v0.56.2` release and the chain it needs
