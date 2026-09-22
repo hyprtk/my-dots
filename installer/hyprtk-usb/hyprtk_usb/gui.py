@@ -54,7 +54,7 @@ def _elevate(cmd: list[str]) -> list[str]:
 class Window(Gtk.ApplicationWindow):
     def __init__(self, app: Gtk.Application) -> None:
         super().__init__(application=app, title="hyprtk-usb")
-        self.set_default_size(660, 480)
+        self.set_default_size(720, 600)
         self.p = load_palette()
         self.runner = core.ExecRunner()
 
@@ -66,10 +66,18 @@ class Window(Gtk.ApplicationWindow):
         self.size = "rest"
         self.refresh = False
 
-        self.set_titlebar(Gtk.HeaderBar(show_close_button=True, title="hyprtk-usb"))
-        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        self.box.set_border_width(18)
-        self.add(self.box)
+        # Match hyprtk-bar's floating dialogs: no client-side decorations (the CSD
+        # headerbar caused artifacts along the top edge) — instead draw our own
+        # bordered panel on a transparent toplevel. The Hyprland rule sets
+        # border_size=0, so only this CSS border shows.
+        self.set_decorated(False)
+        self.set_resizable(False)
+        self.set_app_paintable(True)
+        screen = self.get_screen()
+        visual = screen.get_rgba_visual() if screen is not None else None
+        if visual is not None:
+            self.set_visual(visual)
+
         # Scope our stylesheet to this window; prefer the dark GTK variant so the
         # combo popups (separate windows) stay dark too.
         self.get_style_context().add_class("hyprtk-usb")
@@ -77,7 +85,38 @@ class Window(Gtk.ApplicationWindow):
         if settings is not None:
             settings.set_property("gtk-application-prefer-dark-theme", True)
         self._apply_css()
+
+        self.panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        self.panel.get_style_context().add_class("panel")
+        self.add(self.panel)
+        self.panel.pack_start(self._header_row(), False, False, 0)
+        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        self.box.set_border_width(18)
+        self.panel.pack_start(self.box, True, True, 0)
         self.show_step()
+
+    def _header_row(self) -> Gtk.Widget:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        row.get_style_context().add_class("header")
+        title = Gtk.Label(label="hyprtk-usb", xalign=0)
+        title.get_style_context().add_class("title")
+        title.set_hexpand(True)
+        row.pack_start(title, True, True, 0)
+
+        close = Gtk.Button(label="\u00d7")
+        close.get_style_context().add_class("close")
+        close.set_relief(Gtk.ReliefStyle.NONE)
+        close.set_focus_on_click(False)
+        close.connect("clicked", lambda *_: self.close())
+        row.pack_end(close, False, False, 0)
+
+        # No CSD titlebar, so let the header drag the window.
+        row.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
+        row.connect(
+            "button-press-event",
+            lambda w, e: self.begin_move_drag(e.button, int(e.x_root), int(e.y_root), e.time),
+        )
+        return row
 
     # ── theming ────────────────────────────────────────────────────────
     def _apply_css(self) -> None:
@@ -94,18 +133,23 @@ class Window(Gtk.ApplicationWindow):
 @define-color err {p.err};
 @define-color warn {p.warn};
 
-.hyprtk-usb {{ background-color: @bg; color: @fg; }}
+/* Transparent toplevel; the bordered panel draws the frosted background (the
+   Hyprland rule sets border_size=0 so only this border shows). */
+.hyprtk-usb {{ background-color: transparent; }}
 
-.hyprtk-usb headerbar {{
-    background-image: none;
-    background-color: alpha(@accent_alt, 0.06);
-    border: none;
-    box-shadow: none;
-    min-height: 38px;
-    color: @fg;
+.hyprtk-usb .panel {{
+    background-color: alpha(@bg, 0.96);
+    border: 2px solid alpha(@accent, 0.35);
+    border-radius: 16px;
 }}
-.hyprtk-usb headerbar .title {{ color: @accent; font-weight: bold; }}
-.hyprtk-usb headerbar button {{ border: none; }}
+
+.hyprtk-usb .header {{ padding: 10px 10px 2px 16px; }}
+.hyprtk-usb button.close {{
+    background-image: none; background-color: transparent;
+    border: none; box-shadow: none;
+    color: @dim; font-size: 15pt; padding: 0 8px; min-height: 0;
+}}
+.hyprtk-usb button.close:hover {{ color: @err; }}
 
 .hyprtk-usb label {{ color: @fg; }}
 .hyprtk-usb label.title {{ color: @accent; font-weight: bold; font-size: 15pt; }}
