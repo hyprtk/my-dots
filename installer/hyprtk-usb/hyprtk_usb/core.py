@@ -15,6 +15,11 @@ from typing import Callable, Optional
 # 1 MiB expressed in 512-byte sectors.
 DEFAULT_ALIGN = 2048
 PERSIST_LABEL = "hyprtk-persist"
+
+# Persistence-size presets offered by the UI. parse_size accepts these plus any
+# other "8G" / "512M" / "50%" / sector-count form.
+SIZE_CHOICES = ["rest", "50%", "32G", "16G", "8G", "4G", "2G", "1G", "512M"]
+
 _LSBLK_COLS = "NAME,PATH,SIZE,TYPE,RM,TRAN,MODEL,MOUNTPOINT,PARTN,LABEL,START"
 
 

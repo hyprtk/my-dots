@@ -8,10 +8,8 @@ import sys
 import time
 
 from . import __version__, core
-from .core import scan_isos  # noqa: F401  (re-exported for callers/tests)
+from .core import SIZE_CHOICES, scan_isos  # noqa: F401  (re-exported)
 from .ui import UI
-
-SIZE_CHOICES = ["rest", "8G", "4G", "2G"]
 
 
 def resolve_iso(explicit: str, runner: core.Runner) -> core.ISO:

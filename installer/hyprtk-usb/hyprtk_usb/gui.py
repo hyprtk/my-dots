@@ -25,7 +25,7 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 from . import __version__, core  # noqa: E402
 from .ui import human_bytes, load_palette  # noqa: E402
 
-SIZE_CHOICES = ["rest", "8G", "4G", "2G"]
+SIZE_CHOICES = core.SIZE_CHOICES
 TEST_MODE = os.environ.get("HYPRTK_USB_TEST") == "1"
 
 
@@ -70,26 +70,90 @@ class Window(Gtk.ApplicationWindow):
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         self.box.set_border_width(18)
         self.add(self.box)
+        # Scope our stylesheet to this window; prefer the dark GTK variant so the
+        # combo popups (separate windows) stay dark too.
+        self.get_style_context().add_class("hyprtk-usb")
+        settings = Gtk.Settings.get_default()
+        if settings is not None:
+            settings.set_property("gtk-application-prefer-dark-theme", True)
         self._apply_css()
         self.show_step()
 
     # ── theming ────────────────────────────────────────────────────────
     def _apply_css(self) -> None:
         p = self.p
+        # Mirrors hyprtk-bar's semantic tokens (assets/style.css): a pywal-driven
+        # dark frosted panel with mauve (color5) accents and cyan (color6) surface
+        # tints. Scoped to `.hyprtk-usb` so it never restyles other windows.
         css = f"""
-        window {{ background-color: {p.bg}; color: {p.fg}; }}
-        headerbar {{ background-color: {p.bg}; color: {p.fg}; }}
-        label.title {{ color: {p.accent}; font-weight: bold; font-size: 15pt; }}
-        label.dim {{ color: {p.dim}; }}
-        label.warn {{ color: {p.warn}; }}
-        label.err {{ color: {p.err}; }}
-        label.ok {{ color: {p.accent2}; }}
-        button {{ background-image: none; background-color: shade({p.bg}, 1.4); color: {p.fg}; }}
-        button.suggested-action {{ background-color: {p.accent}; color: {p.bg}; font-weight: bold; }}
-        progressbar trough {{ background-color: shade({p.bg}, 1.4); }}
-        progressbar progress {{ background-color: {p.accent}; }}
-        combobox button {{ background-color: shade({p.bg}, 1.4); }}
-        """
+@define-color bg {p.bg};
+@define-color fg {p.fg};
+@define-color dim {p.dim};
+@define-color accent {p.accent};
+@define-color accent_alt {p.accent2};
+@define-color err {p.err};
+@define-color warn {p.warn};
+
+.hyprtk-usb {{ background-color: @bg; color: @fg; }}
+
+.hyprtk-usb headerbar {{
+    background-image: none;
+    background-color: alpha(@accent_alt, 0.06);
+    border: none;
+    box-shadow: none;
+    min-height: 38px;
+    color: @fg;
+}}
+.hyprtk-usb headerbar .title {{ color: @accent; font-weight: bold; }}
+.hyprtk-usb headerbar button {{ border: none; }}
+
+.hyprtk-usb label {{ color: @fg; }}
+.hyprtk-usb label.title {{ color: @accent; font-weight: bold; font-size: 15pt; }}
+.hyprtk-usb label.dim {{ color: @dim; }}
+.hyprtk-usb label.warn {{ color: @warn; }}
+.hyprtk-usb label.err {{ color: @err; }}
+.hyprtk-usb label.ok {{ color: @accent_alt; }}
+
+/* The GTK theme paints a background-image/shadow over any background-color, so
+   reset them (the bar does the same inside its menu). */
+.hyprtk-usb button {{
+    background-image: none; box-shadow: none; text-shadow: none;
+    background-color: alpha(@accent_alt, 0.10);
+    color: @fg;
+    border: 1px solid alpha(@accent_alt, 0.25);
+    border-radius: 10px;
+    padding: 6px 14px;
+}}
+.hyprtk-usb button:hover {{ background-color: alpha(@accent_alt, 0.18); }}
+.hyprtk-usb button.suggested-action {{
+    background-color: alpha(@accent, 0.85);
+    color: #ffffff;
+    border: 1px solid alpha(@accent, 0.95);
+    font-weight: bold;
+}}
+.hyprtk-usb button.suggested-action:hover {{ background-color: @accent; }}
+
+.hyprtk-usb entry, .hyprtk-usb combobox button {{
+    background-image: none; box-shadow: none;
+    background-color: alpha(@accent_alt, 0.08);
+    color: @fg;
+    border: 1px solid alpha(@accent_alt, 0.25);
+    border-radius: 10px;
+    padding: 5px 10px;
+}}
+.hyprtk-usb combobox arrow {{ color: @accent; }}
+
+.hyprtk-usb switch {{ background-color: alpha(@accent_alt, 0.15); border-radius: 12px; }}
+.hyprtk-usb switch:checked {{ background-color: @accent; }}
+.hyprtk-usb switch slider {{ background-color: #ffffff; }}
+
+.hyprtk-usb progressbar trough {{
+    background-color: alpha(@accent_alt, 0.12);
+    border-radius: 8px;
+    min-height: 10px;
+}}
+.hyprtk-usb progressbar progress {{ background-color: @accent; border-radius: 8px; }}
+"""
         provider = Gtk.CssProvider()
         provider.load_from_data(css.encode())
         screen = Gdk.Screen.get_default()
