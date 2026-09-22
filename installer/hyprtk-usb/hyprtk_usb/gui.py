@@ -68,9 +68,14 @@ class Window(Gtk.ApplicationWindow):
 
         # Match hyprtk-bar's floating dialogs: no client-side decorations (the CSD
         # headerbar caused artifacts along the top edge). The compositor draws the
-        # pywal border + rounding, like every other hyprtk floating window.
+        # pywal border + rounding; the panel is frosted at the bar's opacity.
         self.set_decorated(False)
         self.set_resizable(False)
+        self.set_app_paintable(True)
+        screen = self.get_screen()
+        visual = screen.get_rgba_visual() if screen is not None else None
+        if visual is not None:
+            self.set_visual(visual)
 
         # Scope our stylesheet to this window; prefer the dark GTK variant so the
         # combo popups (separate windows) stay dark too.
@@ -96,6 +101,10 @@ class Window(Gtk.ApplicationWindow):
         title.get_style_context().add_class("title")
         title.set_hexpand(True)
         row.pack_start(title, True, True, 0)
+        if self.p.theme_name:
+            theme_lbl = Gtk.Label(label=self.p.theme_name, xalign=1)
+            theme_lbl.get_style_context().add_class("dim")
+            row.pack_start(theme_lbl, False, False, 0)
 
         close = Gtk.Button(label="\u00d7")
         close.get_style_context().add_class("close")
@@ -128,10 +137,10 @@ class Window(Gtk.ApplicationWindow):
 @define-color warn {p.warn};
 
 /* The compositor draws the pywal border + rounding (like every other hyprtk
-   floating window); the window itself is just the frosted pywal background. */
-.hyprtk-usb {{ background-color: @bg; color: @fg; border: none; }}
+   floating window); the panel is frosted at the bar theme's opacity. */
+.hyprtk-usb {{ background-color: transparent; color: @fg; border: none; }}
 
-.hyprtk-usb .panel {{ background-color: transparent; }}
+.hyprtk-usb .panel {{ background-color: alpha(@bg, {p.opacity:.3f}); }}
 
 .hyprtk-usb .header {{ padding: 10px 10px 2px 16px; }}
 .hyprtk-usb button.close {{
