@@ -67,16 +67,10 @@ class Window(Gtk.ApplicationWindow):
         self.refresh = False
 
         # Match hyprtk-bar's floating dialogs: no client-side decorations (the CSD
-        # headerbar caused artifacts along the top edge) — instead draw our own
-        # bordered panel on a transparent toplevel. The Hyprland rule sets
-        # border_size=0, so only this CSS border shows.
+        # headerbar caused artifacts along the top edge). The compositor draws the
+        # pywal border + rounding, like every other hyprtk floating window.
         self.set_decorated(False)
         self.set_resizable(False)
-        self.set_app_paintable(True)
-        screen = self.get_screen()
-        visual = screen.get_rgba_visual() if screen is not None else None
-        if visual is not None:
-            self.set_visual(visual)
 
         # Scope our stylesheet to this window; prefer the dark GTK variant so the
         # combo popups (separate windows) stay dark too.
@@ -133,15 +127,11 @@ class Window(Gtk.ApplicationWindow):
 @define-color err {p.err};
 @define-color warn {p.warn};
 
-/* Transparent toplevel; the bordered panel draws the frosted background (the
-   Hyprland rule sets border_size=0 so only this border shows). */
-.hyprtk-usb {{ background-color: transparent; }}
+/* The compositor draws the pywal border + rounding (like every other hyprtk
+   floating window); the window itself is just the frosted pywal background. */
+.hyprtk-usb {{ background-color: @bg; color: @fg; border: none; }}
 
-.hyprtk-usb .panel {{
-    background-color: alpha(@bg, 0.96);
-    border: 2px solid alpha(@accent, 0.35);
-    border-radius: 16px;
-}}
+.hyprtk-usb .panel {{ background-color: transparent; }}
 
 .hyprtk-usb .header {{ padding: 10px 10px 2px 16px; }}
 .hyprtk-usb button.close {{
