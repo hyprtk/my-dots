@@ -133,6 +133,9 @@ class Window(Gtk.ApplicationWindow):
     def show_step(self) -> None:
         self._clear()
         getattr(self, f"_step_{self.step}")()
+        # Widgets added after the window is mapped are not visible until shown;
+        # the first page works because ApplicationWindow.show_all() runs once.
+        self.box.show_all()
 
     def go_back(self) -> None:
         self.step = {"device": "iso", "options": "device", "review": "options"}.get(self.step, "iso")
