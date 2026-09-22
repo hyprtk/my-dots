@@ -186,9 +186,29 @@ class Window(Gtk.ApplicationWindow):
 }}
 .hyprtk-usb combobox arrow {{ color: @accent; }}
 
-.hyprtk-usb switch {{ background-color: alpha(@accent_alt, 0.15); border-radius: 12px; }}
-.hyprtk-usb switch:checked {{ background-color: @accent; }}
-.hyprtk-usb switch slider {{ background-color: #ffffff; }}
+/* Switches: the GTK theme paints the trough/slider with a background-image and
+   shadow, which sits over any background-color — reset them (else a light
+   square shows around the switch). */
+.hyprtk-usb switch {{
+    background-image: none; box-shadow: none;
+    background-color: alpha(@accent_alt, 0.20);
+    border: 1px solid alpha(@accent_alt, 0.30);
+    border-radius: 12px;
+    min-width: 40px; min-height: 22px;
+}}
+.hyprtk-usb switch:checked {{
+    background-image: none; box-shadow: none;
+    background-color: @accent;
+    border-color: @accent;
+}}
+.hyprtk-usb switch slider {{
+    background-image: none; box-shadow: none;
+    background-color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    min-width: 16px; min-height: 16px;
+    margin: 2px;
+}}
 
 .hyprtk-usb progressbar trough {{
     background-color: alpha(@accent_alt, 0.12);
