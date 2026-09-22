@@ -34,8 +34,14 @@ mkdir -p "$BIN" "$APPS" "$ICONS"
 # two never fight over the same name in ~/.local/bin.
 ln -sf "$VENV/bin/hyprtk-usb-gui" "$BIN/hyprtk-usb-gui"
 ln -sf "$VENV/bin/hyprtk-usb-helper" "$BIN/hyprtk-usb-helper"
-install -Dm644 "$SCRIPT_DIR/data/hyprtk-usb.desktop" "$APPS/hyprtk-usb.desktop"
+# The compositor session's PATH does not include ~/.local/bin (SDDM starts
+# Hyprland without it), so a bare `Exec=hyprtk-usb-gui` would not resolve when
+# the entry is launched from the app menu. Write the entry with an absolute Exec.
+_tmp="$(mktemp)"
+sed "s|^Exec=.*|Exec=$BIN/hyprtk-usb-gui|" "$SCRIPT_DIR/data/hyprtk-usb.desktop" > "$_tmp"
+install -Dm644 "$_tmp" "$APPS/hyprtk-usb.desktop"
+rm -f "$_tmp"
 install -Dm644 "$SCRIPT_DIR/data/hyprtk-usb.svg" "$ICONS/hyprtk-usb.svg"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APPS" >/dev/null 2>&1 || true
 
-echo ":: hyprtk-usb GUI installed — launch it with 'hyprtk-usb-gui'"
+echo ":: hyprtk-usb GUI installed — launch it with 'hyprtk-usb-gui', or from the app menu as 'hyprtk-usb'"
