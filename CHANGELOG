@@ -3,7 +3,7 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
-## [Unreleased] - 2026-09-18
+## [v1.0.0] - 2026-09-23
 
 ### Added
 
@@ -112,7 +112,22 @@ documented in this file. Dates are in YYYY-MM-DD format.
   false success. All `pkgmanager.sh` helpers are now exported. The shell change
   now uses `usermod -s` (with a `chsh` fallback and a leading `--`): openSUSE's
   run0-sudo has its own `-s` ("run a shell") flag that shadows chsh's, and chsh
-  also fails under run0's PAM session. Found by the real openSUSE re-run.
+   also fails under run0's PAM session. Found by the real openSUSE re-run.
+- **pywal template errors — unescaped braces in comments.** `wal` parses `{…}`
+  markers everywhere, including in comments, so the literal examples in
+  `configs/wal/templates/matuwall-config.toml` (`{path}`) and the swaylock
+  templates (`{colorN.strip}`) logged `[E] Color '…' not found in colors
+  dictionary` on every render. The examples are now escaped (`{{…}}`) or
+  reworded; the rendered files were already correct, so this was log-noise only
+  (found on the fedora/openSUSE re-tests).
+- **hyprtk-usb installed its icon into the repo.** `installer/hyprtk-usb/install.sh`
+  wrote `hyprtk-usb.svg` into `~/.local/share/icons/hicolor/…`, but the dotfiles
+  symlink that whole dir to the repo's papirus theme — so the icon landed inside
+  the repo clone (and failed outright on the read-only dry-run mount). The icon
+  now lives under `~/.local/share/hyprtk-usb/` and the `.desktop` entry uses an
+  absolute `Icon=` path. The container dry-run also pre-seeds the hyprtk-usb venv
+  (it stubs `python3`, so `python3 -m venv` is a no-op) like the bar/matuwall
+  venvs — the newly-vendored step had regressed T2 on every family.
 
 ### Verification
 
@@ -135,6 +150,11 @@ documented in this file. Dates are in YYYY-MM-DD format.
   checks could not: the missing `wget` (Papirus), the empty btop themes dir, the
   unexported `pkgmanager` helpers (zsh never installed on zypper/apt) and the
   openSUSE `chsh`/run0 failure.
+- **Release re-run (2026-09-23, `v1.0.0`):** `fedora44` and
+  `opensusetumbleweed` each completed end-to-end with **68 SPIN OK / 0 failed
+  steps**; the packaged `hyprtk-usb` (CLI + GUI) step verified on both.
+  `output.html` regenerated: **0 Extra (TODO) / 0 Unexpected** on all six
+  families.
 
 ## [Unreleased] - 2026-09-17
 

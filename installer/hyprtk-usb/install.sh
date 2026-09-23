@@ -21,7 +21,10 @@ PY="${PYTHON:-python3}"
 VENV="${HYPRTK_USB_VENV:-$HOME/.local/share/hyprtk-usb/venv}"
 BIN="$HOME/.local/bin"
 APPS="$HOME/.local/share/applications"
-ICONS="$HOME/.local/share/icons/hicolor/scalable/apps"
+# The icon lives under the app's own data dir, not ~/.local/share/icons: the
+# dotfiles symlink that whole dir to the repo's papirus theme, so writing a
+# hicolor icon there would pollute the repo clone (and fail on a read-only one).
+ICON="$HOME/.local/share/hyprtk-usb/hyprtk-usb.svg"
 
 echo ":: installing hyprtk-usb (GUI) into $VENV"
 
@@ -29,19 +32,22 @@ echo ":: installing hyprtk-usb (GUI) into $VENV"
 "$VENV/bin/pip" install --quiet --upgrade pip
 "$VENV/bin/pip" install --quiet "$SCRIPT_DIR"
 
-mkdir -p "$BIN" "$APPS" "$ICONS"
+mkdir -p "$BIN" "$APPS"
 # Only the GUI launchers: `hyprtk-usb` stays the vendored CLI/TUI zipapp, so the
 # two never fight over the same name in ~/.local/bin.
 ln -sf "$VENV/bin/hyprtk-usb-gui" "$BIN/hyprtk-usb-gui"
 ln -sf "$VENV/bin/hyprtk-usb-helper" "$BIN/hyprtk-usb-helper"
 # The compositor session's PATH does not include ~/.local/bin (SDDM starts
 # Hyprland without it), so a bare `Exec=hyprtk-usb-gui` would not resolve when
-# the entry is launched from the app menu. Write the entry with an absolute Exec.
+# the entry is launched from the app menu. Write the entry with an absolute Exec
+# and an absolute Icon path (both the launcher and the icon live off-repo).
+install -Dm644 "$SCRIPT_DIR/data/hyprtk-usb.svg" "$ICON"
 _tmp="$(mktemp)"
-sed "s|^Exec=.*|Exec=$BIN/hyprtk-usb-gui|" "$SCRIPT_DIR/data/hyprtk-usb.desktop" > "$_tmp"
+sed -e "s|^Exec=.*|Exec=$BIN/hyprtk-usb-gui|" \
+    -e "s|^Icon=.*|Icon=$ICON|" \
+    "$SCRIPT_DIR/data/hyprtk-usb.desktop" > "$_tmp"
 install -Dm644 "$_tmp" "$APPS/hyprtk-usb.desktop"
 rm -f "$_tmp"
-install -Dm644 "$SCRIPT_DIR/data/hyprtk-usb.svg" "$ICONS/hyprtk-usb.svg"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APPS" >/dev/null 2>&1 || true
 
 echo ":: hyprtk-usb GUI installed — launch it with 'hyprtk-usb-gui', or from the app menu as 'hyprtk-usb'"
