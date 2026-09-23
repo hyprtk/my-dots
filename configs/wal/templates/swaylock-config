@@ -11,7 +11,7 @@ indicator-radius=200
 indicator-thickness=20
 indicator-caps-lock
 
-# Colors — pywal (regenerated on every wallpaper change; {colorN.strip} is the
+# Colors — pywal (regenerated on every wallpaper change; {{colorN.strip}} is the
 # bare RRGGBB so a 2-digit alpha can be appended). Rendered to
 # ~/.cache/wal/swaylock-config and symlinked into ~/.config/swaylock/config.
 key-hl-color={color6.strip}44

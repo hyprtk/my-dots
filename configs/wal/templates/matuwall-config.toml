@@ -42,6 +42,6 @@ ring = "{color5}"
 spinner = "{color6}"
 
 [hooks]
-# matuwall substitutes {path}; pywal escapes it as {{path}} so the render keeps
-# it literal.
+# matuwall substitutes the wallpaper path; the escaped {{path}} token is left
+# literal by the render for matuwall to fill in on apply.
 on_apply = [ "wal -i {{path}} -n" ]

@@ -10,7 +10,7 @@ indicator-caps-lock
 # ~/.config/swaylock/config at the rendered file when the installed swaylock does
 # not advertise --effect-pixelate.
 
-# Colors — pywal (regenerated on every wallpaper change; {colorN.strip} is the
+# Colors — pywal (regenerated on every wallpaper change; {{colorN.strip}} is the
 # bare RRGGBB so a 2-digit alpha can be appended). Rendered to
 # ~/.cache/wal/swaylock-plain-config.
 key-hl-color={color6.strip}44
