@@ -19,6 +19,7 @@ configs/root/.config/sublime-text/
 # tracked (gum, hyprtk-usb, ...).
 installer/standalone/hyprtk-bar
 installer/standalone/hyprtk-bar-*-toggle.sh
+installer/standalone/hyprtk-bar-widget-move.sh
 installer/standalone/wal
 installer/standalone/hyprtk-usb-gui
 installer/standalone/hyprtk-usb-helper
