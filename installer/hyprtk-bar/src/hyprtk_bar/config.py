@@ -102,13 +102,19 @@ DEFAULT_LAYOUT = {
 # Desktop widgets are free-floating layer-shell surfaces owned by the bar
 # process (like conky), separate from the bar's own modules. Each one is
 # enabled/placed independently from the settings window's "Widgets" page.
-WIDGET_IDS = ["clock", "weather", "visualizer"]
+WIDGET_IDS = ["clock", "weather", "visualizer", "disk", "network", "resources", "sysinfo"]
 
 WIDGET_LABELS = {
     "clock": "Clock",
     "weather": "Weather",
     "visualizer": "Audio visualizer",
+    "disk": "Hard disks",
+    "network": "Network",
+    "resources": "Processor / RAM",
+    "sysinfo": "System information",
 }
+
+WIDGET_SNAP_AXES = ("horizontal", "vertical")
 
 WIDGET_LAYERS = ("background", "bottom", "top")
 
@@ -418,6 +424,107 @@ DEFAULTS = {
             "radius": 16,
             "padding": 12,
             "background": "",
+        },
+        "disk": {
+            "enabled": False,
+            "layer": "bottom",
+            "position": "bottom-left",
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 300,
+            "height": 0,
+            "opacity": 0.75,
+            "radius": 16,
+            "padding": 18,
+            "background": "",
+            "foreground": "",
+            "accent": "",
+            "scale": 1.0,
+            "snap_group": "",
+            "snap_axis": "horizontal",
+            "snap_order": 0,
+            "show_bar": True,
+            "show_rates": True,
+            "drives_max": 3,
+            "refresh_seconds": 2,
+        },
+        "network": {
+            "enabled": False,
+            "layer": "bottom",
+            "position": "bottom-left",
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 300,
+            "height": 0,
+            "opacity": 0.75,
+            "radius": 16,
+            "padding": 18,
+            "background": "",
+            "foreground": "",
+            "accent": "",
+            "scale": 1.0,
+            "snap_group": "",
+            "snap_axis": "horizontal",
+            "snap_order": 0,
+            "interface": "auto",
+            "show_ip": True,
+            "show_rates": True,
+            "show_graph": True,
+            "refresh_seconds": 1,
+        },
+        "resources": {
+            "enabled": False,
+            "layer": "bottom",
+            "position": "bottom-left",
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 280,
+            "height": 0,
+            "opacity": 0.75,
+            "radius": 16,
+            "padding": 18,
+            "background": "",
+            "foreground": "",
+            "accent": "",
+            "scale": 1.0,
+            "snap_group": "",
+            "snap_axis": "horizontal",
+            "snap_order": 0,
+            "show_cpu": True,
+            "show_cores": False,
+            "show_ram": True,
+            "show_swap": True,
+            "show_temp": True,
+            "show_load": True,
+            "refresh_seconds": 1,
+        },
+        "sysinfo": {
+            "enabled": False,
+            "layer": "bottom",
+            "position": "bottom-left",
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 320,
+            "height": 0,
+            "opacity": 0.75,
+            "radius": 16,
+            "padding": 18,
+            "background": "",
+            "foreground": "",
+            "accent": "",
+            "scale": 1.0,
+            "snap_group": "",
+            "snap_axis": "horizontal",
+            "snap_order": 0,
+            "show_host": True,
+            "show_os": True,
+            "show_kernel": True,
+            "show_uptime": True,
+            "show_cpu": True,
+            "show_gpu": True,
+            "show_memory": True,
+            "show_disks": True,
+            "refresh_seconds": 10,
         },
     },
 }
@@ -794,12 +901,28 @@ def _validate_widgets(widgets: dict) -> dict:
         for key in ("background", "foreground", "accent"):
             block[key] = _str_field(block.get(key))
 
+        # Snap groups: widgets sharing a non-empty snap_group are laid out
+        # together along snap_axis (the group uses its first member's axis).
+        block["snap_group"] = _str_field(block.get("snap_group"))
+        axis = str(block.get("snap_axis", "horizontal"))
+        block["snap_axis"] = axis if axis in WIDGET_SNAP_AXES else "horizontal"
+        block["snap_order"] = _clamp_int(block.get("snap_order"), 0, 99, 0)
+        block["scale"] = _clamp_float(block.get("scale"), 0.4, 3.0, 1.0)
+
         if wid == "clock":
             block = _validate_widget_clock(block)
         elif wid == "weather":
             block = _validate_widget_weather(block)
         elif wid == "visualizer":
             block = _validate_widget_visualizer(block)
+        elif wid == "disk":
+            block = _validate_widget_disk(block)
+        elif wid == "network":
+            block = _validate_widget_network(block)
+        elif wid == "resources":
+            block = _validate_widget_resources(block)
+        elif wid == "sysinfo":
+            block = _validate_widget_sysinfo(block)
         valid[wid] = block
     return valid
 
@@ -851,6 +974,41 @@ def _validate_widget_visualizer(block: dict) -> dict:
     block["fps"] = _clamp_int(block.get("fps"), 15, 120, 60)
     block["source"] = "synthetic" if str(block.get("source")) == "synthetic" else "cava"
     block["cava_binary"] = _str_field(block.get("cava_binary") or "cava")
+    return block
+
+
+def _validate_widget_disk(block: dict) -> dict:
+    block["show_bar"] = bool(block.get("show_bar", True))
+    block["show_rates"] = bool(block.get("show_rates", True))
+    block["drives_max"] = _clamp_int(block.get("drives_max"), 1, 12, 3)
+    block["refresh_seconds"] = _clamp_int(block.get("refresh_seconds"), 1, 60, 2)
+    return block
+
+
+def _validate_widget_network(block: dict) -> dict:
+    block["interface"] = _str_field(block.get("interface") or "auto") or "auto"
+    for key in ("show_ip", "show_rates", "show_graph"):
+        block[key] = bool(block.get(key, True))
+    block["refresh_seconds"] = _clamp_int(block.get("refresh_seconds"), 1, 60, 1)
+    return block
+
+
+def _validate_widget_resources(block: dict) -> dict:
+    for key in (
+        "show_cpu", "show_cores", "show_ram", "show_swap", "show_temp", "show_load",
+    ):
+        block[key] = bool(block.get(key, True))
+    block["refresh_seconds"] = _clamp_int(block.get("refresh_seconds"), 1, 60, 1)
+    return block
+
+
+def _validate_widget_sysinfo(block: dict) -> dict:
+    for key in (
+        "show_host", "show_os", "show_kernel", "show_uptime",
+        "show_cpu", "show_gpu", "show_memory", "show_disks",
+    ):
+        block[key] = bool(block.get(key, True))
+    block["refresh_seconds"] = _clamp_int(block.get("refresh_seconds"), 2, 600, 10)
     return block
 
 

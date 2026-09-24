@@ -15,13 +15,19 @@ code.
 ```
 src/hyprtk_bar/desktop/
 ├── __init__.py       exports DesktopWidgetManager
-├── base.py           DesktopWidgetWindow — layer-shell surface, positioning, theming
-├── theme.py          build_widget_css() — per-widget scoped CSS
-├── manager.py        DesktopWidgetManager — build/reload/theme/teardown diffing
+├── base.py           DesktopWidgetWindow — surface, placement, theming, snap layout
+├── theme.py          build_widget_css() — per-widget, scale-aware scoped CSS
+├── manager.py        DesktopWidgetManager — diffing reload, snap groups, drag
+├── control.py        WidgetMoveControl — the Super+Shift move FIFO
+├── sampled.py        SampledWidget base — periodic sample + render
 ├── clock.py          ClockWidget — digital / text / dials
 ├── clock_theme.py    clock theme file loader (bundled + user dirs)
 ├── weather.py        WeatherWidget + Open-Meteo client (city geocoding)
-└── visualizer.py     VisualizerWidget + cava source + cairo effects
+├── visualizer.py     VisualizerWidget + cava source + cairo effects
+├── disk.py           DiskWidget — per-drive usage + read/write rates
+├── network.py        NetworkWidget — interface, IP, up/down rates, graph
+├── resources.py      ResourcesWidget — CPU / RAM / swap / temp / load
+└── sysinfo.py        SysInfoWidget — host / OS / kernel / CPU / GPU / memory / disks
 ```
 
 The manager is created in `__main__._run_window()` when `widgets.enabled` is
@@ -87,14 +93,39 @@ clamps every field.
     "margin_x": 40, "margin_y": 40, "width": 420, "height": 120,
     "style": "bars",             // bars | wave | mirror | dots | glow
     "bars": 48, "sensitivity": 1.0, "smoothing": 0.6,
-    "color_mode": "gradient",    // accent | gradient | pywal | custom
+    "color_mode": "pywal",       // accent | gradient | pywal | custom
     "color": "", "gradient_from": "", "gradient_to": "",
     "peak_dots": true, "orientation": "horizontal", "fps": 60,
     "source": "cava", "cava_binary": "cava",
     "opacity": 0.6, "radius": 16, "padding": 12, "background": ""
+  },
+  "disk": {
+    "enabled": false, "position": "bottom-left", "width": 300,
+    "show_bar": true, "show_rates": true, "drives_max": 3, "refresh_seconds": 2
+  },
+  "network": {
+    "enabled": false, "position": "bottom-left", "width": 300,
+    "interface": "auto", "show_ip": true, "show_rates": true,
+    "show_graph": true, "refresh_seconds": 1
+  },
+  "resources": {
+    "enabled": false, "position": "bottom-left", "width": 280,
+    "show_cpu": true, "show_cores": false, "show_ram": true, "show_swap": true,
+    "show_temp": true, "show_load": true, "refresh_seconds": 1
+  },
+  "sysinfo": {
+    "enabled": false, "position": "bottom-left", "width": 320,
+    "show_host": true, "show_os": true, "show_kernel": true, "show_uptime": true,
+    "show_cpu": true, "show_gpu": true, "show_memory": true, "show_disks": true,
+    "refresh_seconds": 10
   }
 }
 ```
+
+Every widget also carries the shared keys `layer`, `margin_x` / `margin_y`,
+`opacity`, `radius`, `padding`, `background` / `foreground` / `accent`,
+`scale`, and the snap keys (`snap_group`, `snap_axis`, `snap_order`) — see
+[Snapping](#snapping).
 
 ### Layers
 
@@ -118,6 +149,27 @@ bar reads its control FIFO (`desktop/control.py`), polls the cursor over the
 command socket and moves the widget under it. Window drag stays on
 `Super + left mouse`; widgets are click-through when not being moved.
 
+### Snapping
+
+Widgets that share a non-empty **`snap_group`** are laid out together along
+**`snap_axis`** (`horizontal` or `vertical`), ordered by **`snap_order`**. The
+group uses one **uniform cell** — the largest member's width/height — and each
+member is resized to that cell and its content **scaled to fit**
+(`SNAP_SCALE_MIN`–`SNAP_SCALE_MAX`). The scale is passed into the CSS, so text
+sizes track the cell.
+
+Groups are formed by **drag-snap**: drop a widget with an edge within
+`SNAP_DIST` (28 px) of another and they snap (side-by-side → horizontal, stacked
+→ vertical); a joining widget follows the group's existing axis. Dragging a
+snapped widget out **detaches** it (its position is frozen as `free`). The
+settings **Widgets** page exposes `snap_group` / `snap_axis` / `snap_order`
+directly, so a group can also be built by hand.
+
+`DesktopWidgetManager._apply_snap_layout` (deferred to an idle so widgets are
+allocated) computes each group's cell and positions; `base.set_snap_layout`
+applies the cell size, content scale and absolute position without touching the
+persisted config.
+
 ### Colour overrides
 
 Widgets theme from **pywal by default** — `desktop/theme.resolve_widget_palette`
@@ -129,7 +181,7 @@ colour picker.
 
 ---
 
-## The three sample widgets
+## The widgets
 
 ### Clock
 
@@ -167,6 +219,34 @@ surface still renders. Effects (`style`): `bars`, `wave`, `mirror`, `dots`,
 overrides (`custom`); plus sensitivity, smoothing, peak dots, FPS, bar count and
 horizontal/vertical orientation.
 
+### Hard disks (`disk`)
+
+Per-drive usage from `monitor_data.drives()` (`lsblk`): type glyph, model,
+`used / size` and a usage bar, up to `drives_max`, plus aggregate read/write
+rates from `DiskSampler`. All data comes from the bar's `monitor_data` module.
+
+### Network (`network`)
+
+The active interface (or a pinned one), its IP, up/down rates and a rolling
+rate graph (`graphs.HistoryGraph`). Interface auto-selection, per-interface
+rates and glyphs come from `NetSampler` / `iface_kind`.
+
+### Processor / RAM (`resources`)
+
+Overall CPU % + bar + a rolling graph (`show_cores` switches it to a per-core
+multi-series graph), RAM and swap `used / total` with bars, CPU temperature and
+the load average — from `CpuSampler` + `memory()`.
+
+### System information (`sysinfo`)
+
+Host, OS (`/etc/os-release`), kernel, uptime, CPU model, GPU (fetched off-thread
+via `gpu_static`), total memory and a disk summary. Rows toggle individually;
+refreshes slowly (default 10 s).
+
+The four data widgets share the `SampledWidget` base (`desktop/sampled.py`):
+`collect()` returns a data dict and `render()` updates the built GTK widgets on
+a timer.
+
 ---
 
 ## Settings page
@@ -195,6 +275,10 @@ Implemented in this scaffold:
 - [x] Free placement + **Super+Shift + left-drag to move** (persists `position: free`
       and the new margins); widgets are click-through when not being moved
 - [x] Nerd Font Weather Icons (`U+E300–U+E3EB`) for the weather glyphs
+- [x] Four data widgets: **disk**, **network**, **resources** (CPU/RAM), **sysinfo**
+      (shared `SampledWidget` base, reusing `monitor_data.py`)
+- [x] **Snapping**: drag-snap into horizontal/vertical groups with a uniform cell
+      and content scaled to fit (`snap_group` / `snap_axis` / `snap_order`)
 
 Deliberately left for follow-up:
 

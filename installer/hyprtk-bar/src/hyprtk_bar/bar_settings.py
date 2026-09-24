@@ -1399,7 +1399,8 @@ class BarSettings(Gtk.Window):
             label="Free-floating desktop widgets (clock, weather, audio "
             "visualizer), independent of the bar. Enable and place each one; "
             "everything applies live. Hold Super+Shift and left-drag a widget on the "
-            "desktop to move it (sets Position to Free).",
+            "desktop to move it (sets Position to Free); drop it near another to "
+            "snap them into a row/column with a uniform size.",
             xalign=0,
             wrap=True,
         )
@@ -1426,6 +1427,14 @@ class BarSettings(Gtk.Window):
                 self._build_widget_weather(tab, block, controls)
             elif wid == "visualizer":
                 self._build_widget_visualizer(tab, block, controls)
+            elif wid == "disk":
+                self._build_widget_disk(tab, block, controls)
+            elif wid == "network":
+                self._build_widget_network(tab, block, controls)
+            elif wid == "resources":
+                self._build_widget_resources(tab, block, controls)
+            elif wid == "sysinfo":
+                self._build_widget_sysinfo(tab, block, controls)
             self._widget_controls[wid] = controls
             notebook.append_page(
                 self._scroll_tab(tab), Gtk.Label(label=WIDGET_LABELS.get(wid, wid))
@@ -1455,6 +1464,13 @@ class BarSettings(Gtk.Window):
         controls["background"] = self._widget_color_row(tab, "Background", block.get("background"), "#1a1b26")
         controls["foreground"] = self._widget_color_row(tab, "Text colour", block.get("foreground"), "#c0caf5")
         controls["accent"] = self._widget_color_row(tab, "Accent colour", block.get("accent"), "#c084fc")
+        controls["snap_group"] = self._entry_row(tab, "Snap group", block.get("snap_group", ""))
+        controls["snap_axis"] = self._combo_row(
+            tab, "Snap axis",
+            [("horizontal", "Horizontal"), ("vertical", "Vertical")],
+            str(block.get("snap_axis", "horizontal")),
+        )
+        controls["snap_order"] = self._spin_row(tab, "Snap order", block.get("snap_order", 0), 0, 99, 1)
 
     def _build_widget_clock(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
         controls["style"] = self._combo_row(
@@ -1516,6 +1532,42 @@ class BarSettings(Gtk.Window):
             [("horizontal", "Horizontal"), ("vertical", "Vertical")],
             str(block.get("orientation", "horizontal")),
         )
+
+    def _build_widget_disk(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        controls["show_bar"] = self._check_row(tab, "Show usage bars", block.get("show_bar", True))
+        controls["show_rates"] = self._check_row(tab, "Show read/write rates", block.get("show_rates", True))
+        controls["drives_max"] = self._spin_row(tab, "Max drives", block.get("drives_max", 3), 1, 12, 1)
+        controls["refresh_seconds"] = self._spin_row(tab, "Refresh (s)", block.get("refresh_seconds", 2), 1, 60, 1)
+
+    def _build_widget_network(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        controls["interface"] = self._entry_row(tab, "Interface (auto)", block.get("interface", "auto"))
+        controls["show_ip"] = self._check_row(tab, "Show IP", block.get("show_ip", True))
+        controls["show_rates"] = self._check_row(tab, "Show rates", block.get("show_rates", True))
+        controls["show_graph"] = self._check_row(tab, "Show graph", block.get("show_graph", True))
+        controls["refresh_seconds"] = self._spin_row(tab, "Refresh (s)", block.get("refresh_seconds", 1), 1, 60, 1)
+
+    def _build_widget_resources(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        controls["show_cpu"] = self._check_row(tab, "Show CPU", block.get("show_cpu", True))
+        controls["show_cores"] = self._check_row(tab, "Per-core graph", block.get("show_cores", False))
+        controls["show_ram"] = self._check_row(tab, "Show RAM", block.get("show_ram", True))
+        controls["show_swap"] = self._check_row(tab, "Show swap", block.get("show_swap", True))
+        controls["show_temp"] = self._check_row(tab, "Show temperature", block.get("show_temp", True))
+        controls["show_load"] = self._check_row(tab, "Show load average", block.get("show_load", True))
+        controls["refresh_seconds"] = self._spin_row(tab, "Refresh (s)", block.get("refresh_seconds", 1), 1, 60, 1)
+
+    def _build_widget_sysinfo(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        for key, label_text, default in (
+            ("show_host", "Show host", True),
+            ("show_os", "Show OS", True),
+            ("show_kernel", "Show kernel", True),
+            ("show_uptime", "Show uptime", True),
+            ("show_cpu", "Show CPU", True),
+            ("show_gpu", "Show GPU", True),
+            ("show_memory", "Show memory", True),
+            ("show_disks", "Show disks", True),
+        ):
+            controls[key] = self._check_row(tab, label_text, block.get(key, default))
+        controls["refresh_seconds"] = self._spin_row(tab, "Refresh (s)", block.get("refresh_seconds", 10), 2, 600, 1)
 
     # ── widgets tab helpers ──────────────────────────────────────
 
@@ -1655,6 +1707,9 @@ class BarSettings(Gtk.Window):
             "background": self._read_widget_color(ctl["background"]),
             "foreground": self._read_widget_color(ctl["foreground"]),
             "accent": self._read_widget_color(ctl["accent"]),
+            "snap_group": ctl["snap_group"].get_text().strip(),
+            "snap_axis": self._combo_value(ctl["snap_axis"], "horizontal"),
+            "snap_order": int(ctl["snap_order"].get_value()),
         }
 
     def _read_widget_clock(self, ctl: dict) -> dict:
@@ -1703,6 +1758,45 @@ class BarSettings(Gtk.Window):
             "orientation": self._combo_value(ctl["orientation"], "horizontal"),
         }
 
+    def _read_widget_disk(self, ctl: dict) -> dict:
+        return {
+            "show_bar": ctl["show_bar"].get_active(),
+            "show_rates": ctl["show_rates"].get_active(),
+            "drives_max": int(ctl["drives_max"].get_value()),
+            "refresh_seconds": int(ctl["refresh_seconds"].get_value()),
+        }
+
+    def _read_widget_network(self, ctl: dict) -> dict:
+        return {
+            "interface": ctl["interface"].get_text().strip() or "auto",
+            "show_ip": ctl["show_ip"].get_active(),
+            "show_rates": ctl["show_rates"].get_active(),
+            "show_graph": ctl["show_graph"].get_active(),
+            "refresh_seconds": int(ctl["refresh_seconds"].get_value()),
+        }
+
+    def _read_widget_resources(self, ctl: dict) -> dict:
+        return {
+            "show_cpu": ctl["show_cpu"].get_active(),
+            "show_cores": ctl["show_cores"].get_active(),
+            "show_ram": ctl["show_ram"].get_active(),
+            "show_swap": ctl["show_swap"].get_active(),
+            "show_temp": ctl["show_temp"].get_active(),
+            "show_load": ctl["show_load"].get_active(),
+            "refresh_seconds": int(ctl["refresh_seconds"].get_value()),
+        }
+
+    def _read_widget_sysinfo(self, ctl: dict) -> dict:
+        out = {
+            "refresh_seconds": int(ctl["refresh_seconds"].get_value()),
+        }
+        for key in (
+            "show_host", "show_os", "show_kernel", "show_uptime",
+            "show_cpu", "show_gpu", "show_memory", "show_disks",
+        ):
+            out[key] = ctl[key].get_active()
+        return out
+
     def _active_widgets_block(self) -> dict:
         widgets = dict(self._cfg.get("widgets") or {})
         widgets["enabled"] = self._widgets_enabled.get_active()
@@ -1715,6 +1809,14 @@ class BarSettings(Gtk.Window):
                 block.update(self._read_widget_weather(ctl))
             elif wid == "visualizer":
                 block.update(self._read_widget_visualizer(ctl))
+            elif wid == "disk":
+                block.update(self._read_widget_disk(ctl))
+            elif wid == "network":
+                block.update(self._read_widget_network(ctl))
+            elif wid == "resources":
+                block.update(self._read_widget_resources(ctl))
+            elif wid == "sysinfo":
+                block.update(self._read_widget_sysinfo(ctl))
             widgets[wid] = block
         return widgets
 

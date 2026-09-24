@@ -4,6 +4,10 @@ Owned by the bar process. The manager diffs the ``widgets`` config block on
 reload — creating newly-enabled widgets, updating placement/options on existing
 ones, and destroying ones that were disabled — so the settings window's Apply
 button is all it takes to turn a widget on or off live.
+
+It also owns **snap groups**: widgets that share a ``snap_group`` id are laid out
+adjacent along ``snap_axis`` with a uniform cell (the largest member's size) and
+their content scaled to fit. Dragging a widget near another snaps them together.
 """
 
 # ─────────────────────────────────────────────────────────────────
@@ -26,11 +30,22 @@ log = logging.getLogger("hyprtk_bar.desktop.manager")
 
 # How often the cursor is polled while a widget is being dragged.
 MOVE_POLL_MS = 16
+# Drop a widget with its edge within this many px of another to snap them.
+SNAP_DIST = 28
+# Gap between widgets in a snap group.
+SNAP_GAP = 10
+# Content-scale bounds for a snapped cell (fit ratio, allowing some upscale).
+SNAP_SCALE_MIN = 0.4
+SNAP_SCALE_MAX = 2.0
 
 
 def _widget_classes() -> dict:
     # Imported lazily so a broken widget module can't stop the bar from starting.
     from .clock import ClockWidget
+    from .disk import DiskWidget
+    from .network import NetworkWidget
+    from .resources import ResourcesWidget
+    from .sysinfo import SysInfoWidget
     from .visualizer import VisualizerWidget
     from .weather import WeatherWidget
 
@@ -38,6 +53,10 @@ def _widget_classes() -> dict:
         "clock": ClockWidget,
         "weather": WeatherWidget,
         "visualizer": VisualizerWidget,
+        "disk": DiskWidget,
+        "network": NetworkWidget,
+        "resources": ResourcesWidget,
+        "sysinfo": SysInfoWidget,
     }
 
 
@@ -52,6 +71,8 @@ class DesktopWidgetManager:
         self._palette: dict | None = None
         self._move_win = None
         self._move_timer: int | None = None
+        self._snap_idle: int | None = None
+        self._snap_anchor = None
         self.reload(cfg)
 
     def reload(self, cfg: dict) -> None:
@@ -92,6 +113,7 @@ class DesktopWidgetManager:
 
         if self._palette is not None:
             self.apply_theme(self._palette)
+        self._schedule_snap_layout()
 
     def apply_theme(self, palette: dict) -> None:
         self._palette = palette
@@ -104,9 +126,9 @@ class DesktopWidgetManager:
     # ── free move (Hyprland ``Super + Shift + left mouse``) ──────
     #
     # A layer-shell surface with keyboard_mode=none never sees the Super
-    # modifier in GTK, so the gesture is a compositor bind: Super+Shift+LMB (press /
-    # release) runs a helper that signals the bar. The bar then polls the
-    # cursor (cheap command-socket query) and moves the widget under it.
+    # modifier in GTK, so the gesture is a compositor bind: Super+Shift+LMB
+    # (press / release) runs a helper that signals the bar. The bar then polls
+    # the cursor (cheap command-socket query) and moves the widget under it.
 
     def begin_move(self) -> None:
         if self._ipc is None:
@@ -117,6 +139,8 @@ class DesktopWidgetManager:
         win = self._widget_at(*pos)
         if win is None:
             return
+        if str(win._block.get("snap_group") or "").strip():
+            self._detach(win)
         win.begin_move(*pos)
         self._move_win = win
         if self._move_timer is None:
@@ -137,11 +161,13 @@ class DesktopWidgetManager:
             self._move_timer = None
         win = self._move_win
         self._move_win = None
-        if win is not None:
-            try:
-                win.end_move()
-            except Exception:
-                log.exception("widget end_move failed")
+        if win is None:
+            return
+        try:
+            win.end_move()
+        except Exception:
+            log.exception("widget end_move failed")
+        self._maybe_snap(win)
 
     def _widget_at(self, x: int, y: int):
         for win in self._wins.values():
@@ -150,6 +176,170 @@ class DesktopWidgetManager:
             if ox <= x < ox + (alloc.width or 0) and oy <= y < oy + (alloc.height or 0):
                 return win
         return None
+
+    # ── snapping ─────────────────────────────────────────────────
+
+    def _rect(self, win) -> tuple[int, int, int, int]:
+        alloc = win.get_allocation()
+        return win._origin[0], win._origin[1], alloc.width or 0, alloc.height or 0
+
+    def _detach(self, win) -> None:
+        """Take *win* out of its snap group, freezing its on-screen position."""
+        block = win._block
+        if not str(block.get("snap_group") or "").strip():
+            return
+        mx, my, _w, _h = win._monitor_geometry()
+        block["position"] = "free"
+        block["margin_x"] = max(0, win._origin[0] - mx)
+        block["margin_y"] = max(0, win._origin[1] - my)
+        block["snap_group"] = ""
+        self._persist()
+        self._schedule_snap_layout()
+
+    def _maybe_snap(self, win) -> None:
+        """Join *win* to the nearest widget if their edges are close enough."""
+        rect = self._rect(win)
+        best = None
+        for other in self._wins.values():
+            if other is win:
+                continue
+            gap, axis = self._snap_axis(rect, self._rect(other))
+            if gap is None:
+                continue
+            if best is None or gap < best[0]:
+                best = (gap, axis, other)
+        if best is None:
+            return
+        _gap, axis, other = best
+        existing = str(other._block.get("snap_group") or "").strip()
+        group = existing or self._new_group_id()
+        if not existing:
+            # New group: the target becomes the first member on the dropped axis.
+            other._block["snap_group"] = group
+            other._block["snap_axis"] = axis
+            other._block.setdefault("snap_order", 0)
+        # A joining widget follows the group's existing axis.
+        win._block["snap_group"] = group
+        win._block["snap_axis"] = str(other._block.get("snap_axis") or axis)
+        win._block["snap_order"] = self._max_order(group) + 1
+        self._snap_anchor = win
+        self._persist()
+        self._schedule_snap_layout()
+
+    @staticmethod
+    def _snap_axis(a, b):
+        """Return (gap, axis) if *a* and *b* are adjacent, else (None, None)."""
+        ax, ay, aw, ah = a
+        bx, by, bw, bh = b
+        hgap = max(ax, bx) - min(ax + aw, bx + bw)
+        vgap = max(ay, by) - min(ay + ah, by + bh)
+        v_overlap = min(ay + ah, by + bh) - max(ay, by)
+        h_overlap = min(ax + aw, bx + bw) - max(ax, bx)
+        h_ok = hgap <= SNAP_DIST and v_overlap > min(ah, bh) * 0.4
+        v_ok = vgap <= SNAP_DIST and h_overlap > min(aw, bw) * 0.4
+        if h_ok and (not v_ok or hgap <= vgap):
+            return hgap, "horizontal"
+        if v_ok:
+            return vgap, "vertical"
+        return None, None
+
+    def _new_group_id(self) -> str:
+        existing = {
+            str(w._block.get("snap_group") or "").strip() for w in self._wins.values()
+        }
+        index = 1
+        while f"g{index}" in existing:
+            index += 1
+        return f"g{index}"
+
+    def _max_order(self, group: str) -> int:
+        orders = [
+            int(w._block.get("snap_order", 0) or 0)
+            for w in self._wins.values()
+            if str(w._block.get("snap_group") or "").strip() == group
+        ]
+        return max(orders) if orders else -1
+
+    def _schedule_snap_layout(self) -> None:
+        if self._snap_idle is None:
+            self._snap_idle = GLib.timeout_add(30, self._snap_layout_idle)
+
+    def _snap_layout_idle(self) -> bool:
+        self._snap_idle = None
+        self._apply_snap_layout()
+        return GLib.SOURCE_REMOVE
+
+    def _apply_snap_layout(self) -> None:
+        """Lay out every snap group with a uniform cell and scaled content."""
+        for win in self._wins.values():
+            win.clear_snap_layout()
+            win._apply_geometry()  # ensure _origin reflects the block position
+        anchor = self._snap_anchor
+        self._snap_anchor = None
+        if not self._wins:
+            return
+        mon_x, mon_y, mon_w, mon_h = next(iter(self._wins.values()))._monitor_geometry()
+
+        groups: dict[str, list] = {}
+        for wid, win in self._wins.items():
+            gid = str(win._block.get("snap_group") or "").strip()
+            if gid:
+                groups.setdefault(gid, []).append((wid, win))
+
+        for gid, members in groups.items():
+            members.sort(key=lambda m: (int(m[1]._block.get("snap_order", 0) or 0), m[0]))
+            nat = []
+            for wid, win in members:
+                w = int(win._block.get("width", 0) or 0)
+                h = int(win._block.get("height", 0) or 0)
+                pw, ph = win.natural_size()
+                nat.append((w or pw or 200, h or ph or 120))
+            cell_w = max(n[0] for n in nat)
+            cell_h = max(n[1] for n in nat)
+
+            axis = str(members[0][1]._block.get("snap_axis") or "horizontal")
+            count = len(members)
+            total_w = count * cell_w + (count - 1) * SNAP_GAP
+            total_h = count * cell_h + (count - 1) * SNAP_GAP
+
+            # Anchor the group on the widget that was just dropped (so it stays
+            # where the user put it); otherwise the first member.
+            anchor_index = next(
+                (i for i, (_w, w) in enumerate(members) if w is anchor), 0
+            )
+            ref_x, ref_y = members[anchor_index][1]._origin
+            if axis == "vertical":
+                base_x = ref_x
+                base_y = ref_y - anchor_index * (cell_h + SNAP_GAP)
+                base_y = max(mon_y, min(base_y, mon_y + mon_h - total_h))
+                base_x = max(mon_x, min(base_x, mon_x + mon_w - cell_w))
+            else:
+                base_x = ref_x - anchor_index * (cell_w + SNAP_GAP)
+                base_y = ref_y
+                base_x = max(mon_x, min(base_x, mon_x + mon_w - total_w))
+                base_y = max(mon_y, min(base_y, mon_y + mon_h - cell_h))
+
+            for i, (wid, win) in enumerate(members):
+                scale = min(cell_w / max(nat[i][0], 1), cell_h / max(nat[i][1], 1))
+                scale = max(SNAP_SCALE_MIN, min(SNAP_SCALE_MAX, scale))
+                if axis == "vertical":
+                    x, y = base_x, base_y + i * (cell_h + SNAP_GAP)
+                else:
+                    x, y = base_x + i * (cell_w + SNAP_GAP), base_y
+                try:
+                    win.set_snap_layout(cell_w, cell_h, scale, x, y)
+                except Exception:
+                    log.exception("snap layout failed for widget %s", wid)
+
+    # ── teardown ─────────────────────────────────────────────────
+
+    def _persist(self) -> None:
+        try:
+            from .. import config as config_module
+
+            config_module.save(self._cfg)
+        except Exception:
+            log.exception("could not persist widget layout")
 
     @staticmethod
     def _destroy(win) -> None:
@@ -164,6 +354,9 @@ class DesktopWidgetManager:
 
     def shutdown(self) -> None:
         self.end_move()
+        if self._snap_idle is not None:
+            GLib.source_remove(self._snap_idle)
+            self._snap_idle = None
         for win in list(self._wins.values()):
             self._destroy(win)
         self._wins.clear()

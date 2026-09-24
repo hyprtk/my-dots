@@ -63,6 +63,7 @@ class DesktopWidgetWindow(Gtk.Window):
         self._last_margins: tuple | None = None
         self._origin: tuple[int, int] = (0, 0)
         self._move_offset: tuple[int, int] = (0, 0)
+        self._snap: dict | None = None
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
@@ -124,8 +125,11 @@ class DesktopWidgetWindow(Gtk.Window):
         from .theme import build_widget_css, resolve_widget_palette
 
         palette = self._palette or resolve_widget_palette(self._cfg)
+        scale = self._snap.get("scale") if self._snap else None
         try:
-            css = build_widget_css(self.WIDGET_ID, palette, self._cfg, self._block)
+            css = build_widget_css(
+                self.WIDGET_ID, palette, self._cfg, self._block, scale=scale
+            )
             self._provider.load_from_data(css.encode())
         except GLib.Error:
             log.warning("failed to load CSS for widget %s", self.WIDGET_ID, exc_info=True)
@@ -175,13 +179,43 @@ class DesktopWidgetWindow(Gtk.Window):
         _x, _y, width, height = self._monitor_geometry()
         return width, height
 
+    def natural_size(self) -> tuple[int, int]:
+        """The widget's preferred size at its current (unscaled) content."""
+        preferred = self.get_preferred_size()[1]
+        return (max(int(preferred.width), 1), max(int(preferred.height), 1))
+
+    def set_snap_layout(self, width: int, height: int, scale: float, x_root: int, y_root: int) -> None:
+        """Apply a snap-group cell: uniform size, content scale and absolute pos."""
+        self._snap = {
+            "width": int(width),
+            "height": int(height),
+            "scale": float(scale),
+            "x": int(x_root),
+            "y": int(y_root),
+        }
+        self._last_margins = None
+        self._apply_geometry()
+        self.apply_theme()
+
+    def clear_snap_layout(self) -> None:
+        if self._snap is None:
+            return
+        self._snap = None
+        self._last_margins = None
+        self._apply_geometry()
+        self.apply_theme()
+
     def _apply_geometry(self) -> None:
         block = self._block
-        position = str(block.get("position", "top-right"))
+        snap = self._snap
+        position = "free" if snap else str(block.get("position", "top-right"))
         mx = max(0, int(block.get("margin_x", 40) or 0))
         my = max(0, int(block.get("margin_y", 40) or 0))
         width = max(0, int(block.get("width", 0) or 0))
         height = max(0, int(block.get("height", 0) or 0))
+        if snap:
+            width = max(0, int(snap.get("width") or 0))
+            height = max(0, int(snap.get("height") or 0))
         self.set_size_request(width if width else -1, height if height else -1)
 
         alloc = self.get_allocation()
@@ -189,6 +223,9 @@ class DesktopWidgetWindow(Gtk.Window):
         cur_w = alloc.width or natural.width or width or 200
         cur_h = alloc.height or natural.height or height or 120
         mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
+        if snap:
+            mx = int(snap.get("x") or 0) - mon_x
+            my = int(snap.get("y") or 0) - mon_y
 
         for edge in (
             GtkLayerShell.Edge.TOP,

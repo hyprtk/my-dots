@@ -33,6 +33,17 @@ Dates are in YYYY-MM-DD format.
   (`base`, `theme`, `manager`,
   `clock`, `clock_theme`, `weather`, `visualizer`); design notes in
   `WIDGETS.md`.
+- **Desktop widgets: four data widgets.** `disk` (per-drive usage + read/write
+  rates), `network` (interface, IP, up/down rates + graph), `resources`
+  (CPU / RAM / swap / temp / load) and `sysinfo` (host / OS / kernel / uptime /
+  CPU / GPU / memory / disks) — built on a shared `SampledWidget` base and
+  reusing the bar's `monitor_data.py` samplers.
+- **Desktop widgets: snapping.** Widgets sharing a `snap_group` lay out
+  together along `snap_axis` (horizontal/vertical) with a **uniform cell** (the
+  largest member) and content **scaled to fit**; dropping a widget within 28 px
+  of another **drag-snaps** them (side-by-side → horizontal, stacked →
+  vertical), and dragging one out detaches it. Group/axis/order are also
+  editable in the settings Widgets page.
 - **Fit-to-width content scaling.** When the configured width is smaller than
   the modules' natural width the bar now scales the glyphs/icons, the CSS
   font/chip sizes, the spacings and the button paddings down (to a floor) so
