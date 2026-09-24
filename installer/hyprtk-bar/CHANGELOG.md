@@ -79,6 +79,14 @@ Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Snapped widgets overflowed and overlapped; content didn't scale.** The snap
+  cell scaled only CSS (fonts/padding), so fixed-size content — the
+  `HistoryGraph`s, the clock dial, glyph pixel sizes — and `Gtk.Box` spacings
+  stayed at full size, leaving each widget taller/wider than its cell and
+  overlapping the next. Every widget now scales its fixed content
+  (`on_content_scale`), the base scales all box spacings in the content tree,
+  CSS scales padding and progress-bar height, and the snap cell is measured from
+  the content **minimum** (on the root box) with a small fit margin.
 - **Bar content was inset twice on the left.** A 6px spacer sat before the pill
   on top of the pill's own 6px CSS margin, so at 100% the bar showed a ~12px gap
   on the left but only 6px on the right (the content looked pushed right). The

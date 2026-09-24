@@ -66,6 +66,7 @@ class ClockWidget(DesktopWidgetWindow):
         self._timer_id: int | None = None
         self._labels: dict[str, Gtk.Label] = {}
         self._area: Gtk.DrawingArea | None = None
+        self._dial_base = 150
         self._merged_cache: dict | None = None
         self._fg = "#ffffff"
         self._accent = "#c084fc"
@@ -127,6 +128,7 @@ class ClockWidget(DesktopWidgetWindow):
         dials = self._merged().get("dials") or {}
         count = max(1, min(3, int(dials.get("count", 1) or 1)))
         size = 150 if count == 1 else 168
+        self._dial_base = size
         self._area = Gtk.DrawingArea()
         self._area.set_size_request(size, size)
         self._area.set_halign(Gtk.Align.CENTER)
@@ -194,6 +196,11 @@ class ClockWidget(DesktopWidgetWindow):
         self._dim = (1.0, 1.0, 1.0, 0.25)
         if self._area is not None:
             self._area.queue_draw()
+
+    def on_content_scale(self, scale: float) -> None:
+        if self._area is not None:
+            size = max(24, int(round(self._dial_base * scale)))
+            self._area.set_size_request(size, size)
 
     # ── cairo dials ──────────────────────────────────────────────
 

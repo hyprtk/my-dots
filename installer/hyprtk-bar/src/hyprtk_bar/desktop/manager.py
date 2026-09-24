@@ -37,6 +37,8 @@ SNAP_GAP = 10
 # Content-scale bounds for a snapped cell (fit ratio, allowing some upscale).
 SNAP_SCALE_MIN = 0.4
 SNAP_SCALE_MAX = 2.0
+# Leave a little headroom so rounding in the fit never lets content overflow.
+SNAP_FIT_MARGIN = 0.97
 
 
 def _widget_classes() -> dict:
@@ -359,7 +361,7 @@ class DesktopWidgetManager:
 
             for i, (wid, win) in enumerate(members):
                 scale = min(cell_w / max(nat[i][0], 1), cell_h / max(nat[i][1], 1))
-                scale = max(SNAP_SCALE_MIN, min(SNAP_SCALE_MAX, scale))
+                scale = max(SNAP_SCALE_MIN, min(SNAP_SCALE_MAX, scale)) * SNAP_FIT_MARGIN
                 if axis == "vertical":
                     x, y = base_x, base_y + i * (cell_h + SNAP_GAP)
                 else:

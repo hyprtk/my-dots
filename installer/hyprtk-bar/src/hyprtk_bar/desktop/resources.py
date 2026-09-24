@@ -128,6 +128,11 @@ class ResourcesWidget(SampledWidget):
                 parts.append("load " + " ".join(f"{v:.2f}" for v in load[:3]))
             self._meta.set_text("   ".join(parts))
 
+    def on_content_scale(self, scale: float) -> None:
+        if self._graph is not None:
+            self._graph.set_size_request(-1, max(16, int(round(44 * scale))))
+        self._sample()
+
     def on_palette(self, palette: dict) -> None:
         self._accent = palette.get("accent", "#7aa2f7")
         if self._graph is not None:

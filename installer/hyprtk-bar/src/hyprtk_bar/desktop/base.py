@@ -66,6 +66,8 @@ class DesktopWidgetWindow(Gtk.Window):
         self._snap: dict | None = None
         self._bounds: tuple[int, int, int, int] | None = None
         self._fit_scale: float = 1.0
+        self._content_scale: float = 1.0
+        self._spacing_bases: dict[int, int] = {}
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
@@ -116,6 +118,15 @@ class DesktopWidgetWindow(Gtk.Window):
     def on_palette(self, palette: dict) -> None:
         """Re-render widget-specific colours after a theme change."""
 
+    def on_content_scale(self, scale: float) -> None:
+        """Scale fixed-size content (drawing areas, icons, spacings) to *scale*.
+
+        The CSS font/padding sizes are scaled by :func:`build_widget_css`; this
+        hook lets a widget scale the things CSS can't reach (cairo drawings,
+        ``Glyph`` pixel sizes, box spacing) so the whole content fits a snap
+        cell. Called on every theme/scale change.
+        """
+
     def shutdown(self) -> None:
         """Stop timers/threads/processes; called before the window is destroyed."""
 
@@ -128,6 +139,7 @@ class DesktopWidgetWindow(Gtk.Window):
 
         palette = self._palette or resolve_widget_palette(self._cfg)
         scale = self._effective_scale()
+        self._content_scale = float(scale or 1.0)
         try:
             css = build_widget_css(
                 self.WIDGET_ID, palette, self._cfg, self._block, scale=scale
@@ -135,6 +147,14 @@ class DesktopWidgetWindow(Gtk.Window):
             self._provider.load_from_data(css.encode())
         except GLib.Error:
             log.warning("failed to load CSS for widget %s", self.WIDGET_ID, exc_info=True)
+        try:
+            self._scale_spacings(self._content_scale)
+        except Exception:
+            log.exception("widget %s failed to scale spacings", self.WIDGET_ID)
+        try:
+            self.on_content_scale(self._content_scale)
+        except Exception:
+            log.exception("widget %s failed to scale content", self.WIDGET_ID)
         try:
             self.on_palette(palette)
         except Exception:
@@ -182,9 +202,16 @@ class DesktopWidgetWindow(Gtk.Window):
         return width, height
 
     def natural_size(self) -> tuple[int, int]:
-        """The widget's preferred size at its current (unscaled) content."""
-        preferred = self.get_preferred_size()[1]
-        return (max(int(preferred.width), 1), max(int(preferred.height), 1))
+        """The widget's **minimum** size at its current (unscaled) content.
+
+        The minimum (not the natural) is what the content can actually be
+        squeezed to — using it for the snap cell means the cell is never smaller
+        than the content, so a scaled widget never overflows its cell. Measured
+        on the content root, not the window, so a ``size_request`` on the window
+        doesn't mask the true content minimum.
+        """
+        minimum = self._root.get_preferred_size()[0]
+        return (max(int(minimum.width), 1), max(int(minimum.height), 1))
 
     def set_snap_layout(self, width: int, height: int, scale: float, x_root: int, y_root: int) -> None:
         """Apply a snap-group cell: uniform size, content scale and absolute pos."""
@@ -222,6 +249,23 @@ class DesktopWidgetWindow(Gtk.Window):
         self._last_margins = None
         self.apply_theme()
         self._apply_geometry()
+
+    def _scale_spacings(self, scale: float) -> None:
+        """Scale every ``Gtk.Box`` spacing in the content tree by *scale*.
+
+        Box spacing is not reachable from CSS, so without this the fixed gaps
+        stop the content shrinking proportionally to the font scale.
+        """
+        stack = [self._root]
+        while stack:
+            widget = stack.pop()
+            if isinstance(widget, Gtk.Box):
+                key = id(widget)
+                if key not in self._spacing_bases:
+                    self._spacing_bases[key] = widget.get_spacing()
+                widget.set_spacing(max(0, int(round(self._spacing_bases[key] * scale))))
+            if isinstance(widget, Gtk.Container):
+                stack.extend(widget.get_children())
 
     def _effective_scale(self) -> float | None:
         if self._snap:

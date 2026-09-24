@@ -136,12 +136,16 @@ class SysInfoWidget(SampledWidget):
             )
         self._rows_box.show_all()
 
-    @staticmethod
-    def _info_row(glyph: str, key: str, value: str) -> Gtk.Box:
+    def on_content_scale(self, scale: float) -> None:
+        self._sample()
+
+    def _info_row(self, glyph: str, key: str, value: str) -> Gtk.Box:
         from ..widgets import Glyph
 
         line = row(8)
-        line.pack_start(Glyph(glyph, "widget-icon"), False, False, 0)
+        icon = Glyph(glyph, "widget-icon")
+        icon.set_pixel_size(max(8, int(round(16 * self._content_scale))))
+        line.pack_start(icon, False, False, 0)
         name = label(key, "info-key")
         name.set_size_request(72, -1)
         line.pack_start(name, False, False, 0)

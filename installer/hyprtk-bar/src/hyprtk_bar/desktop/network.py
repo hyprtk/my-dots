@@ -75,3 +75,8 @@ class NetworkWidget(SampledWidget):
         self._accent = palette.get("accent", "#7aa2f7")
         if self._graph is not None:
             self._graph.set_color(self._accent)
+
+    def on_content_scale(self, scale: float) -> None:
+        if self._graph is not None:
+            self._graph.set_size_request(-1, max(16, int(round(44 * scale))))
+        self._sample()

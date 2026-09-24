@@ -60,7 +60,9 @@ class DiskWidget(SampledWidget):
         for drive in (data.get("drives") or [])[:limit]:
             cell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
             head = row(8)
-            head.pack_start(Glyph(str(drive.get("glyph") or ""), "widget-icon"), False, False, 0)
+            icon = Glyph(str(drive.get("glyph") or ""), "widget-icon")
+            icon.set_pixel_size(max(8, int(round(16 * self._content_scale))))
+            head.pack_start(icon, False, False, 0)
             name = label(str(drive.get("model") or drive.get("name") or ""), "disk-name")
             name.set_ellipsize(3)  # Pango.EllipsizeMode.END
             head.pack_start(name, True, True, 0)
@@ -86,3 +88,6 @@ class DiskWidget(SampledWidget):
                 f"\uf019  {fmt_rate(data.get('read_bps', 0.0))}    "
                 f"\uf093  {fmt_rate(data.get('write_bps', 0.0))}"
             )
+
+    def on_content_scale(self, scale: float) -> None:
+        self._sample()

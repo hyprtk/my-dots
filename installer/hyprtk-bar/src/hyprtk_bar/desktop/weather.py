@@ -191,6 +191,8 @@ class WeatherWidget(DesktopWidgetWindow):
         self._details: Gtk.Label | None = None
         self._forecast_box: Gtk.Box | None = None
         self._forecast_cells: list[tuple[Glyph, Gtk.Label, Gtk.Label]] = []
+        self._icon_base = 0
+        self._forecast_icon_base = 0
         super().__init__(cfg, block)
 
     # ── build ────────────────────────────────────────────────────
@@ -203,7 +205,8 @@ class WeatherWidget(DesktopWidgetWindow):
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         if block.get("show_icon", True):
             self._icon = Glyph("\ue33d", "weather-icon")
-            self._icon.set_pixel_size(int(round(icon_size * 2.4)))
+            self._icon_base = int(round(icon_size * 2.4))
+            self._icon.set_pixel_size(self._icon_base)
             header.pack_start(self._icon, False, False, 0)
         text_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         if block.get("show_temp", True):
@@ -252,7 +255,8 @@ class WeatherWidget(DesktopWidgetWindow):
             day = Gtk.Label(label="")
             day.get_style_context().add_class("weather-forecast-day")
             icon = Glyph("\ue33d", "weather-icon")
-            icon.set_pixel_size(max(10, int(round(icon_size * 1.2))))
+            self._forecast_icon_base = max(10, int(round(icon_size * 1.2)))
+            icon.set_pixel_size(self._forecast_icon_base)
             temps = Gtk.Label(label="")
             temps.get_style_context().add_class("weather-forecast-hi")
             cell.pack_start(day, False, False, 0)
@@ -369,6 +373,13 @@ class WeatherWidget(DesktopWidgetWindow):
             hi_s = "--" if hi is None else str(round(hi))
             lo_s = "--" if lo is None else str(round(lo))
             temps.set_text(f"{hi_s}° / {lo_s}°")
+
+    def on_content_scale(self, scale: float) -> None:
+        if self._icon is not None and self._icon_base:
+            self._icon.set_pixel_size(max(8, int(round(self._icon_base * scale))))
+        for icon, _day, _temps in self._forecast_cells:
+            if self._forecast_icon_base:
+                icon.set_pixel_size(max(8, int(round(self._forecast_icon_base * scale))))
 
     # ── teardown ─────────────────────────────────────────────────
 

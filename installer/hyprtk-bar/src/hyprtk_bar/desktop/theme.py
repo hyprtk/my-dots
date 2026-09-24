@@ -61,22 +61,24 @@ def _px(base: float, scale: float) -> int:
     return max(8, int(round(base * scale)))
 
 
-def _progress_css(prefix: str, fg: str, accent: str) -> str:
+def _progress_css(prefix: str, fg: str, accent: str, scale: float) -> str:
+    bar_h = _px(6, scale)
+    radius = max(1, bar_h // 2)
     return f"""
 {prefix} progressbar.widget-progress {{
-  min-height: 6px;
-  border-radius: 3px;
+  min-height: {bar_h}px;
+  border-radius: {radius}px;
   background-color: transparent;
 }}
 {prefix} progressbar.widget-progress trough {{
-  min-height: 6px;
-  border-radius: 3px;
+  min-height: {bar_h}px;
+  border-radius: {radius}px;
   border: none;
   background-color: {rgba(fg, 0.14)};
 }}
 {prefix} progressbar.widget-progress progress {{
-  min-height: 6px;
-  border-radius: 3px;
+  min-height: {bar_h}px;
+  border-radius: {radius}px;
   border: none;
   background-color: {accent};
 }}
@@ -191,11 +193,11 @@ def build_widget_css(
         opacity = max(0.0, min(1.0, float(block.get("opacity", 0.75))))
     except (TypeError, ValueError):
         opacity = 0.75
+    eff_scale = _scale(block) if scale is None else max(0.4, min(3.0, float(scale)))
     radius = max(0, int(block.get("radius", 16) or 0))
-    padding = max(0, int(block.get("padding", 16) or 0))
+    padding = _px(int(block.get("padding", 16) or 0), eff_scale)
     font = str(block.get("font") or "").strip() or palette.get("font")
     font_rule = f"  font-family: {font};\n" if font else ""
-    eff_scale = _scale(block) if scale is None else max(0.4, min(3.0, float(scale)))
 
     prefix = f".widget-{widget_id}"
     css = f"""
@@ -216,11 +218,11 @@ def build_widget_css(
     elif widget_id == "visualizer":
         css += _visualizer_css(prefix, block)
     elif widget_id == "disk":
-        css += _disk_css(prefix, fg, accent, eff_scale) + _progress_css(prefix, fg, accent)
+        css += _disk_css(prefix, fg, accent, eff_scale) + _progress_css(prefix, fg, accent, eff_scale)
     elif widget_id == "network":
         css += _network_css(prefix, fg, accent, eff_scale)
     elif widget_id == "resources":
-        css += _resources_css(prefix, fg, accent, eff_scale) + _progress_css(prefix, fg, accent)
+        css += _resources_css(prefix, fg, accent, eff_scale) + _progress_css(prefix, fg, accent, eff_scale)
     elif widget_id == "sysinfo":
         css += _sysinfo_css(prefix, fg, accent, eff_scale)
     return css
