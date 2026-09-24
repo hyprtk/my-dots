@@ -3,6 +3,19 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.2] - 2026-09-24
+
+### Fixed
+
+- **hyprtk-bar: snapped widget content now scales to fit its cell.** The snap
+  cell scaled only CSS (fonts/padding), so fixed-size content — the graphs, the
+  clock dial, glyph pixel sizes — and `Gtk.Box` spacings stayed at full size;
+  snapped widgets were taller/wider than their cell and overlapped. Every widget
+  now scales its fixed content (`on_content_scale`), the base scales all box
+  spacings, CSS scales padding and progress-bar height, and the cell is measured
+  from the content **minimum** (root box) with a small fit margin. Vendored
+  `hyprtk-bar` bumped to `5c6d05d`.
+
 ## [v1.3.1] - 2026-09-24
 
 ### Added
