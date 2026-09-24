@@ -72,6 +72,7 @@ clamps every field.
     "font": "", "scale": 1.0,
     "opacity": 0.75, "radius": 16, "padding": 18,
     "background": "", "foreground": "", "accent": "",  // "" = follow bar palette
+    "transparent": false,        // no pill background/border (content only)
     "time_format": "%H:%M", "date_format": "%A, %d %B",
     "show_date": true, "show_seconds": false,
     "dial_count": 1, "ring_thickness": 6
@@ -124,8 +125,8 @@ clamps every field.
 
 Every widget also carries the shared keys `layer`, `margin_x` / `margin_y`,
 `opacity`, `radius`, `padding`, `background` / `foreground` / `accent`,
-`scale`, and the snap keys (`snap_group`, `snap_axis`, `snap_order`) — see
-[Snapping](#snapping).
+`transparent`, `scale`, and the snap keys (`snap_group`, `snap_axis`,
+`snap_order`) — see [Snapping](#snapping).
 
 ### Layers
 
@@ -188,7 +189,8 @@ pulls the live wallpaper palette (background / foreground / `color5` accent)
 regardless of the bar's own theme source. Each widget's `background` /
 `foreground` / `accent` is `""` to follow that palette live, or an explicit
 `#RRGGBB` to pin it. The settings UI exposes this as a **Theme** checkbox +
-colour picker.
+colour picker. The **Transparent pill** radio (`transparent: true`) drops the
+background fill and border entirely so only the content shows over the wallpaper.
 
 ---
 
@@ -292,6 +294,7 @@ Implemented in this scaffold:
       and content scaled to fit (`snap_group` / `snap_axis` / `snap_order`)
 - [x] **Bar avoidance**: widgets are clamped into the monitor minus the bar's
       exclusive zone (bar thickness as a border) and scaled down to fit
+- [x] **Transparent pill** toggle per widget (`transparent`) — no background/border
 
 Deliberately left for follow-up:
 

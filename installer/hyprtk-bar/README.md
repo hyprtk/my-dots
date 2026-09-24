@@ -337,7 +337,8 @@ and `sysinfo`. Each shares `layer` (`background` / `bottom` / `top`),
 `position` (a 9-way anchor, or `free` for absolute `margin_x` / `margin_y`
 placement), `width` / `height` (0 = auto), `opacity`, `radius`, `padding`,
 `background` / `foreground` / `accent` (`""` follows the **pywal** palette),
-and the snap keys `snap_group` / `snap_axis` / `snap_order`.
+`transparent` (drop the pill background/border), and the snap keys
+`snap_group` / `snap_axis` / `snap_order`.
 
 Hold `Super+Shift` and left-drag a widget to move it (sets `position` to
 `free`); drop it near another to **snap** them into a group — a uniform cell

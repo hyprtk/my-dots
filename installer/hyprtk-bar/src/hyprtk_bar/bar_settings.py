@@ -1464,6 +1464,9 @@ class BarSettings(Gtk.Window):
         controls["background"] = self._widget_color_row(tab, "Background", block.get("background"), "#1a1b26")
         controls["foreground"] = self._widget_color_row(tab, "Text colour", block.get("foreground"), "#c0caf5")
         controls["accent"] = self._widget_color_row(tab, "Accent colour", block.get("accent"), "#c084fc")
+        controls["transparent"] = self._radio_bool_row(
+            tab, "Transparent pill", bool(block.get("transparent", False))
+        )
         controls["snap_group"] = self._entry_row(tab, "Snap group", block.get("snap_group", ""))
         controls["snap_axis"] = self._combo_row(
             tab, "Snap axis",
@@ -1707,6 +1710,7 @@ class BarSettings(Gtk.Window):
             "background": self._read_widget_color(ctl["background"]),
             "foreground": self._read_widget_color(ctl["foreground"]),
             "accent": self._read_widget_color(ctl["accent"]),
+            "transparent": ctl["transparent"].get_active(),
             "snap_group": ctl["snap_group"].get_text().strip(),
             "snap_axis": self._combo_value(ctl["snap_axis"], "horizontal"),
             "snap_order": int(ctl["snap_order"].get_value()),

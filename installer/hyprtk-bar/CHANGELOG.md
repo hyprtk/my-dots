@@ -52,6 +52,9 @@ Dates are in YYYY-MM-DD format.
   `monitors[].reserved`. Every widget (anchored, `free` or snapped) is clamped
   into that area and its content scaled down if it would not fit; a snap group
   is clamped/scaled as a whole.
+- **Desktop widgets: transparent pill.** A per-widget **Transparent pill**
+  Enable/Disable radio (`transparent` config key) drops the background fill and
+  border so only the widget's content shows over the wallpaper.
 - **Fit-to-width content scaling.** When the configured width is smaller than
   the modules' natural width the bar now scales the glyphs/icons, the CSS
   font/chip sizes, the spacings and the button paddings down (to a floor) so

@@ -199,11 +199,19 @@ def build_widget_css(
     font = str(block.get("font") or "").strip() or palette.get("font")
     font_rule = f"  font-family: {font};\n" if font else ""
 
+    if block.get("transparent"):
+        # Transparent pill: drop the background fill and border, keep the content.
+        bg_rule = "background-color: transparent;"
+        border_rule = "border: none;"
+    else:
+        bg_rule = f"background-color: {rgba(background, opacity)};"
+        border_rule = f"border: 1px solid {rgba(fg, 0.12)};"
+
     prefix = f".widget-{widget_id}"
     css = f"""
 {prefix}.desktop-widget {{
-  background-color: {rgba(background, opacity)};
-  border: 1px solid {rgba(fg, 0.12)};
+  {bg_rule}
+  {border_rule}
   border-radius: {radius}px;
   padding: {padding}px;
   color: {fg};

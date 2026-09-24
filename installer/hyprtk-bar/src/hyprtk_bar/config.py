@@ -366,6 +366,7 @@ DEFAULTS = {
             "background": "",        # "" = follow the bar palette
             "foreground": "",
             "accent": "",
+            "transparent": False,    # no pill background/border
             "time_format": "%H:%M",
             "date_format": "%A, %d %B",
             "show_date": True,
@@ -388,6 +389,7 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
+            "transparent": False,
             "foreground": "",
             "accent": "",
             "show_icon": True,
@@ -424,6 +426,7 @@ DEFAULTS = {
             "radius": 16,
             "padding": 12,
             "background": "",
+            "transparent": False,
         },
         "disk": {
             "enabled": False,
@@ -437,6 +440,7 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
+            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -460,6 +464,7 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
+            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -484,6 +489,7 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
+            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -510,6 +516,7 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
+            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -900,6 +907,8 @@ def _validate_widgets(widgets: dict) -> dict:
         block["padding"] = _clamp_int(block.get("padding"), 0, 80, 16)
         for key in ("background", "foreground", "accent"):
             block[key] = _str_field(block.get(key))
+        # ``transparent`` drops the pill background + border (icons/text only).
+        block["transparent"] = bool(block.get("transparent", False))
 
         # Snap groups: widgets sharing a non-empty snap_group are laid out
         # together along snap_axis (the group uses its first member's axis).
