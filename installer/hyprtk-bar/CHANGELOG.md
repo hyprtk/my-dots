@@ -44,6 +44,12 @@ Dates are in YYYY-MM-DD format.
   of another **drag-snaps** them (side-by-side → horizontal, stacked →
   vertical), and dragging one out detaches it. Group/axis/order are also
   editable in the settings Widgets page.
+- **Desktop widgets: bar avoidance.** Widgets never sit under the bar — the
+  usable area is the monitor inset by the bar's exclusive-zone thickness on all
+  four sides (the bar thickness acts as a border), read from Hyprland's
+  `monitors[].reserved`. Every widget (anchored, `free` or snapped) is clamped
+  into that area and its content scaled down if it would not fit; a snap group
+  is clamped/scaled as a whole.
 - **Fit-to-width content scaling.** When the configured width is smaller than
   the modules' natural width the bar now scales the glyphs/icons, the CSS
   font/chip sizes, the spacings and the button paddings down (to a floor) so

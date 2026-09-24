@@ -170,6 +170,17 @@ allocated) computes each group's cell and positions; `base.set_snap_layout`
 applies the cell size, content scale and absolute position without touching the
 persisted config.
 
+### Usable area (bar avoidance)
+
+Widgets never sit under the bar. The usable area is the monitor inset by the
+bar's **exclusive-zone thickness** on **all four sides** — the bar thickness
+acts as a border that widgets may not overlay. The manager reads it from
+Hyprland (`monitors[].reserved`, e.g. `38` for a 38 px bar) in
+`_usable_rect()`; `base.set_bounds()` clamps every widget (anchored, `free` or
+snapped) into that rect, and `set_fit_scale()` shrinks a standalone widget's
+content if it would not otherwise fit. A snap group is clamped and scaled as a
+whole so it fits below the bar.
+
 ### Colour overrides
 
 Widgets theme from **pywal by default** — `desktop/theme.resolve_widget_palette`
@@ -279,6 +290,8 @@ Implemented in this scaffold:
       (shared `SampledWidget` base, reusing `monitor_data.py`)
 - [x] **Snapping**: drag-snap into horizontal/vertical groups with a uniform cell
       and content scaled to fit (`snap_group` / `snap_axis` / `snap_order`)
+- [x] **Bar avoidance**: widgets are clamped into the monitor minus the bar's
+      exclusive zone (bar thickness as a border) and scaled down to fit
 
 Deliberately left for follow-up:
 

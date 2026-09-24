@@ -64,6 +64,8 @@ class DesktopWidgetWindow(Gtk.Window):
         self._origin: tuple[int, int] = (0, 0)
         self._move_offset: tuple[int, int] = (0, 0)
         self._snap: dict | None = None
+        self._bounds: tuple[int, int, int, int] | None = None
+        self._fit_scale: float = 1.0
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
@@ -125,7 +127,7 @@ class DesktopWidgetWindow(Gtk.Window):
         from .theme import build_widget_css, resolve_widget_palette
 
         palette = self._palette or resolve_widget_palette(self._cfg)
-        scale = self._snap.get("scale") if self._snap else None
+        scale = self._effective_scale()
         try:
             css = build_widget_css(
                 self.WIDGET_ID, palette, self._cfg, self._block, scale=scale
@@ -205,6 +207,29 @@ class DesktopWidgetWindow(Gtk.Window):
         self._apply_geometry()
         self.apply_theme()
 
+    def set_bounds(self, rect: tuple[int, int, int, int]) -> None:
+        """Restrict the widget to *rect* (x0, y0, x1, y1) — the usable area."""
+        self._bounds = tuple(int(v) for v in rect)
+        self._last_margins = None
+        self._apply_geometry()
+
+    def set_fit_scale(self, scale: float) -> None:
+        """Scale the widget's content down to fit the usable area."""
+        scale = max(0.4, min(2.0, float(scale)))
+        if abs(scale - self._fit_scale) < 0.01:
+            return
+        self._fit_scale = scale
+        self._last_margins = None
+        self.apply_theme()
+        self._apply_geometry()
+
+    def _effective_scale(self) -> float | None:
+        if self._snap:
+            return float(self._snap.get("scale") or 1.0)
+        if abs(self._fit_scale - 1.0) >= 0.01:
+            return self._fit_scale
+        return None
+
     def _apply_geometry(self) -> None:
         block = self._block
         snap = self._snap
@@ -223,9 +248,38 @@ class DesktopWidgetWindow(Gtk.Window):
         cur_w = alloc.width or natural.width or width or 200
         cur_h = alloc.height or natural.height or height or 120
         mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
+
+        # The usable area: the monitor inset by the bar thickness (the border
+        # widgets may not overlay). Defaults to the whole monitor.
+        if self._bounds is not None:
+            bx0, by0, bx1, by1 = self._bounds
+        else:
+            bx0, by0, bx1, by1 = mon_x, mon_y, mon_x + mon_w, mon_y + mon_h
+
+        # Desired top-left (before clamping into the usable area).
         if snap:
-            mx = int(snap.get("x") or 0) - mon_x
-            my = int(snap.get("y") or 0) - mon_y
+            ox = int(snap.get("x") or 0)
+            oy = int(snap.get("y") or 0)
+        elif position == "free":
+            ox, oy = mon_x + mx, mon_y + my
+        else:
+            x_mode, y_mode = _parse_position(position)
+            if x_mode == "left":
+                ox = mon_x + mx
+            elif x_mode == "right":
+                ox = mon_x + mon_w - cur_w - mx
+            else:
+                ox = mon_x + max(0, (mon_w - cur_w) // 2)
+            if y_mode == "top":
+                oy = mon_y + my
+            elif y_mode == "bottom":
+                oy = mon_y + mon_h - cur_h - my
+            else:
+                oy = mon_y + max(0, (mon_h - cur_h) // 2)
+
+        # Clamp so the widget never overlays the bar / border.
+        ox = max(bx0, min(ox, max(bx0, bx1 - cur_w)))
+        oy = max(by0, min(oy, max(by0, by1 - cur_h)))
 
         for edge in (
             GtkLayerShell.Edge.TOP,
@@ -236,51 +290,33 @@ class DesktopWidgetWindow(Gtk.Window):
             GtkLayerShell.set_anchor(self, edge, False)
 
         margins: dict = {}
-        if position == "free":
-            # Absolute top-left within the monitor, clamped so the widget stays
-            # fully on-screen. Dragging switches a widget to this mode.
-            mx = min(mx, max(0, mon_w - cur_w))
-            my = min(my, max(0, mon_h - cur_h))
+        if snap:
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-            margins[GtkLayerShell.Edge.LEFT] = mx
-            margins[GtkLayerShell.Edge.TOP] = my
-            self._origin = (mon_x + mx, mon_y + my)
+            margins[GtkLayerShell.Edge.LEFT] = ox - mon_x
+            margins[GtkLayerShell.Edge.TOP] = oy - mon_y
         else:
             x_mode, y_mode = _parse_position(position)
-            if x_mode == "left":
-                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
-                margins[GtkLayerShell.Edge.LEFT] = mx
-                origin_x = mon_x + mx
-            elif x_mode == "right":
+            if x_mode == "right":
                 GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
-                margins[GtkLayerShell.Edge.RIGHT] = mx
-                origin_x = mon_x + mon_w - cur_w - mx
-            else:
+                margins[GtkLayerShell.Edge.RIGHT] = mon_x + mon_w - cur_w - ox
+            else:  # left / center
                 GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
-                margins[GtkLayerShell.Edge.LEFT] = max(0, (mon_w - cur_w) // 2)
-                origin_x = mon_x + max(0, (mon_w - cur_w) // 2)
-
-            if y_mode == "top":
-                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-                margins[GtkLayerShell.Edge.TOP] = my
-                origin_y = mon_y + my
-            elif y_mode == "bottom":
+                margins[GtkLayerShell.Edge.LEFT] = ox - mon_x
+            if y_mode == "bottom":
                 GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
-                margins[GtkLayerShell.Edge.BOTTOM] = my
-                origin_y = mon_y + mon_h - cur_h - my
-            else:
+                margins[GtkLayerShell.Edge.BOTTOM] = mon_y + mon_h - cur_h - oy
+            else:  # top / center
                 GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-                margins[GtkLayerShell.Edge.TOP] = max(0, (mon_h - cur_h) // 2)
-                origin_y = mon_y + max(0, (mon_h - cur_h) // 2)
-            self._origin = (origin_x, origin_y)
+                margins[GtkLayerShell.Edge.TOP] = oy - mon_y
+        self._origin = (ox, oy)
 
         key = tuple(sorted(margins.items()))
         if key == self._last_margins:
             return
         self._last_margins = key
         for edge, value in margins.items():
-            GtkLayerShell.set_margin(self, edge, value)
+            GtkLayerShell.set_margin(self, edge, max(0, int(value)))
 
     # ── click-through ────────────────────────────────────────────
 

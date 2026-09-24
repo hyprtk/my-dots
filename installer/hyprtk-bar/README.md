@@ -340,7 +340,9 @@ and the snap keys `snap_group` / `snap_axis` / `snap_order`.
 
 Hold `Super+Shift` and left-drag a widget to move it (sets `position` to
 `free`); drop it near another to **snap** them into a group — a uniform cell
-(largest member) with content scaled to fit. The clock reads JSON theme files
+(largest member) with content scaled to fit. Widgets never overlay the bar:
+they're clamped into the monitor minus the bar's exclusive zone (the bar
+thickness acts as a border) and scaled down to fit. The clock reads JSON theme files
 from `~/.config/hyprtk-bar/widget-themes/clock/` (bundled: `default`, `minimal`,
 `neon-dials`); the visualizer's effects are `bars`, `wave`, `mirror`, `dots`,
 `glow`. Full schema and design notes: [WIDGETS.md](WIDGETS.md).

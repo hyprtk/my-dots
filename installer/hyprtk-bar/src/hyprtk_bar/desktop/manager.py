@@ -269,16 +269,45 @@ class DesktopWidgetManager:
         self._apply_snap_layout()
         return GLib.SOURCE_REMOVE
 
+    def _usable_rect(self):
+        """The monitor inset by the bar thickness (the widget-free border)."""
+        if not self._wins:
+            return None
+        mon_x, mon_y, mon_w, mon_h = next(iter(self._wins.values()))._monitor_geometry()
+        inset = 0
+        if self._ipc is not None:
+            monitors = self._ipc.query("monitors")
+            if isinstance(monitors, list) and monitors:
+                mon = next((m for m in monitors if m.get("focused")), monitors[0])
+                reserved = mon.get("reserved")
+                if isinstance(reserved, list) and reserved:
+                    try:
+                        inset = max(int(v) for v in reserved)
+                    except (TypeError, ValueError):
+                        inset = 0
+        inset = max(0, inset)
+        return (mon_x + inset, mon_y + inset, mon_x + mon_w - inset, mon_y + mon_h - inset)
+
     def _apply_snap_layout(self) -> None:
-        """Lay out every snap group with a uniform cell and scaled content."""
+        """Lay out every widget inside the usable area; snap groups get a uniform
+        cell with content scaled to fit."""
+        bounds = self._usable_rect()
         for win in self._wins.values():
             win.clear_snap_layout()
+            win.set_fit_scale(1.0)
+            if bounds is not None:
+                win.set_bounds(bounds)
             win._apply_geometry()  # ensure _origin reflects the block position
         anchor = self._snap_anchor
         self._snap_anchor = None
         if not self._wins:
             return
-        mon_x, mon_y, mon_w, mon_h = next(iter(self._wins.values()))._monitor_geometry()
+        if bounds is not None:
+            bx0, by0, bx1, by1 = bounds
+        else:
+            mx, my, mw, mh = next(iter(self._wins.values()))._monitor_geometry()
+            bx0, by0, bx1, by1 = mx, my, mx + mw, my + mh
+        bw, bh = bx1 - bx0, by1 - by0
 
         groups: dict[str, list] = {}
         for wid, win in self._wins.items():
@@ -286,6 +315,7 @@ class DesktopWidgetManager:
             if gid:
                 groups.setdefault(gid, []).append((wid, win))
 
+        grouped: set = set()
         for gid, members in groups.items():
             members.sort(key=lambda m: (int(m[1]._block.get("snap_order", 0) or 0), m[0]))
             nat = []
@@ -299,25 +329,33 @@ class DesktopWidgetManager:
 
             axis = str(members[0][1]._block.get("snap_axis") or "horizontal")
             count = len(members)
+            # Shrink the whole cell so the group fits the usable area.
+            total_w = count * cell_w + (count - 1) * SNAP_GAP
+            total_h = count * cell_h + (count - 1) * SNAP_GAP
+            fit = min(
+                1.0,
+                bw / total_w if total_w else 1.0,
+                bh / total_h if total_h else 1.0,
+            )
+            cell_w = max(40, int(cell_w * fit))
+            cell_h = max(30, int(cell_h * fit))
             total_w = count * cell_w + (count - 1) * SNAP_GAP
             total_h = count * cell_h + (count - 1) * SNAP_GAP
 
             # Anchor the group on the widget that was just dropped (so it stays
             # where the user put it); otherwise the first member.
-            anchor_index = next(
-                (i for i, (_w, w) in enumerate(members) if w is anchor), 0
-            )
+            anchor_index = next((i for i, (_w, w) in enumerate(members) if w is anchor), 0)
             ref_x, ref_y = members[anchor_index][1]._origin
             if axis == "vertical":
                 base_x = ref_x
                 base_y = ref_y - anchor_index * (cell_h + SNAP_GAP)
-                base_y = max(mon_y, min(base_y, mon_y + mon_h - total_h))
-                base_x = max(mon_x, min(base_x, mon_x + mon_w - cell_w))
+                base_y = max(by0, min(base_y, by0 + bh - total_h))
+                base_x = max(bx0, min(base_x, bx0 + bw - cell_w))
             else:
                 base_x = ref_x - anchor_index * (cell_w + SNAP_GAP)
                 base_y = ref_y
-                base_x = max(mon_x, min(base_x, mon_x + mon_w - total_w))
-                base_y = max(mon_y, min(base_y, mon_y + mon_h - cell_h))
+                base_x = max(bx0, min(base_x, bx0 + bw - total_w))
+                base_y = max(by0, min(base_y, by0 + bh - cell_h))
 
             for i, (wid, win) in enumerate(members):
                 scale = min(cell_w / max(nat[i][0], 1), cell_h / max(nat[i][1], 1))
@@ -328,8 +366,17 @@ class DesktopWidgetManager:
                     x, y = base_x + i * (cell_w + SNAP_GAP), base_y
                 try:
                     win.set_snap_layout(cell_w, cell_h, scale, x, y)
+                    grouped.add(id(win))
                 except Exception:
                     log.exception("snap layout failed for widget %s", wid)
+
+        # Standalone widgets: scale content down if it doesn't fit the area.
+        for win in self._wins.values():
+            if id(win) in grouped:
+                continue
+            pw, ph = win.natural_size()
+            fit = min(1.0, bw / max(pw, 1), bh / max(ph, 1))
+            win.set_fit_scale(max(SNAP_SCALE_MIN, fit))
 
     # ── teardown ─────────────────────────────────────────────────
 
