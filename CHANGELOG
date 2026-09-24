@@ -3,6 +3,23 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.0] - 2026-09-24
+
+### Added
+
+- **hyprtk-bar: four more desktop widgets + snapping.** The desktop widgets now
+  include **hard disks** (per-drive usage + read/write rates), **network**
+  (interface, IP, up/down rates + a graph), **processor / RAM** (CPU, RAM, swap,
+  temperature, load) and **system information** (host, OS, kernel, uptime, CPU,
+  GPU, memory, disks) — built on a shared `SampledWidget` base and reusing the
+  bar's `monitor_data.py`. Widgets can now **snap together**: those sharing a
+  `snap_group` lay out along `snap_axis` (horizontal / vertical) with a uniform
+  cell (the largest member) and their content scaled to fit; dropping a widget
+  within 28 px of another drag-snaps them (side-by-side → horizontal, stacked →
+  vertical), and dragging one out detaches it. `snap_group` / `snap_axis` /
+  `snap_order` are editable in the settings Widgets page. Vendored `hyprtk-bar`
+  bumped to `8761d1c`.
+
 ## [v1.2.1] - 2026-09-24
 
 ### Fixed
