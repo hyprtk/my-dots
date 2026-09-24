@@ -106,15 +106,17 @@ clamps every field.
 
 `position` is a 9-way anchor (`top-left` … `bottom-right`) **or `free`**, which
 places the widget at an absolute top-left of `margin_x` / `margin_y` on the
-monitor (clamped to stay fully on-screen). To move a widget, **hold Super and
+monitor (clamped to stay fully on-screen). To move a widget, **hold Super+Shift and
 left-drag it on the desktop** — the drag switches it to `free` and persists the
 new `margin_x` / `margin_y` to the config on release. `base.py` derives the
 surface origin from the anchors so the grab point stays under the pointer.
 
-The drag uses the GTK button-press modifier state (`event.state & SUPER_MASK`),
-so it needs the surface to receive the press: `SUPER + left mouse` is **left
-unbound** in the Hyprland config (window drag moved to `SUPER + SHIFT + left
-mouse`). A plain click (no Super) is ignored.
+The move is **compositor-driven**: a layer-shell surface with `keyboard_mode =
+none` never receives the Super modifier in GTK, so `Super + Shift + left mouse`
+is a Hyprland bind (press/release) that runs `hyprtk-bar-widget-move.sh`. The
+bar reads its control FIFO (`desktop/control.py`), polls the cursor over the
+command socket and moves the widget under it. Window drag stays on
+`Super + left mouse`; widgets are click-through when not being moved.
 
 ### Colour overrides
 
@@ -190,8 +192,8 @@ Implemented in this scaffold:
 - [x] Wiring in `app.py` / `bar.py` / `__main__.py`
 - [x] `install.sh` installs bundled widget themes
 - [x] pywal-default theming (`resolve_widget_palette`)
-- [x] Free placement + **Super + left-drag to move** (persists `position: free`
-      and the new margins)
+- [x] Free placement + **Super+Shift + left-drag to move** (persists `position: free`
+      and the new margins); widgets are click-through when not being moved
 - [x] Nerd Font Weather Icons (`U+E300–U+E3EB`) for the weather glyphs
 
 Deliberately left for follow-up:
@@ -199,8 +201,6 @@ Deliberately left for follow-up:
 - [ ] Per-widget monitor selection (currently the primary monitor; the bar's
       `select_monitors` logic could be reused) — free placement is also
       primary-monitor relative.
-- [ ] Click-through when not dragging (the surface always accepts pointer input
-      so the Super+drag press can reach it).
 - [ ] Clock theme editing/export from the settings UI (`save_clock_theme` exists).
 - [ ] Weather: hourly forecast, more providers, manual lat/lon override.
 - [ ] Visualizer: per-channel stereo bars; PipeWire-native capture fallback.

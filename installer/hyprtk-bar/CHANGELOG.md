@@ -26,10 +26,11 @@ Dates are in YYYY-MM-DD format.
   Each widget is placed 9-way (layer + position + margins) **or freely**
   (`position: "free"` = absolute `margin_x` / `margin_y`, clamped on-screen),
   sized, themed from **pywal** by default, and can pin its own
-  background/foreground/accent. **Hold `Super` and left-drag a widget on the
-  desktop to move it** — the drag switches it to `free` and persists the new
-  position; window drag moved to `Super + Shift + left mouse` so the widget
-  receives the press. New `desktop/` package (`base`, `theme`, `manager`,
+  background/foreground/accent. **Hold `Super+Shift` and left-drag a widget on
+  the desktop to move it** — the move is driven by a Hyprland press/release bind
+  (window drag stays on `Super + left mouse`) and persists the new position.
+  Widgets are click-through when not being moved. New `desktop/` package
+  (`base`, `theme`, `manager`,
   `clock`, `clock_theme`, `weather`, `visualizer`); design notes in
   `WIDGETS.md`.
 - **Fit-to-width content scaling.** When the configured width is smaller than

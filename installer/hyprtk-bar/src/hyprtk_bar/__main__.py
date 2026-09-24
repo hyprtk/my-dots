@@ -181,7 +181,7 @@ def _run_window() -> int:
     # a restart.
     from .desktop import DesktopWidgetManager
 
-    widget_mgr = DesktopWidgetManager(cfg)
+    widget_mgr = DesktopWidgetManager(cfg, ipc)
     primary = next((w for w in windows if w.is_primary), windows[0])
     primary.add_theme_extra_callback(widget_mgr.apply_theme)
     primary._bar.set_widgets_callback(lambda _block: widget_mgr.reload(cfg))
@@ -207,6 +207,16 @@ def _run_window() -> int:
         _toggle_clipboard(windows)
         return GLib.SOURCE_CONTINUE
 
+    # Desktop-widget move: the Hyprland Super+LMB bind runs
+    # hyprtk-bar-widget-move.sh, which writes start/stop to a FIFO the bar
+    # watches (a FIFO, not a signal — GTK never sees the Super modifier on a
+    # keyboard_mode=none layer surface, and GLib signal sources don't accept
+    # real-time signals). The bar then polls the cursor and moves the widget
+    # under it.
+    from .desktop.control import WidgetMoveControl
+
+    move_control = WidgetMoveControl(widget_mgr.begin_move, widget_mgr.end_move)
+
     GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, on_sigterm, None)
     GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, on_sigusr2, None)
     GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, on_sigusr1, None)
@@ -223,6 +233,7 @@ def _run_window() -> int:
             arc_win.destroy()
         if menu_win is not None:
             menu_win.destroy()
+        move_control.shutdown()
         if widget_mgr is not None:
             widget_mgr.shutdown()
         for win in windows:

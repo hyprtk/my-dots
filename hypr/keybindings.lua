@@ -83,9 +83,14 @@ hl.bind(mainMod .. " + SHIFT + 0", hl.dsp.window.move({ workspace = 10 }))
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
--- Super + LMB is left unbound so desktop widgets receive it and can be dragged
--- (hold Super and left-drag a widget to move it); window drag moves to Shift.
-hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.window.drag())
+-- Window drag stays on Super + left mouse; the desktop-widget move is on
+-- Super + Shift + left mouse. The widget gesture is compositor-side (the
+-- press/release binds run hyprtk-bar-widget-move.sh, which tells the bar to
+-- move the widget under the cursor) because a layer-shell surface never sees
+-- the Super modifier in GTK.
+hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag())
+hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-widget-move.sh start"))
+hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-widget-move.sh stop"), { release = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize())
 
 hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x = 100, y = 0, relative = true }))

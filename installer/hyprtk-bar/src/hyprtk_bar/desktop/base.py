@@ -62,8 +62,7 @@ class DesktopWidgetWindow(Gtk.Window):
         self._geom_idle: int | None = None
         self._last_margins: tuple | None = None
         self._origin: tuple[int, int] = (0, 0)
-        self._dragging = False
-        self._drag_offset: tuple[int, int] = (0, 0)
+        self._move_offset: tuple[int, int] = (0, 0)
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
@@ -93,18 +92,11 @@ class DesktopWidgetWindow(Gtk.Window):
         )
         self.connect("size-allocate", self._on_size_allocate)
 
-        # Free-placement dragging: hold Super and left-drag the widget. The
-        # surface always accepts pointer input so the press (with its Super
-        # modifier state) reaches us; a plain click does nothing.
-        self.add_events(
-            Gdk.EventMask.BUTTON_PRESS_MASK
-            | Gdk.EventMask.BUTTON_RELEASE_MASK
-            | Gdk.EventMask.POINTER_MOTION_MASK
-            | Gdk.EventMask.BUTTON1_MOTION_MASK
-        )
-        self.connect("button-press-event", self._on_button_press)
-        self.connect("button-release-event", self._on_button_release)
-        self.connect("motion-notify-event", self._on_motion)
+        # Widgets are click-through — they take no pointer input. The move
+        # gesture is driven from Hyprland (Super + Shift + left mouse is a compositor
+        # bind that signals the bar), because a layer-shell surface with
+        # keyboard_mode=none never receives the Super modifier in GTK.
+        self.connect("realize", self._on_realize)
 
         self.build()
         self.apply_theme()
@@ -253,28 +245,33 @@ class DesktopWidgetWindow(Gtk.Window):
         for edge, value in margins.items():
             GtkLayerShell.set_margin(self, edge, value)
 
-    # ── free placement (Super + left-drag) ───────────────────────
+    # ── click-through ────────────────────────────────────────────
 
-    def _on_button_press(self, _widget, event) -> bool:
-        if event.button != 1 or not (event.state & Gdk.ModifierType.SUPER_MASK):
-            return False
-        self._drag_offset = (
-            int(event.x_root) - self._origin[0],
-            int(event.y_root) - self._origin[1],
-        )
-        self._dragging = True
-        self._set_cursor("grabbing")
-        return True
+    def _on_realize(self, *_args) -> None:
+        window = self.get_window()
+        if window is None:
+            return
+        try:
+            import cairo
 
-    def _on_motion(self, _widget, event) -> bool:
-        if not self._dragging:
-            return False
+            window.input_shape_combine_region(cairo.Region(), 0, 0)
+        except Exception:
+            log.debug("could not clear input region for widget %s", self.WIDGET_ID)
+
+    # ── free placement (driven by the bar's Hyprland bind) ───────
+
+    def begin_move(self, x_root: int, y_root: int) -> None:
+        """Start a free move, keeping the grab point under the pointer."""
+        self._move_offset = (x_root - self._origin[0], y_root - self._origin[1])
+
+    def move_to(self, x_root: int, y_root: int) -> None:
+        """Move the widget so the grab point follows the pointer, clamped."""
         mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
         alloc = self.get_allocation()
         cur_w = alloc.width or 1
         cur_h = alloc.height or 1
-        nx = int(event.x_root) - self._drag_offset[0]
-        ny = int(event.y_root) - self._drag_offset[1]
+        nx = x_root - self._move_offset[0]
+        ny = y_root - self._move_offset[1]
         nx = max(mon_x, min(nx, mon_x + mon_w - cur_w))
         ny = max(mon_y, min(ny, mon_y + mon_h - cur_h))
         self._block["position"] = "free"
@@ -282,25 +279,9 @@ class DesktopWidgetWindow(Gtk.Window):
         self._block["margin_y"] = ny - mon_y
         self._last_margins = None  # force the new margins through
         self._apply_geometry()
-        return True
 
-    def _on_button_release(self, _widget, event) -> bool:
-        if event.button != 1 or not self._dragging:
-            return False
-        self._dragging = False
-        self._set_cursor(None)
+    def end_move(self) -> None:
         self._persist_position()
-        return True
-
-    def _set_cursor(self, name: str | None) -> None:
-        window = self.get_window()
-        if window is None:
-            return
-        try:
-            cursor = None if name is None else Gdk.Cursor.new_from_name(self.get_display(), name)
-            window.set_cursor(cursor)
-        except Exception:
-            pass
 
     def _persist_position(self) -> None:
         widgets = self._cfg.get("widgets")

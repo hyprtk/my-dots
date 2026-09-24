@@ -89,6 +89,42 @@ class HyprIPC:
             log.warning("hyprctl dispatch %r: %s", lua, out.stderr.strip())
         return out.returncode == 0
 
+    def command(self, cmd: str) -> str | None:
+        """Send a raw command to Hyprland's command socket and return the reply.
+
+        Cheaper than spawning ``hyprctl`` — used for the high-rate cursor poll
+        while a desktop widget is being dragged. Returns None on failure.
+        """
+        path = self._socket_path.with_name(".socket.sock")
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.settimeout(0.5)
+                sock.connect(str(path))
+                sock.sendall(cmd.encode())
+                chunks = []
+                while True:
+                    try:
+                        chunk = sock.recv(4096)
+                    except socket.timeout:
+                        break
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+            return b"".join(chunks).decode(errors="replace")
+        except OSError as exc:
+            log.debug("hyprland command %r failed: %s", cmd, exc)
+            return None
+
+    def cursor_pos(self) -> tuple[int, int] | None:
+        """The pointer position as ``(x, y)`` in logical pixels, or None."""
+        out = self.command("cursorpos")
+        if not out:
+            return None
+        m = re.match(r"\s*(-?\d+)\s*,\s*(-?\d+)", out)
+        if not m:
+            return None
+        return int(m.group(1)), int(m.group(2))
+
     def _hypr_version(self) -> tuple[int, ...]:
         """Cached Hyprland version tuple (e.g. ``(0, 56, 2)``); ``()`` if unknown."""
         if self._version is None:

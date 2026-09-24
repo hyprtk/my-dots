@@ -42,6 +42,7 @@ if [[ "${1:-}" == "--uninstall" || "${1:-}" == "-u" ]]; then
     rm -f "$BIN_DIR/hyprtk-bar-menu-toggle.sh"
     rm -f "$BIN_DIR/hyprtk-bar-arc-toggle.sh"
     rm -f "$BIN_DIR/hyprtk-bar-clipboard-toggle.sh"
+    rm -f "$BIN_DIR/hyprtk-bar-widget-move.sh"
     rm -f "$APPS_DIR/$APP_NAME.desktop"
     update-desktop-database "$APPS_DIR" 2>/dev/null || true
     rm -f "$HOME/.local/share/fonts/SymbolsNerdFont-Regular.ttf"
@@ -581,7 +582,8 @@ configure_autostart() {
 # (SIGUSR1 menu / SIGUSR2 arc menu / SIGHUP clipboard). Installed on PATH so
 # a standalone install can bind them directly.
 if [ -d "$SCRIPT_DIR/scripts" ]; then
-    for script in "$SCRIPT_DIR"/scripts/hyprtk-bar-*-toggle.sh; do
+    for script in "$SCRIPT_DIR"/scripts/hyprtk-bar-*-toggle.sh \
+                  "$SCRIPT_DIR"/scripts/hyprtk-bar-widget-move.sh; do
         [ -f "$script" ] || continue
         cp "$script" "$BIN_DIR/"
         chmod +x "$BIN_DIR/$(basename "$script")"
