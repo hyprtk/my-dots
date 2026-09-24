@@ -3,6 +3,20 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.2.1] - 2026-09-24
+
+### Fixed
+
+- **hyprtk-bar: desktop-widget move.** The v1.2.0 `Super + left mouse` drag
+  never fired: a layer-shell surface with `keyboard_mode = none` never receives
+  the Super modifier in GTK, so the client-side modifier check always saw 0. The
+  move is now **compositor-driven** — `Super + Shift + left mouse`
+  (press/release) runs `hyprtk-bar-widget-move.sh`, which tells the bar (via a
+  control FIFO) to move the widget under the cursor; the bar polls the cursor
+  over Hyprland's command socket and persists the new position. Window drag
+  stays on `Super + left mouse`, and desktop widgets are now **click-through**
+  when not being moved. Vendored `hyprtk-bar` bumped to `a0438c6`.
+
 ## [v1.2.0] - 2026-09-24
 
 ### Added
