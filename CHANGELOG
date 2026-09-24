@@ -3,6 +3,18 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.1] - 2026-09-24
+
+### Added
+
+- **hyprtk-bar: desktop widgets no longer overlay the bar.** The usable area
+  for widgets is now the monitor inset by the bar's **exclusive-zone thickness**
+  (Hyprland `monitors[].reserved`, i.e. the bar height) on **all four sides** —
+  the bar thickness acts as a border widgets may not overlay. Every widget
+  (anchored, `free` or snapped) is clamped into that area; a standalone widget's
+  content is **scaled down** if it would not fit, and a snap group is
+  clamped/scaled as a whole. Vendored `hyprtk-bar` bumped to `854b9b1`.
+
 ## [v1.3.0] - 2026-09-24
 
 ### Added
