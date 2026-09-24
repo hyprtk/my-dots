@@ -16,7 +16,7 @@
 
 pkgs.python3Packages.buildPythonApplication rec {
   pname = "hyprtk-bar";
-  version = "0.1.0";
+  version = "0.2.0";
   pyproject = true;
   inherit src;
 

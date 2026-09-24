@@ -5,6 +5,8 @@ Dates are in YYYY-MM-DD format.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-24
+
 ### Added
 
 - **Desktop widgets** — free-floating layer-shell surfaces owned by the bar
