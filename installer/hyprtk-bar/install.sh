@@ -468,6 +468,16 @@ if [ -d "$SCRIPT_DIR/themes" ]; then
     echo ":: Installed bundled bar themes into $CONFIG_DIR/themes"
 fi
 
+# ── Bundled desktop-widget themes ──────────────────────────────────────────
+# Clock widget theme files ship into the user's widget-themes dir so the
+# Widgets settings page can pick them (the bundled assets are also read
+# directly, so a theme still resolves if this copy is skipped).
+if [ -d "$SCRIPT_DIR/assets/widgets" ]; then
+    mkdir -p "$CONFIG_DIR/widget-themes"
+    cp -rf "$SCRIPT_DIR/assets/widgets/." "$CONFIG_DIR/widget-themes/"
+    echo ":: Installed bundled widget themes into $CONFIG_DIR/widget-themes"
+fi
+
 # ── Bundled wallpapers ─────────────────────────────────────────────────────
 # Ship a few default wallpapers into the user's Pictures folder. Existing files
 # with the same name are left alone (no-clobber) so the user's own are safe.

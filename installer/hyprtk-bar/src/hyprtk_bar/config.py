@@ -98,6 +98,52 @@ DEFAULT_LAYOUT = {
     "right": ["updates", "sysmon", "kbstate", "clock", "notifications", "tray", "quicksettings"],
 }
 
+# ── desktop widgets ──────────────────────────────────────────────
+# Desktop widgets are free-floating layer-shell surfaces owned by the bar
+# process (like conky), separate from the bar's own modules. Each one is
+# enabled/placed independently from the settings window's "Widgets" page.
+WIDGET_IDS = ["clock", "weather", "visualizer"]
+
+WIDGET_LABELS = {
+    "clock": "Clock",
+    "weather": "Weather",
+    "visualizer": "Audio visualizer",
+}
+
+WIDGET_LAYERS = ("background", "bottom", "top")
+
+WIDGET_POSITIONS = (
+    "top-left", "top-center", "top-right",
+    "center-left", "center", "center-right",
+    "bottom-left", "bottom-center", "bottom-right",
+)
+
+CLOCK_STYLES = ("digital", "text", "dials")
+VISUALIZER_STYLES = ("bars", "wave", "mirror", "dots", "glow")
+VISUALIZER_COLOR_MODES = ("accent", "gradient", "pywal", "custom")
+WEATHER_UNITS = ("metric", "imperial")
+
+# Appearance carried by a clock theme file (see desktop/clock_theme.py). The
+# widget's own config block overrides these keys.
+DEFAULT_CLOCK_THEME = {
+    "style": "digital",
+    "font": "",
+    "scale": 1.0,
+    "opacity": 0.75,
+    "radius": 16,
+    "padding": 18,
+    "background": "",
+    "foreground": "",
+    "accent": "",
+    "time_format": "%H:%M",
+    "date_format": "%A, %d %B",
+    "show_date": True,
+    "show_seconds": False,
+    "digital": {"font_weight": "bold", "shadow": False},
+    "text": {"uppercase": False},
+    "dials": {"count": 1, "ring_thickness": 6, "ticks": True, "show_hands": True},
+}
+
 DEFAULT_LINKS = [
     {
         "id": "apps",
@@ -291,6 +337,86 @@ DEFAULTS = {
             "shutdown": "systemctl poweroff",
             "suspend": "systemctl suspend",
             "hibernate": "systemctl hibernate",
+        },
+    },
+    "widgets": {
+        "enabled": True,             # master switch for all desktop widgets
+        "clock": {
+            "enabled": True,
+            "layer": "bottom",       # background | bottom | top
+            "position": "top-right", # one of WIDGET_POSITIONS
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 220,            # px (0 = auto)
+            "height": 0,             # px (0 = auto)
+            "style": "digital",      # digital | text | dials
+            "theme": "default",      # clock theme file (assets/widgets/clock)
+            "font": "",
+            "scale": 1.0,
+            "opacity": 0.75,
+            "radius": 16,
+            "padding": 18,
+            "background": "",        # "" = follow the bar palette
+            "foreground": "",
+            "accent": "",
+            "time_format": "%H:%M",
+            "date_format": "%A, %d %B",
+            "show_date": True,
+            "show_seconds": False,
+            "dial_count": 1,         # dials style: 1 | 3 (H/M/S rings)
+            "ring_thickness": 6,
+        },
+        "weather": {
+            "enabled": True,
+            "layer": "bottom",
+            "position": "top-left",
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 280,
+            "height": 0,
+            "city": "London",
+            "units": "metric",       # metric | imperial
+            "refresh_minutes": 15,
+            "opacity": 0.75,
+            "radius": 16,
+            "padding": 18,
+            "background": "",
+            "foreground": "",
+            "accent": "",
+            "show_icon": True,
+            "show_temp": True,
+            "show_condition": True,
+            "show_feels_like": True,
+            "show_humidity": True,
+            "show_wind": True,
+            "show_forecast": True,
+            "forecast_days": 3,
+        },
+        "visualizer": {
+            "enabled": False,
+            "layer": "bottom",
+            "position": "bottom-center",
+            "margin_x": 40,
+            "margin_y": 40,
+            "width": 420,
+            "height": 120,
+            "style": "bars",         # bars | wave | mirror | dots | glow
+            "bars": 48,
+            "sensitivity": 1.0,
+            "smoothing": 0.6,
+            "color_mode": "gradient",  # accent | gradient | pywal | custom
+            "color": "",
+            "gradient_from": "",
+            "gradient_to": "",
+            "peak_dots": True,
+            "orientation": "horizontal",  # horizontal | vertical
+            "fps": 60,
+            "source": "cava",        # cava | synthetic
+            "cava_binary": "cava",
+            "opacity": 0.6,
+            "radius": 16,
+            "padding": 12,
+            "background": "",
         },
     },
 }
@@ -506,6 +632,13 @@ def validate(cfg: dict) -> dict:
     else:
         valid["menu"] = _validate_menu(menu)
 
+    # ── widgets ──────────────────────────────────────────────────
+    widgets = valid.get("widgets")
+    if not isinstance(widgets, dict):
+        valid["widgets"] = _deep_merge(DEFAULTS["widgets"], {})
+    else:
+        valid["widgets"] = _validate_widgets(widgets)
+
     # ── command/script fields must always be strings ────────────────
     center = valid.get("center") or {}
     center["start_command"] = _str_field(center.get("start_command"), str(MENU_TOGGLE_SH))
@@ -608,6 +741,114 @@ def _validate_menu(menu: dict) -> dict:
             power[key] = _str_field(power.get(key), DEFAULTS["menu"]["power"][key])
         valid["power"] = power
     return valid
+
+
+def _clamp_int(value, lo: int, hi: int, default: int) -> int:
+    try:
+        return max(lo, min(hi, int(value)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _clamp_float(value, lo: float, hi: float, default: float) -> float:
+    try:
+        return max(lo, min(hi, float(value)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _validate_widgets(widgets: dict) -> dict:
+    """Coerce/correct the ``widgets`` block, falling back to per-widget defaults.
+
+    Every widget shares the placement/appearance keys (enabled, layer,
+    position, margins, size, opacity, radius, padding, colors); the
+    widget-specific keys are clamped by the per-widget branch below. A widget
+    block the user omitted is materialized from DEFAULTS so the settings page
+    always has a full record to edit.
+    """
+    valid = _deep_merge(DEFAULTS["widgets"], widgets)
+    valid["enabled"] = bool(valid.get("enabled", True))
+
+    for wid in WIDGET_IDS:
+        block = valid.get(wid)
+        if not isinstance(block, dict):
+            block = dict(DEFAULTS["widgets"][wid])
+        else:
+            block = _deep_merge(DEFAULTS["widgets"][wid], block)
+
+        block["enabled"] = bool(block.get("enabled", False))
+        layer = str(block.get("layer", "bottom"))
+        block["layer"] = layer if layer in WIDGET_LAYERS else "bottom"
+        position = str(block.get("position", "top-right"))
+        block["position"] = position if position in WIDGET_POSITIONS else "top-right"
+        block["margin_x"] = _clamp_int(block.get("margin_x"), 0, 2000, 40)
+        block["margin_y"] = _clamp_int(block.get("margin_y"), 0, 2000, 40)
+        block["width"] = _clamp_int(block.get("width"), 0, 4000, 0)
+        block["height"] = _clamp_int(block.get("height"), 0, 4000, 0)
+        block["opacity"] = _clamp_float(block.get("opacity"), 0.0, 1.0, 0.75)
+        block["radius"] = _clamp_int(block.get("radius"), 0, 80, 16)
+        block["padding"] = _clamp_int(block.get("padding"), 0, 80, 16)
+        for key in ("background", "foreground", "accent"):
+            block[key] = _str_field(block.get(key))
+
+        if wid == "clock":
+            block = _validate_widget_clock(block)
+        elif wid == "weather":
+            block = _validate_widget_weather(block)
+        elif wid == "visualizer":
+            block = _validate_widget_visualizer(block)
+        valid[wid] = block
+    return valid
+
+
+def _validate_widget_clock(block: dict) -> dict:
+    style = str(block.get("style", "digital"))
+    block["style"] = style if style in CLOCK_STYLES else "digital"
+    block["theme"] = _str_field(block.get("theme") or "default")
+    block["font"] = _str_field(block.get("font"))
+    block["scale"] = _clamp_float(block.get("scale"), 0.4, 3.0, 1.0)
+    block["time_format"] = _str_field(block.get("time_format"), "%H:%M")
+    block["date_format"] = _str_field(block.get("date_format"), "%A, %d %B")
+    block["show_date"] = bool(block.get("show_date", True))
+    block["show_seconds"] = bool(block.get("show_seconds", False))
+    block["dial_count"] = _clamp_int(block.get("dial_count"), 1, 3, 1)
+    block["ring_thickness"] = _clamp_int(block.get("ring_thickness"), 1, 24, 6)
+    return block
+
+
+def _validate_widget_weather(block: dict) -> dict:
+    block["city"] = _str_field(block.get("city") or "London").strip() or "London"
+    units = str(block.get("units", "metric"))
+    block["units"] = units if units in WEATHER_UNITS else "metric"
+    block["refresh_minutes"] = _clamp_int(block.get("refresh_minutes"), 5, 1440, 15)
+    for key in (
+        "show_icon", "show_temp", "show_condition", "show_feels_like",
+        "show_humidity", "show_wind", "show_forecast",
+    ):
+        block[key] = bool(block.get(key, True))
+    block["forecast_days"] = _clamp_int(block.get("forecast_days"), 0, 7, 3)
+    return block
+
+
+def _validate_widget_visualizer(block: dict) -> dict:
+    style = str(block.get("style", "bars"))
+    block["style"] = style if style in VISUALIZER_STYLES else "bars"
+    block["bars"] = _clamp_int(block.get("bars"), 8, 256, 48)
+    block["sensitivity"] = _clamp_float(block.get("sensitivity"), 0.1, 4.0, 1.0)
+    block["smoothing"] = _clamp_float(block.get("smoothing"), 0.0, 0.95, 0.6)
+    color_mode = str(block.get("color_mode", "gradient"))
+    block["color_mode"] = (
+        color_mode if color_mode in VISUALIZER_COLOR_MODES else "gradient"
+    )
+    for key in ("color", "gradient_from", "gradient_to"):
+        block[key] = _str_field(block.get(key))
+    block["peak_dots"] = bool(block.get("peak_dots", True))
+    orientation = str(block.get("orientation", "horizontal"))
+    block["orientation"] = "vertical" if orientation == "vertical" else "horizontal"
+    block["fps"] = _clamp_int(block.get("fps"), 15, 120, 60)
+    block["source"] = "synthetic" if str(block.get("source")) == "synthetic" else "cava"
+    block["cava_binary"] = _str_field(block.get("cava_binary") or "cava")
+    return block
 
 
 def _normalize_width(value) -> str:

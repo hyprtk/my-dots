@@ -118,6 +118,7 @@ class Bar(Gtk.Box):
         self._arcmenu_cb = None
         self._menu_cb = None
         self._menu_reload_cb = None
+        self._widgets_cb = None
         self._widgets: dict[str, Gtk.Widget] = {}
         self._sections: dict[str, SectionBox] = {}
         self._tray_ctrl: TrayController | None = None
@@ -645,6 +646,12 @@ class Bar(Gtk.Box):
             if self._menu_reload_cb is not None:
                 self._menu_reload_cb(block)
 
+        def set_widgets(block: dict) -> None:
+            cfg["widgets"] = block
+            config_module.save(cfg)
+            if self._widgets_cb is not None:
+                self._widgets_cb(block)
+
         def set_quicklinks(block: dict) -> None:
             cfg["quicklinks"] = block
             config_module.save(cfg)
@@ -686,6 +693,7 @@ class Bar(Gtk.Box):
             "set_arcmenu": set_arcmenu,
             "set_menu": set_menu,
             "set_quicklinks": set_quicklinks,
+            "set_widgets": set_widgets,
             "open_settings": open_settings,
         }
 
@@ -720,6 +728,9 @@ class Bar(Gtk.Box):
 
     def set_menu_reload_callback(self, callback) -> None:
         self._menu_reload_cb = callback
+
+    def set_widgets_callback(self, callback) -> None:
+        self._widgets_cb = callback
 
     def set_height_callback(self, callback) -> None:
         self._height_cb = callback

@@ -1,0 +1,17 @@
+{
+  "name": "minimal",
+  "style": "text",
+  "scale": 1.0,
+  "opacity": 0.55,
+  "radius": 12,
+  "padding": 14,
+  "background": "",
+  "foreground": "",
+  "accent": "",
+  "date_format": "%d %B",
+  "show_date": true,
+  "show_seconds": false,
+  "text": {
+    "uppercase": false
+  }
+}

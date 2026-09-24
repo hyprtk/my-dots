@@ -1,0 +1,20 @@
+{
+  "name": "neon-dials",
+  "style": "dials",
+  "scale": 1.0,
+  "opacity": 0.65,
+  "radius": 24,
+  "padding": 20,
+  "background": "#14141e",
+  "foreground": "#c0caf5",
+  "accent": "#22d3ee",
+  "date_format": "%A, %d %B",
+  "show_date": true,
+  "show_seconds": true,
+  "dials": {
+    "count": 3,
+    "ring_thickness": 6,
+    "ticks": true,
+    "show_hands": true
+  }
+}

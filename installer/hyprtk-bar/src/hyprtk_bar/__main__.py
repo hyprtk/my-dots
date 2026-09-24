@@ -153,7 +153,7 @@ def _run_window() -> int:
         )
         arc_win.show_all()
         primary = next((w for w in windows if w.is_primary), windows[0])
-        primary.set_theme_extra_callback(arc_win.apply_bar_palette)
+        primary.add_theme_extra_callback(arc_win.apply_bar_palette)
         primary._bar.set_arcmenu_callback(lambda _block: arc_win.reload_from_cfg())
         logging.info("started arc menu overlay")
 
@@ -172,6 +172,22 @@ def _run_window() -> int:
         primary._bar.set_menu_callback(lambda: menu_win.toggle())
         primary._bar.set_menu_reload_callback(lambda _block: menu_win.reload_from_cfg())
         logging.info("started start menu")
+
+    # Desktop widgets (clock / weather / visualizer) are likewise owned by the
+    # bar process: free-floating layer-shell surfaces, enabled and placed from
+    # the settings window's "Widgets" page. The manager diffs the config on
+    # Apply, so toggling one is live. It is always created (even when the
+    # master switch starts off) so enabling widgets from settings works without
+    # a restart.
+    from .desktop import DesktopWidgetManager
+
+    widget_mgr = DesktopWidgetManager(cfg)
+    primary = next((w for w in windows if w.is_primary), windows[0])
+    primary.add_theme_extra_callback(widget_mgr.apply_theme)
+    primary._bar.set_widgets_callback(lambda _block: widget_mgr.reload(cfg))
+    if primary._palette_cache:
+        widget_mgr.apply_theme(primary._palette_cache)
+    logging.info("started %d desktop widget(s)", len(widget_mgr._wins))
 
     def on_sigterm(*_args):
         Gtk.main_quit()
@@ -207,6 +223,8 @@ def _run_window() -> int:
             arc_win.destroy()
         if menu_win is not None:
             menu_win.destroy()
+        if widget_mgr is not None:
+            widget_mgr.shutdown()
         for win in windows:
             win.shutdown()
     return 0

@@ -22,7 +22,22 @@ gi.require_version("Gdk", "3.0")
 
 from gi.repository import Gdk, Gtk, Pango  # noqa: E402
 
-from .config import DEFAULT_LAYOUT, DEFAULT_LINKS, MENU_LAYOUTS, MODULE_IDS, MODULE_LABELS  # noqa: E402
+from .config import (  # noqa: E402
+    CLOCK_STYLES,
+    DEFAULT_LAYOUT,
+    DEFAULT_LINKS,
+    MENU_LAYOUTS,
+    MODULE_IDS,
+    MODULE_LABELS,
+    VISUALIZER_COLOR_MODES,
+    VISUALIZER_STYLES,
+    WEATHER_UNITS,
+    WIDGET_IDS,
+    WIDGET_LABELS,
+    WIDGET_LAYERS,
+    WIDGET_POSITIONS,
+)
+from .desktop.clock_theme import list_clock_themes  # noqa: E402
 from .sysapps import (  # noqa: E402
     default_browser_command,
     default_filemanager_command,
@@ -280,6 +295,7 @@ class BarSettings(Gtk.Window):
             ("menu", "\uf0ca", "Menu"),
             ("quicklinks", "\uf0c1", "Quicklinks"),
             ("modules", "\uf009", "Modules"),
+            ("widgets", "\uf00b", "Widgets"),
         ):
             sidebar.pack_start(self._build_page_button(key, glyph, label),
                                False, False, 0)
@@ -362,6 +378,8 @@ class BarSettings(Gtk.Window):
             self._build_quicklinks_tab(page)
         elif key == "modules":
             self._build_modules_tab(page)
+        elif key == "widgets":
+            self._build_widgets_tab(page)
         return page
 
     @staticmethod
@@ -369,7 +387,7 @@ class BarSettings(Gtk.Window):
         return {
             "bar": "Bar", "fonts": "Fonts", "themes": "Themes",
             "animations": "Animations", "arcmenu": "Arc Menu", "menu": "Menu",
-            "quicklinks": "Quicklinks", "modules": "Modules",
+            "quicklinks": "Quicklinks", "modules": "Modules", "widgets": "Widgets",
         }[key]
 
     def _tab_margins(self) -> Gtk.Box:
@@ -447,6 +465,8 @@ class BarSettings(Gtk.Window):
                 ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.Switch):
                 ctx.add_class("settings-switch")
+            elif isinstance(w, Gtk.ComboBox):
+                ctx.add_class("settings-input")
             elif isinstance(w, (Gtk.SpinButton, Gtk.Entry, Gtk.FontButton)):
                 # GTK hard-colours these; override only the TEXT so the themed
                 # `.settings-input` CSS class (translucent fill + accent border)
@@ -1371,6 +1391,332 @@ class BarSettings(Gtk.Window):
         ql["links"] = self._quicklinks
         return ql
 
+    # ── widgets tab ──────────────────────────────────────────────
+
+    def _build_widgets_tab(self, page: Gtk.Box) -> None:
+        widgets = self._cfg.get("widgets") or {}
+        hint = Gtk.Label(
+            label="Free-floating desktop widgets (clock, weather, audio "
+            "visualizer), independent of the bar. Enable and place each one; "
+            "everything applies live.",
+            xalign=0,
+            wrap=True,
+        )
+        hint.set_opacity(0.8)
+        page.pack_start(hint, False, False, 0)
+
+        self._widgets_enabled = self._radio_bool_row(
+            page, "Desktop widgets", bool(widgets.get("enabled", True))
+        )
+
+        notebook = Gtk.Notebook()
+        notebook.set_vexpand(True)
+        page.pack_start(notebook, True, True, 0)
+
+        self._widget_controls: dict[str, dict] = {}
+        for wid in WIDGET_IDS:
+            block = dict(widgets.get(wid) or {})
+            tab = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            controls: dict = {"_block": block}
+            self._build_widget_common(tab, wid, block, controls)
+            if wid == "clock":
+                self._build_widget_clock(tab, block, controls)
+            elif wid == "weather":
+                self._build_widget_weather(tab, block, controls)
+            elif wid == "visualizer":
+                self._build_widget_visualizer(tab, block, controls)
+            self._widget_controls[wid] = controls
+            notebook.append_page(
+                self._scroll_tab(tab), Gtk.Label(label=WIDGET_LABELS.get(wid, wid))
+            )
+
+    def _build_widget_common(self, tab: Gtk.Box, wid: str, block: dict, controls: dict) -> None:
+        controls["enabled"] = self._radio_bool_row(
+            tab, "Enabled", bool(block.get("enabled", False))
+        )
+        controls["layer"] = self._combo_row(
+            tab, "Layer",
+            [(k, k.title()) for k in WIDGET_LAYERS],
+            str(block.get("layer", "bottom")),
+        )
+        controls["position"] = self._combo_row(
+            tab, "Position",
+            [(p, p.replace("-", " ").title()) for p in WIDGET_POSITIONS],
+            str(block.get("position", "top-right")),
+        )
+        controls["margin_x"] = self._spin_row(tab, "Margin X (px)", block.get("margin_x", 40), 0, 2000, 5)
+        controls["margin_y"] = self._spin_row(tab, "Margin Y (px)", block.get("margin_y", 40), 0, 2000, 5)
+        controls["width"] = self._spin_row(tab, "Width (px, 0=auto)", block.get("width", 0), 0, 2000, 10)
+        controls["height"] = self._spin_row(tab, "Height (px, 0=auto)", block.get("height", 0), 0, 2000, 10)
+        controls["opacity"] = self._percent_row(tab, "Opacity", block.get("opacity", 0.75))
+        controls["radius"] = self._spin_row(tab, "Corner radius", block.get("radius", 16), 0, 80, 1)
+        controls["padding"] = self._spin_row(tab, "Padding", block.get("padding", 16), 0, 80, 1)
+        controls["background"] = self._widget_color_row(tab, "Background", block.get("background"), "#1a1b26")
+        controls["foreground"] = self._widget_color_row(tab, "Text colour", block.get("foreground"), "#c0caf5")
+        controls["accent"] = self._widget_color_row(tab, "Accent colour", block.get("accent"), "#c084fc")
+
+    def _build_widget_clock(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        controls["style"] = self._combo_row(
+            tab, "Style", [(s, s.title()) for s in CLOCK_STYLES], str(block.get("style", "digital"))
+        )
+        themes = list_clock_themes() or ["default"]
+        controls["theme"] = self._combo_row(
+            tab, "Theme file", [(t, t) for t in themes], str(block.get("theme", "default"))
+        )
+        controls["font"] = self._entry_row(tab, "Font", block.get("font", ""))
+        controls["scale"] = self._float_row(tab, "Scale", block.get("scale", 1.0), 0.4, 3.0, 0.1)
+        controls["time_format"] = self._entry_row(tab, "Time format", block.get("time_format", "%H:%M"))
+        controls["date_format"] = self._entry_row(tab, "Date format", block.get("date_format", "%A, %d %B"))
+        controls["show_date"] = self._check_row(tab, "Show date", block.get("show_date", True))
+        controls["show_seconds"] = self._check_row(tab, "Show seconds", block.get("show_seconds", False))
+        controls["dial_count"] = self._spin_row(tab, "Dial count (dials)", block.get("dial_count", 1), 1, 3, 1)
+        controls["ring_thickness"] = self._spin_row(tab, "Ring thickness (dials)", block.get("ring_thickness", 6), 1, 24, 1)
+
+    def _build_widget_weather(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        controls["city"] = self._entry_row(tab, "City", block.get("city", "London"))
+        controls["units"] = self._combo_row(
+            tab, "Units", [(u, u.title()) for u in WEATHER_UNITS], str(block.get("units", "metric"))
+        )
+        controls["refresh_minutes"] = self._spin_row(tab, "Refresh (min)", block.get("refresh_minutes", 15), 5, 1440, 5)
+        controls["show_icon"] = self._check_row(tab, "Show icon", block.get("show_icon", True))
+        controls["show_temp"] = self._check_row(tab, "Show temperature", block.get("show_temp", True))
+        controls["show_condition"] = self._check_row(tab, "Show condition", block.get("show_condition", True))
+        controls["show_feels_like"] = self._check_row(tab, "Show feels-like", block.get("show_feels_like", True))
+        controls["show_humidity"] = self._check_row(tab, "Show humidity", block.get("show_humidity", True))
+        controls["show_wind"] = self._check_row(tab, "Show wind", block.get("show_wind", True))
+        controls["show_forecast"] = self._check_row(tab, "Show forecast", block.get("show_forecast", True))
+        controls["forecast_days"] = self._spin_row(tab, "Forecast days", block.get("forecast_days", 3), 0, 7, 1)
+
+    def _build_widget_visualizer(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
+        controls["style"] = self._combo_row(
+            tab, "Effect", [(s, s.title()) for s in VISUALIZER_STYLES], str(block.get("style", "bars"))
+        )
+        controls["source"] = self._combo_row(
+            tab, "Source",
+            [("cava", "Cava (audio)"), ("synthetic", "Synthetic (demo)")],
+            str(block.get("source", "cava")),
+        )
+        controls["cava_binary"] = self._entry_row(tab, "Cava binary", block.get("cava_binary", "cava"))
+        controls["bars"] = self._spin_row(tab, "Bars", block.get("bars", 48), 8, 256, 4)
+        controls["fps"] = self._spin_row(tab, "FPS", block.get("fps", 60), 15, 120, 5)
+        controls["sensitivity"] = self._float_row(tab, "Sensitivity", block.get("sensitivity", 1.0), 0.1, 4.0, 0.1)
+        controls["smoothing"] = self._float_row(tab, "Smoothing", block.get("smoothing", 0.6), 0.0, 0.95, 0.05)
+        controls["color_mode"] = self._combo_row(
+            tab, "Colour mode",
+            [(c, c.title()) for c in VISUALIZER_COLOR_MODES],
+            str(block.get("color_mode", "gradient")),
+        )
+        controls["color"] = self._color_button_row(tab, "Colour (custom)", block.get("color"))
+        controls["gradient_from"] = self._color_button_row(tab, "Gradient from", block.get("gradient_from"))
+        controls["gradient_to"] = self._color_button_row(tab, "Gradient to", block.get("gradient_to"))
+        controls["peak_dots"] = self._check_row(tab, "Peak dots", block.get("peak_dots", True))
+        controls["orientation"] = self._combo_row(
+            tab, "Orientation",
+            [("horizontal", "Horizontal"), ("vertical", "Vertical")],
+            str(block.get("orientation", "horizontal")),
+        )
+
+    # ── widgets tab helpers ──────────────────────────────────────
+
+    def _combo_row(self, tab: Gtk.Box, label: str, options: list, current: str) -> Gtk.ComboBoxText:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        combo = Gtk.ComboBoxText()
+        keys = []
+        for key, text in options:
+            combo.append(key, text)
+            keys.append(key)
+        if current in keys:
+            combo.set_active_id(current)
+        elif keys:
+            combo.set_active(0)
+        combo.set_hexpand(True)
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(combo, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return combo
+
+    def _entry_row(self, tab: Gtk.Box, label: str, value) -> Gtk.Entry:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        entry = Gtk.Entry()
+        entry.set_text(str(value or ""))
+        entry.set_hexpand(True)
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(entry, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return entry
+
+    def _check_row(self, tab: Gtk.Box, label: str, active: bool) -> Gtk.CheckButton:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        check = Gtk.CheckButton()
+        check.set_active(bool(active))
+        check.set_hexpand(True)
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(check, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return check
+
+    def _float_row(self, tab: Gtk.Box, label: str, value, lo: float, hi: float, step: float) -> Gtk.SpinButton:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        spin = Gtk.SpinButton.new_with_range(lo, hi, step)
+        spin.set_digits(2)
+        try:
+            spin.set_value(float(value))
+        except (TypeError, ValueError):
+            spin.set_value(lo)
+        spin.set_hexpand(True)
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(spin, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return spin
+
+    def _percent_row(self, tab: Gtk.Box, label: str, value) -> Gtk.Scale:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
+        try:
+            scale.set_value(round(float(value) * 100))
+        except (TypeError, ValueError):
+            scale.set_value(75)
+        scale.set_draw_value(True)
+        scale.set_hexpand(True)
+        scale.get_style_context().add_class("settings-scale")
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(scale, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return scale
+
+    def _color_button_row(self, tab: Gtk.Box, label: str, value) -> Gtk.ColorButton:
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        button = Gtk.ColorButton()
+        button.set_rgba(_hex_to_rgba(value or "#c084fc"))
+        button.set_hexpand(True)
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(button, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return button
+
+    def _widget_color_row(self, tab: Gtk.Box, label: str, value, fallback: str):
+        """A colour picker with a "Theme" checkbox.
+
+        With "Theme" checked the widget follows the bar palette (stored as an
+        empty string); unchecked stores an explicit ``#RRGGBB``.
+        """
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        lbl = Gtk.Label(label=label, xalign=1)
+        lbl.set_size_request(150, -1)
+        follow = Gtk.CheckButton(label="Theme")
+        button = Gtk.ColorButton()
+        custom = bool(str(value or "").strip())
+        follow.set_active(not custom)
+        button.set_rgba(_hex_to_rgba(value or fallback))
+        button.set_sensitive(custom)
+        follow.connect("toggled", lambda c: button.set_sensitive(not c.get_active()))
+        row.pack_start(lbl, False, False, 0)
+        row.pack_start(follow, False, False, 0)
+        row.pack_start(button, True, True, 0)
+        tab.pack_start(row, False, False, 0)
+        return follow, button
+
+    @staticmethod
+    def _combo_value(combo: Gtk.ComboBoxText, default: str) -> str:
+        return combo.get_active_id() or default
+
+    @staticmethod
+    def _read_widget_color(pair) -> str:
+        follow, button = pair
+        if follow.get_active():
+            return ""
+        return _rgba_to_hex(button.get_rgba())
+
+    def _read_widget_common(self, ctl: dict) -> dict:
+        return {
+            "enabled": ctl["enabled"].get_active(),
+            "layer": self._combo_value(ctl["layer"], "bottom"),
+            "position": self._combo_value(ctl["position"], "top-right"),
+            "margin_x": int(ctl["margin_x"].get_value()),
+            "margin_y": int(ctl["margin_y"].get_value()),
+            "width": int(ctl["width"].get_value()),
+            "height": int(ctl["height"].get_value()),
+            "opacity": max(0.0, min(1.0, ctl["opacity"].get_value() / 100.0)),
+            "radius": int(ctl["radius"].get_value()),
+            "padding": int(ctl["padding"].get_value()),
+            "background": self._read_widget_color(ctl["background"]),
+            "foreground": self._read_widget_color(ctl["foreground"]),
+            "accent": self._read_widget_color(ctl["accent"]),
+        }
+
+    def _read_widget_clock(self, ctl: dict) -> dict:
+        return {
+            "style": self._combo_value(ctl["style"], "digital"),
+            "theme": self._combo_value(ctl["theme"], "default"),
+            "font": ctl["font"].get_text().strip(),
+            "scale": round(ctl["scale"].get_value(), 2),
+            "time_format": ctl["time_format"].get_text().strip() or "%H:%M",
+            "date_format": ctl["date_format"].get_text().strip(),
+            "show_date": ctl["show_date"].get_active(),
+            "show_seconds": ctl["show_seconds"].get_active(),
+            "dial_count": int(ctl["dial_count"].get_value()),
+            "ring_thickness": int(ctl["ring_thickness"].get_value()),
+        }
+
+    def _read_widget_weather(self, ctl: dict) -> dict:
+        return {
+            "city": ctl["city"].get_text().strip() or "London",
+            "units": self._combo_value(ctl["units"], "metric"),
+            "refresh_minutes": int(ctl["refresh_minutes"].get_value()),
+            "show_icon": ctl["show_icon"].get_active(),
+            "show_temp": ctl["show_temp"].get_active(),
+            "show_condition": ctl["show_condition"].get_active(),
+            "show_feels_like": ctl["show_feels_like"].get_active(),
+            "show_humidity": ctl["show_humidity"].get_active(),
+            "show_wind": ctl["show_wind"].get_active(),
+            "show_forecast": ctl["show_forecast"].get_active(),
+            "forecast_days": int(ctl["forecast_days"].get_value()),
+        }
+
+    def _read_widget_visualizer(self, ctl: dict) -> dict:
+        return {
+            "style": self._combo_value(ctl["style"], "bars"),
+            "source": self._combo_value(ctl["source"], "cava"),
+            "cava_binary": ctl["cava_binary"].get_text().strip() or "cava",
+            "bars": int(ctl["bars"].get_value()),
+            "fps": int(ctl["fps"].get_value()),
+            "sensitivity": round(ctl["sensitivity"].get_value(), 2),
+            "smoothing": round(ctl["smoothing"].get_value(), 2),
+            "color_mode": self._combo_value(ctl["color_mode"], "gradient"),
+            "color": _rgba_to_hex(ctl["color"].get_rgba()),
+            "gradient_from": _rgba_to_hex(ctl["gradient_from"].get_rgba()),
+            "gradient_to": _rgba_to_hex(ctl["gradient_to"].get_rgba()),
+            "peak_dots": ctl["peak_dots"].get_active(),
+            "orientation": self._combo_value(ctl["orientation"], "horizontal"),
+        }
+
+    def _active_widgets_block(self) -> dict:
+        widgets = dict(self._cfg.get("widgets") or {})
+        widgets["enabled"] = self._widgets_enabled.get_active()
+        for wid, ctl in self._widget_controls.items():
+            block = dict(ctl.get("_block") or {})
+            block.update(self._read_widget_common(ctl))
+            if wid == "clock":
+                block.update(self._read_widget_clock(ctl))
+            elif wid == "weather":
+                block.update(self._read_widget_weather(ctl))
+            elif wid == "visualizer":
+                block.update(self._read_widget_visualizer(ctl))
+            widgets[wid] = block
+        return widgets
+
     def _build_modules_tab(self, page: Gtk.Box) -> None:
         tab = page
         hint = Gtk.Label(
@@ -1531,6 +1877,10 @@ class BarSettings(Gtk.Window):
 
         # quicklinks
         self._actions["set_quicklinks"](self._active_quicklinks_block())
+
+        # desktop widgets
+        if getattr(self, "_widget_controls", None):
+            self._actions["set_widgets"](self._active_widgets_block())
 
         # The theme actions above mutate the shared cfg and re-theme the bar,
         # but this window's widgets keep their build-time override colours.

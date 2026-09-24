@@ -36,6 +36,11 @@ all themed live from your pywal16 palette.
 - **Start menu** — a full application menu built into the bar (search,
   favorites, recents, power buttons; whisker/win7/win11/plasma layouts),
   toggled from the start button or `Super+Space`.
+- **Desktop widgets** — free-floating clock, weather and audio-visualizer
+  surfaces (layer-shell, independent of the bar) with their own **Widgets**
+  settings page. The clock has `digital` / `text` / `dials` styles driven by
+  theme files; weather resolves a city via Open-Meteo; the visualizer reads
+  cava. See [WIDGETS.md](WIDGETS.md).
 - **Floating settings window** — drag it by its header, change everything
   live, everything applies without restarting the bar.
 
@@ -305,6 +310,31 @@ flags automatically.
 - **tray.reset_nm_applet**: if enabled, the bar restarts `nm-applet` on startup
   so it re-registers with this bar's tray watcher.
 
+### Desktop widgets
+
+`widgets` configures the free-floating desktop widgets (separate from the bar's
+modules), each enabled/placed/themed independently:
+
+```json
+"widgets": {
+  "enabled": true,
+  "clock":      { "enabled": true, "layer": "bottom", "position": "top-right",
+                  "style": "digital", "theme": "default" },
+  "weather":    { "enabled": true, "position": "top-left", "city": "London",
+                  "units": "metric", "refresh_minutes": 15 },
+  "visualizer": { "enabled": false, "position": "bottom-center", "style": "bars",
+                  "source": "cava", "color_mode": "gradient" }
+}
+```
+
+Each widget shares `layer` (`background` / `bottom` / `top`), `position` (a
+9-way anchor), `margin_x` / `margin_y`, `width` / `height` (0 = auto),
+`opacity`, `radius`, `padding`, and `background` / `foreground` / `accent`
+(`""` follows the bar palette). The clock reads JSON theme files from
+`~/.config/hyprtk-bar/widget-themes/clock/` (bundled: `default`, `minimal`,
+`neon-dials`); the visualizer's effects are `bars`, `wave`, `mirror`, `dots`,
+`glow`. Full schema and design notes: [WIDGETS.md](WIDGETS.md).
+
 ---
 
 ## Usage
@@ -354,6 +384,9 @@ Opened from the bar's right-click menu. Every control applies live on *Apply*:
   *Follow hyprtk-bar* toggle that anchors the menu to the bar's edge + pill.
 - **Modules** — show/hide each module, assign it to left / center / right, and
   reorder it within its section.
+- **Widgets** — enable the desktop widgets and configure each one (clock,
+  weather, visualizer): layer, position, margins, size, opacity, colours and
+  the widget-specific options. Changes apply live.
 - **Reset layout** — restore the default arrangement.
 
 The window is frameless and draggable by its header; `Esc` closes it.
@@ -454,6 +487,14 @@ src/hyprtk_bar/
 │   ├── apps.py        .desktop scan, categories, search, launch
 │   ├── theme.py       menu CSS assembly (pywal + bar palette)
 │   └── config.py      menu config block read/write (in the bar config)
+├── desktop/           desktop widgets (own layer-shell surfaces)
+│   ├── base.py        DesktopWidgetWindow — surface, placement, theming
+│   ├── manager.py     build/reload/teardown the enabled widgets
+│   ├── theme.py       per-widget scoped CSS
+│   ├── clock.py       clock widget (digital / text / dials)
+│   ├── clock_theme.py clock theme-file loader
+│   ├── weather.py     weather widget + Open-Meteo client
+│   └── visualizer.py  audio visualizer (cava) + cairo effects
 ├── ipc.py             hyprctl queries + Hyprland event socket
 ├── layout.py          left/center/right section boxes
 ├── popup.py           layer-shell popups (calendar, previews, panels)

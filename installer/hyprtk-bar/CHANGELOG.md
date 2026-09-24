@@ -7,6 +7,24 @@ Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **Desktop widgets** — free-floating layer-shell surfaces owned by the bar
+  process, separate from the bar's own modules, with their own **Widgets**
+  settings page (master enable + per-widget tabs). Everything applies live via
+  a diffing manager (create/update/destroy, no restart). Three samples ship:
+  - **Clock** — `digital` / `text` / `dials` styles, driven by JSON **clock
+    theme files** (`~/.config/hyprtk-bar/widget-themes/clock/` plus bundled
+    `default`, `minimal`, `neon-dials`); the widget config overrides the theme.
+  - **Weather** — location set by **city**, geocoded and fetched keylessly from
+    Open-Meteo on a worker thread, cached for offline restarts, with a daily
+    forecast and Nerd Font icons.
+  - **Audio visualizer** — levels from **cava** (raw-ascii subprocess) with a
+    synthetic fallback, and `bars` / `wave` / `mirror` / `dots` / `glow`
+    effects, accent/gradient/pywal/custom colours, sensitivity, smoothing, peak
+    dots, FPS, bar count and orientation.
+  Each widget is placed 9-way (layer + position + margins), sized, and can
+  follow the bar palette or pin its own background/foreground/accent. New
+  `desktop/` package (`base`, `theme`, `manager`, `clock`, `clock_theme`,
+  `weather`, `visualizer`); design notes in `WIDGETS.md`.
 - **Fit-to-width content scaling.** When the configured width is smaller than
   the modules' natural width the bar now scales the glyphs/icons, the CSS
   font/chip sizes, the spacings and the button paddings down (to a floor) so

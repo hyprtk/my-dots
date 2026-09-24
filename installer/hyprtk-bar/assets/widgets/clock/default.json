@@ -1,0 +1,19 @@
+{
+  "name": "default",
+  "style": "digital",
+  "scale": 1.0,
+  "opacity": 0.75,
+  "radius": 16,
+  "padding": 18,
+  "background": "",
+  "foreground": "",
+  "accent": "",
+  "time_format": "%H:%M",
+  "date_format": "%A, %d %B",
+  "show_date": true,
+  "show_seconds": false,
+  "digital": {
+    "font_weight": "bold",
+    "shadow": false
+  }
+}

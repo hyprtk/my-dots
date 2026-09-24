@@ -160,7 +160,7 @@ class BarWindow(Gtk.Window):
         self._border_hue = 0.0
         self._border_base = ""
         self._palette_cache: dict | None = None
-        self._theme_extra_cb = None
+        self._theme_extra_cbs: list = []
         self._ls_ready = False
         self._last_margins: tuple[int, int] | None = None
         self._surface_x = 0
@@ -251,15 +251,25 @@ class BarWindow(Gtk.Window):
         self._bar.queue_draw()
         self._sync_rofi_variant()
         self._setup_border_animation()
-        if self._theme_extra_cb is not None:
-            self._theme_extra_cb(palette)
+        for callback in list(self._theme_extra_cbs):
+            try:
+                callback(palette)
+            except Exception:
+                log.exception("theme extra callback failed")
 
     def set_theme_extra_callback(self, callback) -> None:
         """Register a callback invoked with the palette after each re-theme.
 
-        Used to keep the arc menu overlay in lock-step with the bar's palette.
+        Used to keep overlays (the arc menu, desktop widgets) in lock-step with
+        the bar's palette. Multiple callbacks are supported; registering the same
+        callback twice is a no-op.
         """
-        self._theme_extra_cb = callback
+        if callback not in self._theme_extra_cbs:
+            self._theme_extra_cbs.append(callback)
+
+    def add_theme_extra_callback(self, callback) -> None:
+        """Alias of :meth:`set_theme_extra_callback` (multiple callbacks allowed)."""
+        self.set_theme_extra_callback(callback)
 
     # ── animated border (mirrors Hyprland's border/borderangle) ─────
 
