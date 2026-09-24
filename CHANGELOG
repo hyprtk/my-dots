@@ -3,6 +3,23 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.2.0] - 2026-09-24
+
+### Added
+
+- **hyprtk-bar: draggable desktop widgets + pywal theming.** Desktop widgets
+  gained **free placement**: hold **`Super` and left-drag** a widget on the
+  desktop to move it — the drag switches it to `position: "free"` (absolute
+  `margin_x`/`margin_y`, clamped on-screen) and persists the new position to the
+  config. Widgets now theme from **pywal** by default (regardless of the bar's
+  own theme source), and the visualizer's default colour mode is pywal.
+  The weather widget's glyphs were corrected to the **Nerd Font Weather Icons**
+  set (`U+E300–U+E3EB`, sun / cloud / rain / snow / thunder, day + night
+  variants) — the previous Font Awesome `f0xx` codepoints rendered as unrelated
+  icons (`f00d` was "times"). Hyprland keybindings: window drag moved from
+  `Super+LMB` to **`Super+Shift+LMB`** so the widget receives `Super+LMB`.
+  Vendored `hyprtk-bar` bumped to `95cda56`.
+
 ## [v1.1.0] - 2026-09-24
 
 ### Added
