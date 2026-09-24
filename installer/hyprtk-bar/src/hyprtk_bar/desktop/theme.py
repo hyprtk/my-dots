@@ -17,6 +17,26 @@ from __future__ import annotations
 from ..colors import rgba
 
 
+def resolve_widget_palette(cfg: dict) -> dict:
+    """The palette desktop widgets theme from: **pywal by default**.
+
+    Widgets follow the live pywal wallpaper palette out of the box, whatever the
+    bar's own theme source is (pywal / imported / manual). A widget's explicit
+    ``background`` / ``foreground`` / ``accent`` still wins — ``build_widget_css``
+    prefers those over the palette.
+    """
+    from ..config import load_pywal_colors
+    from ..theme import resolve_palette
+
+    palette = dict(resolve_palette(cfg))
+    pywal = load_pywal_colors()
+    if pywal:
+        palette["background"] = pywal.get("background") or palette.get("background")
+        palette["foreground"] = pywal.get("foreground") or palette.get("foreground")
+        palette["accent"] = pywal.get("color5") or pywal.get("color4") or palette.get("accent")
+    return palette
+
+
 def _pick(block: dict, key: str, palette: dict, fallback: str) -> str:
     """The widget's own colour override, else the palette's, else *fallback*."""
     value = str(block.get(key) or "").strip()

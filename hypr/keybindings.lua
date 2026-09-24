@@ -83,7 +83,9 @@ hl.bind(mainMod .. " + SHIFT + 0", hl.dsp.window.move({ workspace = 10 }))
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
-hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag())
+-- Super + LMB is left unbound so desktop widgets receive it and can be dragged
+-- (hold Super and left-drag a widget to move it); window drag moves to Shift.
+hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.window.drag())
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize())
 
 hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x = 100, y = 0, relative = true }))

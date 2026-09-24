@@ -113,6 +113,7 @@ WIDGET_LABELS = {
 WIDGET_LAYERS = ("background", "bottom", "top")
 
 WIDGET_POSITIONS = (
+    "free",
     "top-left", "top-center", "top-right",
     "center-left", "center", "center-right",
     "bottom-left", "bottom-center", "bottom-right",
@@ -404,7 +405,7 @@ DEFAULTS = {
             "bars": 48,
             "sensitivity": 1.0,
             "smoothing": 0.6,
-            "color_mode": "gradient",  # accent | gradient | pywal | custom
+            "color_mode": "pywal",     # accent | gradient | pywal | custom
             "color": "",
             "gradient_from": "",
             "gradient_to": "",
@@ -781,8 +782,10 @@ def _validate_widgets(widgets: dict) -> dict:
         block["layer"] = layer if layer in WIDGET_LAYERS else "bottom"
         position = str(block.get("position", "top-right"))
         block["position"] = position if position in WIDGET_POSITIONS else "top-right"
-        block["margin_x"] = _clamp_int(block.get("margin_x"), 0, 2000, 40)
-        block["margin_y"] = _clamp_int(block.get("margin_y"), 0, 2000, 40)
+        # ``free`` position uses margin_x/margin_y as an absolute top-left
+        # offset on the monitor, so the range is wide enough for a 4K panel.
+        block["margin_x"] = _clamp_int(block.get("margin_x"), 0, 8000, 40)
+        block["margin_y"] = _clamp_int(block.get("margin_y"), 0, 8000, 40)
         block["width"] = _clamp_int(block.get("width"), 0, 4000, 0)
         block["height"] = _clamp_int(block.get("height"), 0, 4000, 0)
         block["opacity"] = _clamp_float(block.get("opacity"), 0.0, 1.0, 0.75)

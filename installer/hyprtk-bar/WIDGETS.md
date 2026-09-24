@@ -58,7 +58,7 @@ clamps every field.
   "clock": {
     "enabled": true,
     "layer": "bottom",           // background | bottom | top
-    "position": "top-right",     // 9-way: top/center/bottom x left/center/right
+    "position": "top-right",     // free | 9-way: top/center/bottom x left/center/right
     "margin_x": 40, "margin_y": 40,
     "width": 220, "height": 0,   // 0 = auto
     "style": "digital",          // digital | text | dials
@@ -102,11 +102,28 @@ clamps every field.
 - `bottom` — below normal windows; the usual "desktop widget" layer.
 - `top` — above windows (an always-visible HUD).
 
+### Placement & dragging
+
+`position` is a 9-way anchor (`top-left` … `bottom-right`) **or `free`**, which
+places the widget at an absolute top-left of `margin_x` / `margin_y` on the
+monitor (clamped to stay fully on-screen). To move a widget, **hold Super and
+left-drag it on the desktop** — the drag switches it to `free` and persists the
+new `margin_x` / `margin_y` to the config on release. `base.py` derives the
+surface origin from the anchors so the grab point stays under the pointer.
+
+The drag uses the GTK button-press modifier state (`event.state & SUPER_MASK`),
+so it needs the surface to receive the press: `SUPER + left mouse` is **left
+unbound** in the Hyprland config (window drag moved to `SUPER + SHIFT + left
+mouse`). A plain click (no Super) is ignored.
+
 ### Colour overrides
 
-Each widget's `background` / `foreground` / `accent` is `""` to follow the bar
-palette (pywal / imported / manual) live, or an explicit `#RRGGBB` to pin it.
-The settings UI exposes this as a **Theme** checkbox + colour picker.
+Widgets theme from **pywal by default** — `desktop/theme.resolve_widget_palette`
+pulls the live wallpaper palette (background / foreground / `color5` accent)
+regardless of the bar's own theme source. Each widget's `background` /
+`foreground` / `accent` is `""` to follow that palette live, or an explicit
+`#RRGGBB` to pin it. The settings UI exposes this as a **Theme** checkbox +
+colour picker.
 
 ---
 
@@ -133,7 +150,10 @@ Location is set by **city name**. The city is geocoded with the keyless
 Open-Meteo geocoding API, then current conditions + daily forecast come from the
 Open-Meteo forecast API. Fetches run on a worker thread; the last good result is
 cached at `~/.cache/hyprtk-bar/weather.json` so the widget renders offline and
-instantly on restart. WMO codes map to labels + Nerd Font weather glyphs.
+instantly on restart. WMO codes map to labels + **Nerd Font Weather Icons**
+(sun / cloud / rain / snow / thunder …, `U+E300–U+E3EB`, with day and night
+variants). The Font Awesome `f0xx` codepoints must not be used — in "Symbols
+Nerd Font" they render as unrelated icons (e.g. `f00d` is "times").
 
 ### Visualizer
 
@@ -169,12 +189,18 @@ Implemented in this scaffold:
 - [x] Settings **Widgets** page (master + per-widget controls)
 - [x] Wiring in `app.py` / `bar.py` / `__main__.py`
 - [x] `install.sh` installs bundled widget themes
+- [x] pywal-default theming (`resolve_widget_palette`)
+- [x] Free placement + **Super + left-drag to move** (persists `position: free`
+      and the new margins)
+- [x] Nerd Font Weather Icons (`U+E300–U+E3EB`) for the weather glyphs
 
 Deliberately left for follow-up:
 
 - [ ] Per-widget monitor selection (currently the primary monitor; the bar's
-      `select_monitors` logic could be reused).
-- [ ] Drag-to-position on the desktop (currently anchor + margin fields).
+      `select_monitors` logic could be reused) — free placement is also
+      primary-monitor relative.
+- [ ] Click-through when not dragging (the surface always accepts pointer input
+      so the Super+drag press can reach it).
 - [ ] Clock theme editing/export from the settings UI (`save_clock_theme` exists).
 - [ ] Weather: hourly forecast, more providers, manual lat/lon override.
 - [ ] Visualizer: per-channel stereo bars; PipeWire-native capture fallback.

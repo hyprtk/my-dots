@@ -39,45 +39,48 @@ GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 HTTP_TIMEOUT = 8
 
-# WMO weather code -> (label, day glyph, night glyph). Glyphs are Nerd Font
-# weather codepoints; the night variant is only used for the clear/partly codes.
+# WMO weather code -> (label, day glyph, night glyph). Glyphs are the Nerd Font
+# **Weather Icons** set (erikflowers/weather-icons, relocated to U+E300–U+E3EB);
+# the night variant is used for the clear/partly/rain/snow codes when
+# ``is_day`` is 0. The plain Font Awesome codepoints (f00d, f013, …) render as
+# unrelated icons in "Symbols Nerd Font", so they must not be used here.
 _WMO = {
-    0: ("Clear", "\uf00d", "\uf02e"),
-    1: ("Mainly clear", "\uf00d", "\uf02e"),
-    2: ("Partly cloudy", "\uf002", "\uf086"),
-    3: ("Overcast", "\uf013", "\uf013"),
-    45: ("Fog", "\uf014", "\uf014"),
-    48: ("Rime fog", "\uf014", "\uf014"),
-    51: ("Light drizzle", "\uf01c", "\uf01c"),
-    53: ("Drizzle", "\uf01c", "\uf01c"),
-    55: ("Dense drizzle", "\uf01c", "\uf01c"),
-    56: ("Freezing drizzle", "\uf017", "\uf017"),
-    57: ("Freezing drizzle", "\uf017", "\uf017"),
-    61: ("Light rain", "\uf01a", "\uf01a"),
-    63: ("Rain", "\uf019", "\uf019"),
-    65: ("Heavy rain", "\uf019", "\uf019"),
-    66: ("Freezing rain", "\uf017", "\uf017"),
-    67: ("Freezing rain", "\uf017", "\uf017"),
-    71: ("Light snow", "\uf01b", "\uf01b"),
-    73: ("Snow", "\uf01b", "\uf01b"),
-    75: ("Heavy snow", "\uf01b", "\uf01b"),
-    77: ("Snow grains", "\uf01b", "\uf01b"),
-    80: ("Light showers", "\uf01a", "\uf01a"),
-    81: ("Showers", "\uf01a", "\uf01a"),
-    82: ("Violent showers", "\uf019", "\uf019"),
-    85: ("Snow showers", "\uf01b", "\uf01b"),
-    86: ("Snow showers", "\uf01b", "\uf01b"),
-    95: ("Thunderstorm", "\uf01e", "\uf01e"),
-    96: ("Thunderstorm, hail", "\uf01e", "\uf01e"),
-    99: ("Thunderstorm, hail", "\uf01e", "\uf01e"),
+    0: ("Clear", "\ue30d", "\ue32b"),
+    1: ("Mainly clear", "\ue30d", "\ue32b"),
+    2: ("Partly cloudy", "\ue302", "\ue37e"),
+    3: ("Overcast", "\ue312", "\ue312"),
+    45: ("Fog", "\ue313", "\ue313"),
+    48: ("Rime fog", "\ue313", "\ue313"),
+    51: ("Light drizzle", "\ue31b", "\ue336"),
+    53: ("Drizzle", "\ue31b", "\ue336"),
+    55: ("Dense drizzle", "\ue31b", "\ue336"),
+    56: ("Freezing drizzle", "\ue316", "\ue331"),
+    57: ("Freezing drizzle", "\ue316", "\ue331"),
+    61: ("Light rain", "\ue308", "\ue325"),
+    63: ("Rain", "\ue318", "\ue333"),
+    65: ("Heavy rain", "\ue317", "\ue332"),
+    66: ("Freezing rain", "\ue3ad", "\ue3ad"),
+    67: ("Freezing rain", "\ue3ad", "\ue3ad"),
+    71: ("Light snow", "\ue31a", "\ue335"),
+    73: ("Snow", "\ue31a", "\ue335"),
+    75: ("Heavy snow", "\ue35e", "\ue35e"),
+    77: ("Snow grains", "\ue31a", "\ue335"),
+    80: ("Light showers", "\ue309", "\ue326"),
+    81: ("Showers", "\ue319", "\ue334"),
+    82: ("Violent showers", "\ue31c", "\ue329"),
+    85: ("Snow showers", "\ue30a", "\ue327"),
+    86: ("Snow showers", "\ue30a", "\ue327"),
+    95: ("Thunderstorm", "\ue31d", "\ue32a"),
+    96: ("Thunderstorm, hail", "\ue31d", "\ue32a"),
+    99: ("Thunderstorm, hail", "\ue31d", "\ue32a"),
 }
 
 
 def describe(code) -> tuple[str, str, str]:
     try:
-        return _WMO.get(int(code), ("Unknown", "\uf07b", "\uf07b"))
+        return _WMO.get(int(code), ("Unknown", "\ue33d", "\ue33d"))
     except (TypeError, ValueError):
-        return "Unknown", "\uf07b", "\uf07b"
+        return "Unknown", "\ue33d", "\ue33d"
 
 
 def _http_json(url: str) -> dict | None:
@@ -199,7 +202,7 @@ class WeatherWidget(DesktopWidgetWindow):
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         if block.get("show_icon", True):
-            self._icon = Glyph("\uf07b", "weather-icon")
+            self._icon = Glyph("\ue33d", "weather-icon")
             self._icon.set_pixel_size(int(round(icon_size * 2.4)))
             header.pack_start(self._icon, False, False, 0)
         text_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -248,7 +251,7 @@ class WeatherWidget(DesktopWidgetWindow):
             cell.set_halign(Gtk.Align.CENTER)
             day = Gtk.Label(label="")
             day.get_style_context().add_class("weather-forecast-day")
-            icon = Glyph("\uf07b", "weather-icon")
+            icon = Glyph("\ue33d", "weather-icon")
             icon.set_pixel_size(max(10, int(round(icon_size * 1.2))))
             temps = Gtk.Label(label="")
             temps.get_style_context().add_class("weather-forecast-hi")

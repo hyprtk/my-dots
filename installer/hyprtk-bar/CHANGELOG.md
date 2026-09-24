@@ -16,15 +16,22 @@ Dates are in YYYY-MM-DD format.
     `default`, `minimal`, `neon-dials`); the widget config overrides the theme.
   - **Weather** — location set by **city**, geocoded and fetched keylessly from
     Open-Meteo on a worker thread, cached for offline restarts, with a daily
-    forecast and Nerd Font icons.
+    forecast and Nerd Font **weather glyphs** (sun / cloud / rain / snow /
+    thunder, `U+E300–U+E3EB`, day + night variants — the old Font Awesome
+    `f0xx` codepoints rendered as unrelated icons).
   - **Audio visualizer** — levels from **cava** (raw-ascii subprocess) with a
     synthetic fallback, and `bars` / `wave` / `mirror` / `dots` / `glow`
     effects, accent/gradient/pywal/custom colours, sensitivity, smoothing, peak
     dots, FPS, bar count and orientation.
-  Each widget is placed 9-way (layer + position + margins), sized, and can
-  follow the bar palette or pin its own background/foreground/accent. New
-  `desktop/` package (`base`, `theme`, `manager`, `clock`, `clock_theme`,
-  `weather`, `visualizer`); design notes in `WIDGETS.md`.
+  Each widget is placed 9-way (layer + position + margins) **or freely**
+  (`position: "free"` = absolute `margin_x` / `margin_y`, clamped on-screen),
+  sized, themed from **pywal** by default, and can pin its own
+  background/foreground/accent. **Hold `Super` and left-drag a widget on the
+  desktop to move it** — the drag switches it to `free` and persists the new
+  position; window drag moved to `Super + Shift + left mouse` so the widget
+  receives the press. New `desktop/` package (`base`, `theme`, `manager`,
+  `clock`, `clock_theme`, `weather`, `visualizer`); design notes in
+  `WIDGETS.md`.
 - **Fit-to-width content scaling.** When the configured width is smaller than
   the modules' natural width the bar now scales the glyphs/icons, the CSS
   font/chip sizes, the spacings and the button paddings down (to a floor) so

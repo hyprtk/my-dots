@@ -61,6 +61,9 @@ class DesktopWidgetWindow(Gtk.Window):
         self._provider = Gtk.CssProvider()
         self._geom_idle: int | None = None
         self._last_margins: tuple | None = None
+        self._origin: tuple[int, int] = (0, 0)
+        self._dragging = False
+        self._drag_offset: tuple[int, int] = (0, 0)
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
@@ -90,6 +93,19 @@ class DesktopWidgetWindow(Gtk.Window):
         )
         self.connect("size-allocate", self._on_size_allocate)
 
+        # Free-placement dragging: hold Super and left-drag the widget. The
+        # surface always accepts pointer input so the press (with its Super
+        # modifier state) reaches us; a plain click does nothing.
+        self.add_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK
+            | Gdk.EventMask.BUTTON_RELEASE_MASK
+            | Gdk.EventMask.POINTER_MOTION_MASK
+            | Gdk.EventMask.BUTTON1_MOTION_MASK
+        )
+        self.connect("button-press-event", self._on_button_press)
+        self.connect("button-release-event", self._on_button_release)
+        self.connect("motion-notify-event", self._on_motion)
+
         self.build()
         self.apply_theme()
 
@@ -113,10 +129,9 @@ class DesktopWidgetWindow(Gtk.Window):
     def apply_theme(self, palette: dict | None = None) -> None:
         if palette:
             self._palette = palette
-        from ..theme import resolve_palette
-        from .theme import build_widget_css
+        from .theme import build_widget_css, resolve_widget_palette
 
-        palette = self._palette or resolve_palette(self._cfg)
+        palette = self._palette or resolve_widget_palette(self._cfg)
         try:
             css = build_widget_css(self.WIDGET_ID, palette, self._cfg, self._block)
             self._provider.load_from_data(css.encode())
@@ -150,18 +165,23 @@ class DesktopWidgetWindow(Gtk.Window):
         self._apply_geometry()
         return GLib.SOURCE_REMOVE
 
-    def _monitor_size(self) -> tuple[int, int]:
+    def _monitor_geometry(self) -> tuple[int, int, int, int]:
+        """The primary monitor's ``(x, y, width, height)`` in logical pixels."""
         display = Gdk.Display.get_default()
         monitor = None
         if display is not None:
             monitor = display.get_primary_monitor() or display.get_monitor(0)
         if monitor is not None:
             geo = monitor.get_geometry()
-            return geo.width, geo.height
+            return geo.x, geo.y, geo.width, geo.height
         screen = Gdk.Screen.get_default()
         if screen is not None:
-            return screen.get_width(), screen.get_height()
-        return 1920, 1080
+            return 0, 0, screen.get_width(), screen.get_height()
+        return 0, 0, 1920, 1080
+
+    def _monitor_size(self) -> tuple[int, int]:
+        _x, _y, width, height = self._monitor_geometry()
+        return width, height
 
     def _apply_geometry(self) -> None:
         block = self._block
@@ -176,8 +196,7 @@ class DesktopWidgetWindow(Gtk.Window):
         natural = self.get_preferred_size()[1]
         cur_w = alloc.width or natural.width or width or 200
         cur_h = alloc.height or natural.height or height or 120
-        mon_w, mon_h = self._monitor_size()
-        x_mode, y_mode = _parse_position(position)
+        mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
 
         for edge in (
             GtkLayerShell.Edge.TOP,
@@ -188,25 +207,44 @@ class DesktopWidgetWindow(Gtk.Window):
             GtkLayerShell.set_anchor(self, edge, False)
 
         margins: dict = {}
-        if x_mode == "left":
+        if position == "free":
+            # Absolute top-left within the monitor, clamped so the widget stays
+            # fully on-screen. Dragging switches a widget to this mode.
+            mx = min(mx, max(0, mon_w - cur_w))
+            my = min(my, max(0, mon_h - cur_h))
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
+            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
             margins[GtkLayerShell.Edge.LEFT] = mx
-        elif x_mode == "right":
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
-            margins[GtkLayerShell.Edge.RIGHT] = mx
-        else:
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
-            margins[GtkLayerShell.Edge.LEFT] = max(0, (mon_w - cur_w) // 2)
-
-        if y_mode == "top":
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
             margins[GtkLayerShell.Edge.TOP] = my
-        elif y_mode == "bottom":
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
-            margins[GtkLayerShell.Edge.BOTTOM] = my
+            self._origin = (mon_x + mx, mon_y + my)
         else:
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
-            margins[GtkLayerShell.Edge.TOP] = max(0, (mon_h - cur_h) // 2)
+            x_mode, y_mode = _parse_position(position)
+            if x_mode == "left":
+                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
+                margins[GtkLayerShell.Edge.LEFT] = mx
+                origin_x = mon_x + mx
+            elif x_mode == "right":
+                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
+                margins[GtkLayerShell.Edge.RIGHT] = mx
+                origin_x = mon_x + mon_w - cur_w - mx
+            else:
+                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
+                margins[GtkLayerShell.Edge.LEFT] = max(0, (mon_w - cur_w) // 2)
+                origin_x = mon_x + max(0, (mon_w - cur_w) // 2)
+
+            if y_mode == "top":
+                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
+                margins[GtkLayerShell.Edge.TOP] = my
+                origin_y = mon_y + my
+            elif y_mode == "bottom":
+                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
+                margins[GtkLayerShell.Edge.BOTTOM] = my
+                origin_y = mon_y + mon_h - cur_h - my
+            else:
+                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
+                margins[GtkLayerShell.Edge.TOP] = max(0, (mon_h - cur_h) // 2)
+                origin_y = mon_y + max(0, (mon_h - cur_h) // 2)
+            self._origin = (origin_x, origin_y)
 
         key = tuple(sorted(margins.items()))
         if key == self._last_margins:
@@ -214,3 +252,63 @@ class DesktopWidgetWindow(Gtk.Window):
         self._last_margins = key
         for edge, value in margins.items():
             GtkLayerShell.set_margin(self, edge, value)
+
+    # ── free placement (Super + left-drag) ───────────────────────
+
+    def _on_button_press(self, _widget, event) -> bool:
+        if event.button != 1 or not (event.state & Gdk.ModifierType.SUPER_MASK):
+            return False
+        self._drag_offset = (
+            int(event.x_root) - self._origin[0],
+            int(event.y_root) - self._origin[1],
+        )
+        self._dragging = True
+        self._set_cursor("grabbing")
+        return True
+
+    def _on_motion(self, _widget, event) -> bool:
+        if not self._dragging:
+            return False
+        mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
+        alloc = self.get_allocation()
+        cur_w = alloc.width or 1
+        cur_h = alloc.height or 1
+        nx = int(event.x_root) - self._drag_offset[0]
+        ny = int(event.y_root) - self._drag_offset[1]
+        nx = max(mon_x, min(nx, mon_x + mon_w - cur_w))
+        ny = max(mon_y, min(ny, mon_y + mon_h - cur_h))
+        self._block["position"] = "free"
+        self._block["margin_x"] = nx - mon_x
+        self._block["margin_y"] = ny - mon_y
+        self._last_margins = None  # force the new margins through
+        self._apply_geometry()
+        return True
+
+    def _on_button_release(self, _widget, event) -> bool:
+        if event.button != 1 or not self._dragging:
+            return False
+        self._dragging = False
+        self._set_cursor(None)
+        self._persist_position()
+        return True
+
+    def _set_cursor(self, name: str | None) -> None:
+        window = self.get_window()
+        if window is None:
+            return
+        try:
+            cursor = None if name is None else Gdk.Cursor.new_from_name(self.get_display(), name)
+            window.set_cursor(cursor)
+        except Exception:
+            pass
+
+    def _persist_position(self) -> None:
+        widgets = self._cfg.get("widgets")
+        if isinstance(widgets, dict):
+            widgets[self.WIDGET_ID] = self._block
+        try:
+            from .. import config as config_module
+
+            config_module.save(self._cfg)
+        except Exception:
+            log.exception("could not persist position for widget %s", self.WIDGET_ID)

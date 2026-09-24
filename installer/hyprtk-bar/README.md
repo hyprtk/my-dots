@@ -38,9 +38,12 @@ all themed live from your pywal16 palette.
   toggled from the start button or `Super+Space`.
 - **Desktop widgets** — free-floating clock, weather and audio-visualizer
   surfaces (layer-shell, independent of the bar) with their own **Widgets**
-  settings page. The clock has `digital` / `text` / `dials` styles driven by
-  theme files; weather resolves a city via Open-Meteo; the visualizer reads
-  cava. See [WIDGETS.md](WIDGETS.md).
+  settings page. Themed from **pywal** by default and **dragged into place on
+  the desktop with `Super + left mouse`** (window drag moved to
+  `Super + Shift + left mouse`). The clock has `digital` / `text` / `dials`
+  styles driven by theme files; weather resolves a city via Open-Meteo and shows
+  Nerd Font weather glyphs; the visualizer reads cava. See
+  [WIDGETS.md](WIDGETS.md).
 - **Floating settings window** — drag it by its header, change everything
   live, everything applies without restarting the bar.
 
@@ -328,9 +331,12 @@ modules), each enabled/placed/themed independently:
 ```
 
 Each widget shares `layer` (`background` / `bottom` / `top`), `position` (a
-9-way anchor), `margin_x` / `margin_y`, `width` / `height` (0 = auto),
-`opacity`, `radius`, `padding`, and `background` / `foreground` / `accent`
-(`""` follows the bar palette). The clock reads JSON theme files from
+9-way anchor, or `free` for absolute `margin_x` / `margin_y` placement),
+`width` / `height` (0 = auto), `opacity`, `radius`, `padding`, and
+`background` / `foreground` / `accent` (`""` follows the **pywal** palette).
+Hold `Super` and left-drag a widget on the desktop to move it — the drag sets
+`position` to `free` and writes the new margins back to the config. The clock
+reads JSON theme files from
 `~/.config/hyprtk-bar/widget-themes/clock/` (bundled: `default`, `minimal`,
 `neon-dials`); the visualizer's effects are `bars`, `wave`, `mirror`, `dots`,
 `glow`. Full schema and design notes: [WIDGETS.md](WIDGETS.md).

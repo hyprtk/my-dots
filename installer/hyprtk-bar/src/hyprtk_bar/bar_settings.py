@@ -1398,7 +1398,8 @@ class BarSettings(Gtk.Window):
         hint = Gtk.Label(
             label="Free-floating desktop widgets (clock, weather, audio "
             "visualizer), independent of the bar. Enable and place each one; "
-            "everything applies live.",
+            "everything applies live. Hold Super and left-drag a widget on the "
+            "desktop to move it (sets Position to Free).",
             xalign=0,
             wrap=True,
         )
