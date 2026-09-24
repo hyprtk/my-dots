@@ -43,8 +43,9 @@ all themed live from your pywal16 palette.
   and **system information**. Themed from **pywal** by default and **dragged
   into place with `Super + Shift + left mouse`** (window drag stays on
   `Super + left mouse`). Drop one near another to **snap** them into a
-  horizontal/vertical group with a uniform cell and content scaled to fit. See
-  [WIDGETS.md](WIDGETS.md).
+  horizontal/vertical group with a uniform cell and content scaled to fit, and
+  they **never overlay the bar** (the bar thickness acts as a border the widgets
+  are clamped and scaled into). See [WIDGETS.md](WIDGETS.md).
 - **Floating settings window** — drag it by its header, change everything
   live, everything applies without restarting the bar.
 
@@ -397,8 +398,9 @@ Opened from the bar's right-click menu. Every control applies live on *Apply*:
 - **Modules** — show/hide each module, assign it to left / center / right, and
   reorder it within its section.
 - **Widgets** — enable the desktop widgets and configure each one (clock,
-  weather, visualizer): layer, position, margins, size, opacity, colours and
-  the widget-specific options. Changes apply live.
+  weather, visualizer, disk, network, resources, sysinfo): layer, position,
+  margins, size, opacity, colours, the **snap group / axis / order**, and the
+  widget-specific options. Changes apply live.
 - **Reset layout** — restore the default arrangement.
 
 The window is frameless and draggable by its header; `Esc` closes it.
@@ -500,13 +502,19 @@ src/hyprtk_bar/
 │   ├── theme.py       menu CSS assembly (pywal + bar palette)
 │   └── config.py      menu config block read/write (in the bar config)
 ├── desktop/           desktop widgets (own layer-shell surfaces)
-│   ├── base.py        DesktopWidgetWindow — surface, placement, theming
-│   ├── manager.py     build/reload/teardown the enabled widgets
-│   ├── theme.py       per-widget scoped CSS
+│   ├── base.py        DesktopWidgetWindow — surface, placement, snap, theming
+│   ├── manager.py     build/reload, snap groups, drag, usable-area clamping
+│   ├── control.py     Super+Shift widget-move FIFO
+│   ├── theme.py       per-widget, scale-aware scoped CSS
+│   ├── sampled.py     SampledWidget base (periodic sample + render)
 │   ├── clock.py       clock widget (digital / text / dials)
 │   ├── clock_theme.py clock theme-file loader
 │   ├── weather.py     weather widget + Open-Meteo client
-│   └── visualizer.py  audio visualizer (cava) + cairo effects
+│   ├── visualizer.py  audio visualizer (cava) + cairo effects
+│   ├── disk.py        hard disks (per-drive usage + R/W rates)
+│   ├── network.py     network (iface, IP, rates, graph)
+│   ├── resources.py   processor / RAM (CPU, RAM, swap, temp, load)
+│   └── sysinfo.py     system information (host/OS/CPU/GPU/mem/disks)
 ├── ipc.py             hyprctl queries + Hyprland event socket
 ├── layout.py          left/center/right section boxes
 ├── popup.py           layer-shell popups (calendar, previews, panels)
