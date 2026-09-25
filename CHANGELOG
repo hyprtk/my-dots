@@ -3,6 +3,22 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.6] - 2026-09-25
+
+### Fixed
+
+- **hyprtk-bar: startup crash on Debian/Ubuntu/Mint (0.3.2).** The bar exited a
+  fraction of a second after starting on GLib 2.80 / PyGObject 3.48.2, so it
+  looked like it never launched. `GLibUnix.signal_add` is not bound on those
+  typelibs (`g_unix_signal_add` is a C macro; only the deprecated
+  `GLibUnix.signal_add_full` is exposed), so the four signal registrations
+  raised `AttributeError` right after the bar connected to Hyprland and built
+  its surfaces. Registration now goes through a version-tolerant
+  `_add_unix_signal()` helper (`GLibUnix.signal_add` → `GLibUnix.signal_add_full`
+  → `GLib.unix_signal_add`), and `gi.require_version("GLibUnix", "2.0")` is
+  declared explicitly. Vendored `hyprtk-bar` bumped to `7bccbdf` (0.3.2); newer
+  stacks are unchanged.
+
 ## [v1.3.5] - 2026-09-25
 
 ### Fixed
