@@ -35,6 +35,7 @@ from .config import (  # noqa: E402
     WIDGET_IDS,
     WIDGET_LABELS,
     WIDGET_LAYERS,
+    WIDGET_MARGIN_DEFAULT,
     WIDGET_POSITIONS,
 )
 from .desktop import placement  # noqa: E402
@@ -150,6 +151,19 @@ def _radio_group(labels: list[tuple[str, str]]) -> dict[str, Gtk.RadioButton]:
             first = btn
         buttons[key] = btn
     return buttons
+
+
+def _widget_pos_axes(position: str) -> tuple[str, str]:
+    """``"bottom-center"`` -> ``("center", "bottom")``; mirrors desktop.base."""
+    if position == "center":
+        return "center", "center"
+    x = y = "center"
+    for part in str(position).split("-"):
+        if part in ("left", "right"):
+            x = part
+        elif part in ("top", "bottom"):
+            y = part
+    return x, y
 
 
 def _theme_dialog(win: Gtk.Window) -> None:
@@ -1487,11 +1501,22 @@ class BarSettings(Gtk.Window):
 
         # Margins mean something different per anchor (a ``free`` margin is an
         # absolute offset, an anchored one is the distance from that edge). A
-        # value carried across a position change would push the widget to the
-        # opposite edge, so reset them to the default inset on any change.
-        def _on_position_changed(_combo, _mx, _my) -> None:
-            _mx.set_value(40)
-            _my.set_value(40)
+        # value carried across a changed axis would push the widget to the
+        # opposite edge, so reset only the axis that changed (both for free).
+        previous = {"position": position.get_active_id() or ""}
+
+        def _on_position_changed(combo, _mx, _my) -> None:
+            new = combo.get_active_id() or "top-right"
+            old = previous["position"]
+            previous["position"] = new
+            if new == "free" or old == "free":
+                _mx.set_value(WIDGET_MARGIN_DEFAULT)
+                _my.set_value(WIDGET_MARGIN_DEFAULT)
+                return
+            if _widget_pos_axes(old)[0] != _widget_pos_axes(new)[0]:
+                _mx.set_value(WIDGET_MARGIN_DEFAULT)
+            if _widget_pos_axes(old)[1] != _widget_pos_axes(new)[1]:
+                _my.set_value(WIDGET_MARGIN_DEFAULT)
 
         for widget in (controls["margin_x"], controls["margin_y"], controls["snap_order"]):
             widget.connect("value-changed", _mark_dirty)
@@ -1857,14 +1882,9 @@ class BarSettings(Gtk.Window):
                 block.update(self._read_widget_resources(ctl))
             elif wid == "sysinfo":
                 block.update(self._read_widget_sysinfo(ctl))
-            # One master switch drives every pill.
-            block["transparent"] = transparent
-            # Persist placement edits to the side store so the manager's overlay
-            # (which runs on the reload that follows) uses them. The flag clears
-            # so a later drag (not touched here) is respected by the next Apply.
-            if dirty:
-                placement.set_widget(wid, block)
-            ctl["_placement_dirty"] = False
+            # The transparent pill is the master switch (widgets.transparent);
+            # drop any stale per-widget value so there is a single source.
+            block.pop("transparent", None)
             widgets[wid] = block
         return widgets
 
@@ -2031,7 +2051,14 @@ class BarSettings(Gtk.Window):
 
         # desktop widgets
         if getattr(self, "_widget_controls", None):
-            self._actions["set_widgets"](self._active_widgets_block())
+            block = self._active_widgets_block()
+            self._actions["set_widgets"](block)
+            # Record the applied placement in the side store and clear the
+            # per-widget dirty flags, so a later drag (not touched here) is
+            # respected by the next Apply.
+            placement.write_blocks({wid: block[wid] for wid in WIDGET_IDS if wid in block})
+            for ctl in self._widget_controls.values():
+                ctl["_placement_dirty"] = False
 
         # The theme actions above mutate the shared cfg and re-theme the bar,
         # but this window's widgets keep their build-time override colours.

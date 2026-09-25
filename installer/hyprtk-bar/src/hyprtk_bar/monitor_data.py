@@ -247,7 +247,13 @@ class CpuSampler:
             pass
         return ""
 
-    def sample(self) -> dict:
+    def sample(self, full: bool = True) -> dict:
+        """CPU stats.
+
+        ``full=False`` skips the two ``/proc``-scanning counts (processes /
+        threads) that a CPU-only desktop widget never displays — those scans
+        dominate the sampler's cost at a 1 Hz refresh.
+        """
         cur = _read_cpu_times()
         prev = self._prev or cur
         self._prev = cur
@@ -271,8 +277,8 @@ class CpuSampler:
         load = _loadavg()
         freq_cur, freq_max = _cpu_freq()
         uptime = _uptime_s()
-        processes = _process_count()
-        threads = _thread_count()
+        processes = _process_count() if full else None
+        threads = _thread_count() if full else None
         temp_c = None
         temps = hwmon_temps()
         for label, value in temps.items():

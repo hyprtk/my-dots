@@ -20,7 +20,9 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import random
+import stat
 import subprocess
 import threading
 import time
@@ -39,6 +41,36 @@ from .base import DesktopWidgetWindow  # noqa: E402
 log = logging.getLogger("hyprtk_bar.desktop.visualizer")
 
 CAVA_CONF_PATH = Path.home() / ".cache" / "hyprtk-bar" / "cava-hyprtk.conf"
+
+
+def _resolve_binary(name: str) -> str | None:
+    """Resolve a configured binary to a safe absolute path.
+
+    ``cava_binary`` comes from the (shareable) config, so a poisoned ``PATH`` or
+    a config pointing at an attacker-writable program must not make the bar run
+    it. Returns ``None`` for anything that isn't a regular, executable,
+    non-group/world-writable file.
+    """
+    name = str(name or "").strip()
+    if not name:
+        return None
+    if os.sep in name:
+        path = os.path.abspath(os.path.expanduser(name))
+    else:
+        import shutil
+
+        path = shutil.which(name) or ""
+    if not path:
+        return None
+    try:
+        info = os.stat(path)
+    except OSError:
+        return None
+    if not stat.S_ISREG(info.st_mode) or not os.access(path, os.X_OK):
+        return None
+    if info.st_mode & 0o022:  # group/world writable
+        return None
+    return path
 
 
 def _write_cava_config(bars: int, fps: int) -> Path:
@@ -118,7 +150,9 @@ class CavaSource:
                     break
                 values = _parse_frame(line)
                 if values:
-                    GLib.idle_add(self._on_values, values)
+                    # Store on the reader thread; the widget's own timer pulls
+                    # it. A GLib.idle_add per frame would flood the main loop.
+                    self._on_values(values)
         except (OSError, ValueError):
             pass
         finally:
@@ -149,6 +183,10 @@ class VisualizerWidget(DesktopWidgetWindow):
         self._values: list[float] = []
         self._levels: list[float] = []
         self._peaks: list[float] = []
+        self._pending: list[float] | None = None
+        self._pending_lock = threading.Lock()
+        self._last_levels: list[float] | None = None
+        self._last_peaks: list[float] | None = None
         self._synthetic = False
         self._area: Gtk.DrawingArea | None = None
         self._c1 = (0.75, 0.52, 0.99)
@@ -184,7 +222,11 @@ class VisualizerWidget(DesktopWidgetWindow):
         if str(self._block.get("source", "cava")) == "synthetic":
             self._synthetic = True
             return
-        binary = str(self._block.get("cava_binary") or "cava")
+        binary = _resolve_binary(self._block.get("cava_binary") or "cava")
+        if binary is None:
+            log.info("cava binary not usable; using synthetic levels")
+            self._synthetic = True
+            return
         source = CavaSource(binary, len(self._values), int(self._block.get("fps", 60) or 60), self._on_values)
         if source.start():
             self._source = source
@@ -194,20 +236,22 @@ class VisualizerWidget(DesktopWidgetWindow):
 
     # ── data ─────────────────────────────────────────────────────
 
-    def _on_values(self, values: list[float]) -> bool:
-        if not self._alive:
-            return GLib.SOURCE_REMOVE
-        # Resample cava's bar count onto the configured bar count.
+    def _on_values(self, values: list[float]) -> None:
+        """Called on the cava reader thread; just stash the frame."""
+        with self._pending_lock:
+            self._pending = values
+
+    def _resample(self, values: list[float]) -> None:
+        """Resample cava's bar count onto the configured bar count."""
         n = len(self._values)
         if n == 0:
-            return GLib.SOURCE_REMOVE
+            return
         if len(values) == n:
-            self._values = values
+            self._values = list(values)
         else:
             self._values = [
                 values[min(len(values) - 1, int(i * len(values) / n))] for i in range(n)
             ]
-        return GLib.SOURCE_REMOVE
 
     def _synthetic_frame(self) -> None:
         t = time.time()
@@ -220,6 +264,11 @@ class VisualizerWidget(DesktopWidgetWindow):
             self._values[i] = min(1.0, value)
 
     def _tick(self) -> bool:
+        with self._pending_lock:
+            pending = self._pending
+            self._pending = None
+        if pending is not None:
+            self._resample(pending)
         self._frame += 1
         if self._synthetic:
             self._synthetic_frame()
@@ -235,8 +284,15 @@ class VisualizerWidget(DesktopWidgetWindow):
                 current = target + (current - target) * smoothing
             self._levels[i] = max(0.0, min(1.0, current))
             self._peaks[i] = max(self._peaks[i] - 0.012, self._levels[i])
-        if self._area is not None:
-            self._area.queue_draw()
+        # Redraw only when the picture actually changes — a silent cava stream
+        # settles, after which the widget stops repainting entirely.
+        levels = [round(v, 3) for v in self._levels]
+        peaks = [round(v, 3) for v in self._peaks]
+        if levels != self._last_levels or peaks != self._last_peaks:
+            self._last_levels = levels
+            self._last_peaks = peaks
+            if self._area is not None:
+                self._area.queue_draw()
         return GLib.SOURCE_CONTINUE
 
     def on_palette(self, palette: dict) -> None:
@@ -308,6 +364,9 @@ class VisualizerWidget(DesktopWidgetWindow):
     def _draw_bars(self, cr, w: int, h: int, glow: bool) -> None:
         n, slot, width = self._bar_geometry(w, h)
         show_peaks = bool(self._block.get("peak_dots", True))
+        # One gradient per frame (was one per bar, ~48x): the ramp maps colour by
+        # vertical position across the whole surface.
+        grad = self._gradient(cr, 0, h)
         for i, level in enumerate(self._levels):
             bar_h = max(1.0, level * (h - 4))
             x = i * slot + (slot - width) / 2
@@ -316,7 +375,7 @@ class VisualizerWidget(DesktopWidgetWindow):
                 cr.set_source_rgba(self._c1[0], self._c1[1], self._c1[2], 0.22)
                 _rounded(cr, x - 1.5, y - 2, width + 3, bar_h + 4, width / 2)
                 cr.fill()
-            cr.set_source(self._gradient(cr, y, h))
+            cr.set_source(grad)
             _rounded(cr, x, y, width, bar_h, min(width / 2, 3))
             cr.fill()
             if show_peaks:
@@ -328,10 +387,10 @@ class VisualizerWidget(DesktopWidgetWindow):
     def _draw_mirror(self, cr, w: int, h: int) -> None:
         n, slot, width = self._bar_geometry(w, h)
         mid = h / 2
+        cr.set_source(self._gradient(cr, 0, h))
         for i, level in enumerate(self._levels):
             bar_h = max(1.0, level * (h / 2 - 2))
             x = i * slot + (slot - width) / 2
-            cr.set_source(self._gradient(cr, mid - bar_h, mid + bar_h))
             _rounded(cr, x, mid - bar_h, width, bar_h * 2, min(width / 2, 3))
             cr.fill()
 

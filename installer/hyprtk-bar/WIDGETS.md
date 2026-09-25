@@ -155,18 +155,29 @@ command socket and moves the widget under it. Window drag stays on
 
 Placement is kept separate from the rest of the widget config, in
 `~/.config/hyprtk-bar/widget-positions.json` (`desktop/placement.py`): the
-`position`, `margin_x` / `margin_y` and snap keys only. The manager **overlays**
-this store on the widgets on every reload, so an appearance/behaviour change
-applied from settings can never reset where a widget was dragged to. It is
-re-written on every drag, snap, detach and reload; the settings Apply only
-rewrites a widget's placement when that widget's placement controls were
-actually edited.
+`position`, `margin_x` / `margin_y` and snap keys only. It is written on every
+drag, snap, detach and reload, so it always mirrors the live layout. `config.json`
+stays **authoritative**: the store only restores a placement the config lost (its
+keys missing, or still at the built-in default), so an appearance/behaviour
+Apply can never reset where a widget was dragged, while a config edit is never
+shadowed.
 
 Because a margin means something different per anchor (an absolute offset for
 `free`, the distance from the anchored edge otherwise), changing **Position** in
-the settings resets `margin_x` / `margin_y` to the default inset — otherwise a
-`free`-drag margin carried into an anchored position would push the widget to
-the opposite edge.
+the settings resets the margin of the axis that changed (both axes for `free`) —
+otherwise a `free`-drag margin carried into an anchored position would push the
+widget to the opposite edge.
+
+### Performance
+
+Layer-shell geometry is only pushed when it changes: `base._apply_geometry`
+caches the anchor set and the size request and re-sends them only on a real
+change. A redundant anchor request makes the compositor reconfigure the surface,
+which re-fires `size-allocate` and spins the widget at the frame rate (~60 Hz)
+for no reason. The visualizer draws one gradient per frame and queues a repaint
+only when its levels change; each widget removes its `Gtk.CssProvider` on
+destroy; the snap layout applies one theme pass per widget. A static widget
+costs essentially no CPU.
 
 ### Snapping
 

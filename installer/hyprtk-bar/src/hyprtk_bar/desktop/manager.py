@@ -82,21 +82,18 @@ class DesktopWidgetManager:
         self._cfg = cfg
         widgets = cfg.get("widgets") or {}
         enabled = bool(widgets.get("enabled", True))
-        master_transparent = bool(widgets.get("transparent", False))
         wanted: dict[str, dict] = {}
         if enabled:
             for wid in WIDGET_IDS:
                 block = widgets.get(wid) or {}
                 if block.get("enabled"):
-                    # The transparent pill is a master switch: every widget
-                    # follows it regardless of any stale per-widget value.
-                    block["transparent"] = master_transparent
                     wanted[wid] = block
 
-        # Placement (position / margins / snap) is kept in a side store, so an
+        # Placement (position / margins / snap) is kept in a side store so an
         # appearance or behaviour Apply can never reset where the user dragged a
-        # widget. The store wins on load and is re-synced on every reload.
-        placement.overlay(wanted)
+        # widget. The config stays authoritative; the store only restores a
+        # placement the config lost, then is re-synced to the live layout.
+        placement.merge(wanted)
         placement.write_blocks(wanted)
 
         # Rebuild a widget when it is newly enabled or its block changed (a
@@ -306,8 +303,8 @@ class DesktopWidgetManager:
         cell with content scaled to fit."""
         bounds = self._usable_rect()
         for win in self._wins.values():
-            win.clear_snap_layout()
-            win.set_fit_scale(1.0)
+            win.clear_snap_layout(theme=False)
+            win.set_fit_scale(1.0, theme=False)
             if bounds is not None:
                 win.set_bounds(bounds)
             win._apply_geometry()  # ensure _origin reflects the block position
@@ -378,7 +375,7 @@ class DesktopWidgetManager:
                 else:
                     x, y = base_x + i * (cell_w + SNAP_GAP), base_y
                 try:
-                    win.set_snap_layout(cell_w, cell_h, scale, x, y)
+                    win.set_snap_layout(cell_w, cell_h, scale, x, y, theme=False)
                     grouped.add(id(win))
                 except Exception:
                     log.exception("snap layout failed for widget %s", wid)
@@ -389,7 +386,15 @@ class DesktopWidgetManager:
                 continue
             pw, ph = win.natural_size()
             fit = min(1.0, bw / max(pw, 1), bh / max(ph, 1))
-            win.set_fit_scale(max(SNAP_SCALE_MIN, fit))
+            win.set_fit_scale(max(SNAP_SCALE_MIN, fit), theme=False)
+
+        # One theme pass per widget for the whole layout (was 2-3 CSS reloads +
+        # spacing walks per widget per pass).
+        for win in self._wins.values():
+            try:
+                win.apply_theme()
+            except Exception:
+                log.exception("snap layout re-theme failed")
 
     # ── teardown ─────────────────────────────────────────────────
 

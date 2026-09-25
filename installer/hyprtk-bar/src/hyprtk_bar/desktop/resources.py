@@ -89,7 +89,7 @@ class ResourcesWidget(SampledWidget):
     def collect(self):
         from ..monitor_data import memory
 
-        return {"cpu": self._cpu.sample(), "mem": memory()}
+        return {"cpu": self._cpu.sample(full=False), "mem": memory()}
 
     def render(self, data) -> None:
         cpu = data.get("cpu") or {}

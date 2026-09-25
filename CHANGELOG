@@ -3,6 +3,33 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.5] - 2026-09-25
+
+### Fixed
+
+- **hyprtk-bar: desktop-widget idle-CPU regression + hardening (0.3.1).** Every
+  widget re-sent its layer-shell anchor requests on each geometry pass, making
+  the compositor reconfigure the surface every frame (~60 Hz), which re-fired
+  `size-allocate` and looped. Anchors and the size request are now emitted only
+  when they change: a static widget's allocation events drop from ~60/s to a
+  handful and the live bar fell from ~26% to ~10% of a core with the visualizer
+  animating (near-zero when the audio stream is silent). The visualizer also
+  draws one gradient per frame and repaints only when its levels change; widget
+  CSS providers are freed on destroy; snap layout does one theme pass per widget;
+  the processor/RAM sampler skips the `/proc` process/thread scans it never
+  displays.
+- **hyprtk-bar: security hardening.** `cava_binary` must resolve to a regular,
+  non-group/world-writable executable (otherwise synthetic levels are used);
+  widget CSS sanitises colours and the font family; the weather client caps the
+  response body; the placement store rejects non-finite/junk values and is
+  written 0600 through a symlink-safe temp file; the move FIFO and the
+  single-instance lock open with `O_NOFOLLOW`.
+- **hyprtk-bar: placement no longer shadows `config.json`.** The config stays
+  authoritative (the side store only restores a placement the config lost); a
+  legacy per-widget `transparent` is migrated onto the master switch; changing
+  Position resets only the margin of the axis that changed. Vendored
+  `hyprtk-bar` bumped to `a473f64` (0.3.1).
+
 ## [v1.3.4] - 2026-09-25
 
 ### Changed

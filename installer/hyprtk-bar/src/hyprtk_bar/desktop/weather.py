@@ -38,6 +38,8 @@ CACHE_PATH = Path.home() / ".cache" / "hyprtk-bar" / "weather.json"
 GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 HTTP_TIMEOUT = 8
+# Cap the decoded body so a hostile/oversized response can't exhaust memory.
+MAX_HTTP_BYTES = 2 * 1024 * 1024
 
 # WMO weather code -> (label, day glyph, night glyph). Glyphs are the Nerd Font
 # **Weather Icons** set (erikflowers/weather-icons, relocated to U+E300–U+E3EB);
@@ -86,7 +88,11 @@ def describe(code) -> tuple[str, str, str]:
 def _http_json(url: str) -> dict | None:
     try:
         with urllib.request.urlopen(url, timeout=HTTP_TIMEOUT) as response:
-            return json.loads(response.read().decode("utf-8", "replace"))
+            raw = response.read(MAX_HTTP_BYTES + 1)
+            if len(raw) > MAX_HTTP_BYTES:
+                log.warning("weather response too large (> %d bytes)", MAX_HTTP_BYTES)
+                return None
+            return json.loads(raw.decode("utf-8", "replace"))
     except (urllib.error.URLError, OSError, ValueError) as exc:
         log.warning("weather request failed: %s", exc)
         return None

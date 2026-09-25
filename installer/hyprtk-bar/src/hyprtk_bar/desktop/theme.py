@@ -19,7 +19,29 @@ cell.
 
 from __future__ import annotations
 
+import re
+
 from ..colors import rgba
+
+_HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+_CSS_RGB_RE = re.compile(r"^rgba?\([0-9.,%\s/]+\)$")
+
+
+def _safe_color(value, fallback: str = "#ffffff") -> str:
+    """A colour safe to interpolate into CSS; anything else falls back.
+
+    Values reach here from the widget block and from shareable clock themes, so
+    an arbitrary string must never land in the stylesheet.
+    """
+    text = str(value or "").strip()
+    if _HEX_RE.match(text) or _CSS_RGB_RE.match(text):
+        return text
+    return fallback
+
+
+def _safe_font(value) -> str:
+    """Strip a ``font-family`` value to a safe character set."""
+    return re.sub(r"[^A-Za-z0-9 ,\-]", "", str(value or "")).strip()
 
 
 def resolve_widget_palette(cfg: dict) -> dict:
@@ -186,9 +208,9 @@ def build_widget_css(
     group's content fits its uniform cell).
     """
     block = block or {}
-    fg = _pick(block, "foreground", palette, "foreground")
-    accent = _pick(block, "accent", palette, "accent")
-    background = _pick(block, "background", palette, "background")
+    fg = _safe_color(_pick(block, "foreground", palette, "foreground"), "#ffffff")
+    accent = _safe_color(_pick(block, "accent", palette, "accent"), "#c084fc")
+    background = _safe_color(_pick(block, "background", palette, "background"), "#000000")
     try:
         opacity = max(0.0, min(1.0, float(block.get("opacity", 0.75))))
     except (TypeError, ValueError):
@@ -196,10 +218,15 @@ def build_widget_css(
     eff_scale = _scale(block) if scale is None else max(0.4, min(3.0, float(scale)))
     radius = max(0, int(block.get("radius", 16) or 0))
     padding = _px(int(block.get("padding", 16) or 0), eff_scale)
-    font = str(block.get("font") or "").strip() or palette.get("font")
+    font = _safe_font(str(block.get("font") or "").strip() or palette.get("font"))
     font_rule = f"  font-family: {font};\n" if font else ""
 
-    if block.get("transparent"):
+    # The transparent pill is a master switch (widgets.transparent); the
+    # per-block key is only a fallback for older callers.
+    transparent = bool(
+        (cfg.get("widgets") or {}).get("transparent", block.get("transparent", False))
+    )
+    if transparent:
         # Transparent pill: drop the background fill and border, keep the content.
         bg_rule = "background-color: transparent;"
         border_rule = "border: none;"

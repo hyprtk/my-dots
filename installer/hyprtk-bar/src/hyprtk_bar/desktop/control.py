@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import stat
 from pathlib import Path
 
 import gi
@@ -44,17 +45,44 @@ class WidgetMoveControl:
         self._source: int | None = None
         self._open()
 
-    def _open(self) -> None:
+    def _ensure_fifo(self) -> bool:
+        """Create the FIFO, or verify/replace an existing node safely."""
         try:
             os.mkfifo(self._path, 0o600)
+            return True
         except FileExistsError:
             pass
         except OSError:
             log.warning("could not create control fifo %s", self._path, exc_info=True)
+            return False
+        try:
+            info = os.lstat(self._path)
+        except OSError:
+            return False
+        # It must be a FIFO we own with no group/other access (the runtime dir is
+        # private, but a same-user process could still plant a node).
+        if (
+            not stat.S_ISFIFO(info.st_mode)
+            or info.st_uid != os.getuid()
+            or info.st_mode & 0o077
+        ):
+            log.warning("replacing unsafe control fifo %s", self._path)
+            try:
+                os.unlink(self._path)
+                os.mkfifo(self._path, 0o600)
+            except OSError:
+                return False
+        return True
+
+    def _open(self) -> None:
+        if not self._ensure_fifo():
             return
         try:
-            # O_NONBLOCK so the read end opens immediately with no writer.
-            self._fd = os.open(self._path, os.O_RDONLY | os.O_NONBLOCK)
+            # O_NONBLOCK so the read end opens immediately with no writer;
+            # O_NOFOLLOW so a planted symlink can't redirect the open.
+            self._fd = os.open(
+                self._path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW
+            )
         except OSError:
             log.warning("could not open control fifo %s", self._path, exc_info=True)
             self._fd = None

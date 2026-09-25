@@ -14,6 +14,7 @@ build their content into :attr:`root` and re-render on theme changes via
 from __future__ import annotations
 
 import logging
+import weakref
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -21,6 +22,9 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("GtkLayerShell", "0.1")
 
 from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+
+from .. import config as config_module  # noqa: E402
+from . import placement  # noqa: E402
 
 log = logging.getLogger("hyprtk_bar.desktop.base")
 
@@ -30,9 +34,24 @@ _LAYER_MAP = {
     "top": GtkLayerShell.Layer.TOP,
 }
 
+_EDGES = (
+    GtkLayerShell.Edge.TOP,
+    GtkLayerShell.Edge.BOTTOM,
+    GtkLayerShell.Edge.LEFT,
+    GtkLayerShell.Edge.RIGHT,
+)
+
 
 def _layer_for(name: str):
     return _LAYER_MAP.get(str(name), GtkLayerShell.Layer.BOTTOM)
+
+
+def _as_int(value, default: int) -> int:
+    """Coerce to int, tolerating None/NaN/Infinity from an edited config."""
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
 
 
 def _parse_position(position: str) -> tuple[str, str]:
@@ -61,13 +80,15 @@ class DesktopWidgetWindow(Gtk.Window):
         self._provider = Gtk.CssProvider()
         self._geom_idle: int | None = None
         self._last_margins: tuple | None = None
+        self._last_anchors: tuple | None = None
+        self._last_size: tuple | None = None
         self._origin: tuple[int, int] = (0, 0)
         self._move_offset: tuple[int, int] = (0, 0)
         self._snap: dict | None = None
         self._bounds: tuple[int, int, int, int] | None = None
         self._fit_scale: float = 1.0
         self._content_scale: float = 1.0
-        self._spacing_bases: dict[int, int] = {}
+        self._spacing_bases: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
@@ -96,6 +117,9 @@ class DesktopWidgetWindow(Gtk.Window):
             self.get_screen(), self._provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
         self.connect("size-allocate", self._on_size_allocate)
+        # Drop the per-window CSS provider when the surface goes away, or every
+        # rebuild (a settings Apply, each drag) would leak one into the screen.
+        self.connect("destroy", self._on_destroy)
 
         # Widgets are click-through — they take no pointer input. The move
         # gesture is driven from Hyprland (Super + Shift + left mouse is a compositor
@@ -213,7 +237,7 @@ class DesktopWidgetWindow(Gtk.Window):
         minimum = self._root.get_preferred_size()[0]
         return (max(int(minimum.width), 1), max(int(minimum.height), 1))
 
-    def set_snap_layout(self, width: int, height: int, scale: float, x_root: int, y_root: int) -> None:
+    def set_snap_layout(self, width: int, height: int, scale: float, x_root: int, y_root: int, *, theme: bool = True) -> None:
         """Apply a snap-group cell: uniform size, content scale and absolute pos."""
         self._snap = {
             "width": int(width),
@@ -224,15 +248,17 @@ class DesktopWidgetWindow(Gtk.Window):
         }
         self._last_margins = None
         self._apply_geometry()
-        self.apply_theme()
+        if theme:
+            self.apply_theme()
 
-    def clear_snap_layout(self) -> None:
+    def clear_snap_layout(self, *, theme: bool = True) -> None:
         if self._snap is None:
             return
         self._snap = None
         self._last_margins = None
         self._apply_geometry()
-        self.apply_theme()
+        if theme:
+            self.apply_theme()
 
     def set_bounds(self, rect: tuple[int, int, int, int]) -> None:
         """Restrict the widget to *rect* (x0, y0, x1, y1) — the usable area."""
@@ -240,14 +266,15 @@ class DesktopWidgetWindow(Gtk.Window):
         self._last_margins = None
         self._apply_geometry()
 
-    def set_fit_scale(self, scale: float) -> None:
+    def set_fit_scale(self, scale: float, *, theme: bool = True) -> None:
         """Scale the widget's content down to fit the usable area."""
         scale = max(0.4, min(2.0, float(scale)))
         if abs(scale - self._fit_scale) < 0.01:
             return
         self._fit_scale = scale
         self._last_margins = None
-        self.apply_theme()
+        if theme:
+            self.apply_theme()
         self._apply_geometry()
 
     def _scale_spacings(self, scale: float) -> None:
@@ -260,10 +287,11 @@ class DesktopWidgetWindow(Gtk.Window):
         while stack:
             widget = stack.pop()
             if isinstance(widget, Gtk.Box):
-                key = id(widget)
-                if key not in self._spacing_bases:
-                    self._spacing_bases[key] = widget.get_spacing()
-                widget.set_spacing(max(0, int(round(self._spacing_bases[key] * scale))))
+                if widget not in self._spacing_bases:
+                    self._spacing_bases[widget] = widget.get_spacing()
+                widget.set_spacing(
+                    max(0, int(round(self._spacing_bases[widget] * scale)))
+                )
             if isinstance(widget, Gtk.Container):
                 stack.extend(widget.get_children())
 
@@ -278,14 +306,19 @@ class DesktopWidgetWindow(Gtk.Window):
         block = self._block
         snap = self._snap
         position = "free" if snap else str(block.get("position", "top-right"))
-        mx = max(0, int(block.get("margin_x", 40) or 0))
-        my = max(0, int(block.get("margin_y", 40) or 0))
-        width = max(0, int(block.get("width", 0) or 0))
-        height = max(0, int(block.get("height", 0) or 0))
+        mx = max(0, _as_int(block.get("margin_x"), 40))
+        my = max(0, _as_int(block.get("margin_y"), 40))
+        width = max(0, _as_int(block.get("width"), 0))
+        height = max(0, _as_int(block.get("height"), 0))
         if snap:
-            width = max(0, int(snap.get("width") or 0))
-            height = max(0, int(snap.get("height") or 0))
-        self.set_size_request(width if width else -1, height if height else -1)
+            width = max(0, _as_int(snap.get("width"), 0))
+            height = max(0, _as_int(snap.get("height"), 0))
+        # Only issue a size request when it actually changes: a redundant
+        # set_size_request (like a redundant set_anchor) re-triggers allocation.
+        size = (width if width else -1, height if height else -1)
+        if size != self._last_size:
+            self._last_size = size
+            self.set_size_request(*size)
 
         alloc = self.get_allocation()
         natural = self.get_preferred_size()[1]
@@ -325,35 +358,38 @@ class DesktopWidgetWindow(Gtk.Window):
         ox = max(bx0, min(ox, max(bx0, bx1 - cur_w)))
         oy = max(by0, min(oy, max(by0, by1 - cur_h)))
 
-        for edge in (
-            GtkLayerShell.Edge.TOP,
-            GtkLayerShell.Edge.BOTTOM,
-            GtkLayerShell.Edge.LEFT,
-            GtkLayerShell.Edge.RIGHT,
-        ):
-            GtkLayerShell.set_anchor(self, edge, False)
-
+        # Resolve the anchor set and margins. Layer-shell anchor/margin calls are
+        # protocol requests that make the compositor reconfigure the surface, so
+        # they must only be emitted when the value really changes — otherwise
+        # each reconfigure re-fires size-allocate and we spin at the frame rate.
+        anchors = {edge: False for edge in _EDGES}
         margins: dict = {}
         if snap:
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
-            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
+            anchors[GtkLayerShell.Edge.LEFT] = True
+            anchors[GtkLayerShell.Edge.TOP] = True
             margins[GtkLayerShell.Edge.LEFT] = ox - mon_x
             margins[GtkLayerShell.Edge.TOP] = oy - mon_y
         else:
             x_mode, y_mode = _parse_position(position)
             if x_mode == "right":
-                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
+                anchors[GtkLayerShell.Edge.RIGHT] = True
                 margins[GtkLayerShell.Edge.RIGHT] = mon_x + mon_w - cur_w - ox
             else:  # left / center
-                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
+                anchors[GtkLayerShell.Edge.LEFT] = True
                 margins[GtkLayerShell.Edge.LEFT] = ox - mon_x
             if y_mode == "bottom":
-                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
+                anchors[GtkLayerShell.Edge.BOTTOM] = True
                 margins[GtkLayerShell.Edge.BOTTOM] = mon_y + mon_h - cur_h - oy
             else:  # top / center
-                GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
+                anchors[GtkLayerShell.Edge.TOP] = True
                 margins[GtkLayerShell.Edge.TOP] = oy - mon_y
         self._origin = (ox, oy)
+
+        anchor_key = tuple(sorted(anchors.items()))
+        if anchor_key != self._last_anchors:
+            self._last_anchors = anchor_key
+            for edge, on in anchors.items():
+                GtkLayerShell.set_anchor(self, edge, on)
 
         key = tuple(sorted(margins.items()))
         if key == self._last_margins:
@@ -374,6 +410,14 @@ class DesktopWidgetWindow(Gtk.Window):
             window.input_shape_combine_region(cairo.Region(), 0, 0)
         except Exception:
             log.debug("could not clear input region for widget %s", self.WIDGET_ID)
+
+    def _on_destroy(self, *_args) -> None:
+        # The provider was added to the screen in __init__; leaving it there
+        # would leak one per (re)build and slow every later style recalculation.
+        try:
+            Gtk.StyleContext.remove_provider_for_screen(self.get_screen(), self._provider)
+        except Exception:
+            log.debug("could not remove CSS provider for widget %s", self.WIDGET_ID)
 
     # ── free placement (driven by the bar's Hyprland bind) ───────
 
@@ -405,14 +449,10 @@ class DesktopWidgetWindow(Gtk.Window):
         if isinstance(widgets, dict):
             widgets[self.WIDGET_ID] = self._block
         try:
-            from .. import config as config_module
-
             config_module.save(self._cfg)
         except Exception:
             log.exception("could not persist position for widget %s", self.WIDGET_ID)
         try:
-            from . import placement
-
-            placement.set_widget(self.WIDGET_ID, self._block)
+            placement.write_blocks({self.WIDGET_ID: self._block})
         except Exception:
             log.exception("could not persist placement for widget %s", self.WIDGET_ID)

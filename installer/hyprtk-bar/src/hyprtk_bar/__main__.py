@@ -48,10 +48,15 @@ def _acquire_lock() -> bool:
     """Take an exclusive flock; returns False if another bar is already running."""
     global _lock_file
     runtime = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
-    path = Path(runtime) / "hyprtk-bar.lock"
+    # Per-uid name + O_NOFOLLOW + 0600: the /tmp fallback is world-writable, so a
+    # symlink must not be followable there.
+    path = Path(runtime) / f"hyprtk-bar-{os.getuid()}.lock"
     try:
-        _lock_file = open(path, "w")
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        _lock_file = os.fdopen(fd, "w")
         fcntl.flock(_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        _lock_file.seek(0)
+        _lock_file.truncate()
         _lock_file.write(str(os.getpid()))
         _lock_file.flush()
         return True

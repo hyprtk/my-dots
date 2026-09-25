@@ -3,6 +3,42 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.3.1] - 2026-09-25
+
+### Fixed
+
+- **Desktop widgets: the idle-CPU regression (a ~60 Hz geometry loop).** Every
+  `_apply_geometry` re-sent its layer-shell anchor requests, so the compositor
+  reconfigured each widget every frame, which re-fired `size-allocate` and
+  looped. Anchors (and the size request) are now emitted only when they change:
+  a static widget's allocation events drop from ~60/s to a handful, and the live
+  bar fell from ~26% to ~10% of a core with the visualizer animating (near-zero
+  when the audio stream is silent).
+- **Desktop widgets: the visualizer no longer repaints needlessly.** The bars use
+  one gradient per frame (was one per bar, ~48×), a frame is queued only when
+  the levels/peaks actually change (a silent stream stops painting), and the
+  cava reader thread no longer posts a `GLib.idle_add` per frame.
+- **Desktop widgets: per-window CSS providers are removed on destroy**, so a
+  settings Apply or a drag no longer leaks a provider into the screen-wide
+  cascade; snap layout now applies one theme pass per widget (was 2–3).
+- **Security:** `cava_binary` must resolve to a regular, non-group/world-writable
+  executable (otherwise synthetic levels are used); widget CSS sanitises colours
+  and the font family; the weather client caps the response body; the placement
+  store rejects non-finite/junk values and is written 0600 through a symlink-safe
+  temp file; the move FIFO and the single-instance lock open with `O_NOFOLLOW`.
+- **Placement store no longer shadows `config.json`.** The config stays
+  authoritative; the store only restores a placement the config lost (its keys
+  missing, or still at the built-in default). A legacy per-widget
+  `transparent: true` is migrated onto the master `widgets.transparent` switch.
+
+### Changed
+
+- **Desktop widgets: changing Position resets only the margin of the axis that
+  changed** (both axes for `free`), so `top-left`→`top-right` keeps a custom
+  vertical inset.
+- The processor/RAM widget's sampler skips the `/proc` process/thread scans it
+  never displays.
+
 ## [0.3.0] - 2026-09-25
 
 ### Changed

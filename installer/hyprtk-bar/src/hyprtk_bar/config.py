@@ -125,6 +125,13 @@ WIDGET_POSITIONS = (
     "bottom-left", "bottom-center", "bottom-right",
 )
 
+# Placement keys owned by the placement side store (desktop/placement.py).
+PLACEMENT_KEYS = (
+    "position", "margin_x", "margin_y", "snap_group", "snap_axis", "snap_order",
+)
+# Default inset (px) a margin is reset to when the Position changes.
+WIDGET_MARGIN_DEFAULT = 40
+
 CLOCK_STYLES = ("digital", "text", "dials")
 VISUALIZER_STYLES = ("bars", "wave", "mirror", "dots", "glow")
 VISUALIZER_COLOR_MODES = ("accent", "gradient", "pywal", "custom")
@@ -562,6 +569,19 @@ def validate(cfg: dict) -> dict:
             margin = DEFAULTS["gap_in"]
         cfg["gap_in"] = margin
         cfg["gap_out"] = margin
+    # Migrate a legacy per-widget ``transparent: true`` onto the master switch
+    # (``widgets.transparent`` replaced the per-widget key). Detect it on the raw
+    # input, before DEFAULTS is merged in.
+    raw_widgets = cfg.get("widgets")
+    if isinstance(raw_widgets, dict) and "transparent" not in raw_widgets:
+        if any(
+            isinstance(raw_widgets.get(w), dict) and bool(raw_widgets[w].get("transparent"))
+            for w in WIDGET_IDS
+        ):
+            raw_widgets = dict(raw_widgets)
+            raw_widgets["transparent"] = True
+            cfg["widgets"] = raw_widgets
+
     valid = _deep_merge(DEFAULTS, cfg)
 
     if valid.get("position") not in ("bottom", "top"):
@@ -877,9 +897,9 @@ def _validate_widgets(widgets: dict) -> dict:
     """
     valid = _deep_merge(DEFAULTS["widgets"], widgets)
     valid["enabled"] = bool(valid.get("enabled", True))
-    # One master "transparent pills" switch for every widget (propagated below).
-    master_transparent = bool(valid.get("transparent", False))
-    valid["transparent"] = master_transparent
+    # One master "transparent pills" switch for every widget (a legacy
+    # per-widget value is migrated onto it in ``validate``).
+    valid["transparent"] = bool(valid.get("transparent", False))
 
     for wid in WIDGET_IDS:
         block = valid.get(wid)
@@ -904,9 +924,9 @@ def _validate_widgets(widgets: dict) -> dict:
         block["padding"] = _clamp_int(block.get("padding"), 0, 80, 16)
         for key in ("background", "foreground", "accent"):
             block[key] = _str_field(block.get(key))
-        # ``transparent`` drops the pill background + border (icons/text only).
-        # It is a master switch, so every widget follows the same value.
-        block["transparent"] = master_transparent
+        # ``transparent`` is a master switch (read from the widgets block); a
+        # legacy per-widget value is dropped so there is a single source.
+        block.pop("transparent", None)
 
         # Snap groups: widgets sharing a non-empty snap_group are laid out
         # together along snap_axis (the group uses its first member's axis).
@@ -1092,17 +1112,38 @@ def _normalize_layout(raw: dict, valid: dict) -> dict:
     return layout
 
 
-def _write_config(path: Path, data: dict) -> None:
-    """Atomic write: tmp + os.replace, so a crash can't truncate the file."""
-    tmp = path.with_name(path.name + ".tmp")
+def write_json_atomic(path: Path, data: dict, *, mode: int = 0o600) -> None:
+    """Atomically write *data* as JSON to *path*.
+
+    Uses ``tempfile.mkstemp`` (so a planted symlink can't be followed) and
+    ``os.replace``, so a crash or partial write can never corrupt the file. The
+    temp file is ``0600`` and cleaned up on failure.
+    """
+    import tempfile
+
     try:
-        tmp.write_text(json.dumps(data, indent=2) + "\n")
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    fd, tmp = tempfile.mkstemp(
+        dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w") as handle:
+            json.dump(data, handle, indent=2)
+            handle.write("\n")
+        os.chmod(tmp, mode)
         os.replace(tmp, path)
-    finally:
+    except BaseException:
         try:
-            tmp.unlink()
+            os.unlink(tmp)
         except OSError:
             pass
+        raise
+
+
+def _write_config(path: Path, data: dict) -> None:
+    write_json_atomic(path, data)
 
 
 def _backup_last_good() -> None:
