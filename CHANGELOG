@@ -3,6 +3,22 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.4] - 2026-09-25
+
+### Changed
+
+- **hyprtk-bar: master transparent pills + persistent placement (0.3.0).** The
+  per-widget transparent toggle is replaced by a single master **Transparent
+  pills** switch (`widgets.transparent`) that turns every desktop widget's pill
+  background/border on or off at once. Widget placement (`position`, `margin_x` /
+  `margin_y`, snap grouping) now lives in a side store
+  (`~/.config/hyprtk-bar/widget-positions.json`), overlaid on every reload, so
+  applying an appearance/behaviour change no longer resets where widgets were
+  dragged. Changing **Position** resets the margins to the default inset — a
+  leftover `free` margin could flip an anchored widget to the opposite edge
+  (e.g. `bottom-center` shown at the top). Vendored `hyprtk-bar` bumped to
+  `ace94fa` (0.3.0).
+
 ## [v1.3.3] - 2026-09-24
 
 ### Added

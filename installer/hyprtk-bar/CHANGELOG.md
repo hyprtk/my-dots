@@ -3,7 +3,7 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-25
 
 ### Changed
 
