@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hyprtk-bar"
-version = "0.3.1"
+version = "0.3.2"
 description = "Hyprtk taskbar for Hyprland (GTK3 + layer shell)"
 requires-python = ">=3.10"
 dependencies = [

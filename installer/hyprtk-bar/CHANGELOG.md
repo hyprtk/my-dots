@@ -3,6 +3,24 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.3.2] - 2026-09-25
+
+### Fixed
+
+- **Startup crash on Debian/Ubuntu/Mint (GLib 2.80, PyGObject 3.48.2): the bar
+  exited a fraction of a second after starting, so it looked like it never
+  launched.** The four signal handlers were registered with
+  `GLibUnix.signal_add`, but on these typelibs `g_unix_signal_add` is a C macro
+  and is not bound — only the deprecated `GLibUnix.signal_add_full` is exposed —
+  so the bar raised `AttributeError: 'gi.repository.GLibUnix' object has no
+  attribute 'signal_add'` right after connecting to Hyprland and creating its
+  surfaces (leaving a stale `~/.local/share/hyprtk-bar` lock behind). Signal
+  registration now goes through a version-tolerant `_add_unix_signal()` helper
+  (`GLibUnix.signal_add` → `GLibUnix.signal_add_full` → `GLib.unix_signal_add`),
+  and `gi.require_version("GLibUnix", "2.0")` is declared explicitly. Fixes the
+  bar not appearing at all on Ubuntu 24.04, Linux Mint, and other GLib 2.80
+  distros; newer stacks are unchanged.
+
 ## [0.3.1] - 2026-09-25
 
 ### Fixed

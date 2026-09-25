@@ -26,6 +26,7 @@ from pathlib import Path
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("GtkLayerShell", "0.1")
+gi.require_version("GLibUnix", "2.0")
 
 from gi.repository import GLib, GLibUnix, Gtk
 
@@ -66,6 +67,24 @@ def _acquire_lock() -> bool:
 
 def _print_config() -> None:
     print(json.dumps(load_config(), indent=2))
+
+
+def _add_unix_signal(priority: int, signum: int, handler, user_data=None) -> int:
+    """Register a Unix-signal handler, tolerating GLib binding drift.
+
+    ``g_unix_signal_add`` is a C macro, so what GLib exposes via introspection
+    depends on the GLib/PyGObject versions installed: newer typelibs export
+    ``GLibUnix.signal_add``; some older ones only bind the deprecated
+    ``GLibUnix.signal_add_full``; the oldest expose only
+    ``GLib.unix_signal_add``. A bind failure here aborts startup, so the bar
+    must cope with all three. Prefer ``signal_add`` where it exists — probing
+    ``signal_add_full`` emits a deprecation warning on newer stacks.
+    """
+    if hasattr(GLibUnix, "signal_add"):
+        return GLibUnix.signal_add(priority, signum, handler, user_data)
+    if hasattr(GLibUnix, "signal_add_full"):
+        return GLibUnix.signal_add_full(priority, signum, handler, user_data)
+    return GLib.unix_signal_add(priority, signum, handler, user_data)
 
 
 def _start_surface_watchdog(ipc) -> None:
@@ -222,10 +241,10 @@ def _run_window() -> int:
 
     move_control = WidgetMoveControl(widget_mgr.begin_move, widget_mgr.end_move)
 
-    GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, on_sigterm, None)
-    GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, on_sigusr2, None)
-    GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, on_sigusr1, None)
-    GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signal.SIGHUP, on_sighup, None)
+    _add_unix_signal(GLib.PRIORITY_DEFAULT, signal.SIGTERM, on_sigterm)
+    _add_unix_signal(GLib.PRIORITY_DEFAULT, signal.SIGUSR2, on_sigusr2)
+    _add_unix_signal(GLib.PRIORITY_DEFAULT, signal.SIGUSR1, on_sigusr1)
+    _add_unix_signal(GLib.PRIORITY_DEFAULT, signal.SIGHUP, on_sighup)
 
     # Recover from the compositor dropping the bar's layer surface after a long
     # session lock (surface gone, process alive) by restarting automatically.
