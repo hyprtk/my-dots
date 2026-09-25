@@ -25,6 +25,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib  # noqa: E402
 
 from ..config import WIDGET_IDS
+from . import placement
 
 log = logging.getLogger("hyprtk_bar.desktop.manager")
 
@@ -81,12 +82,22 @@ class DesktopWidgetManager:
         self._cfg = cfg
         widgets = cfg.get("widgets") or {}
         enabled = bool(widgets.get("enabled", True))
+        master_transparent = bool(widgets.get("transparent", False))
         wanted: dict[str, dict] = {}
         if enabled:
             for wid in WIDGET_IDS:
                 block = widgets.get(wid) or {}
                 if block.get("enabled"):
+                    # The transparent pill is a master switch: every widget
+                    # follows it regardless of any stale per-widget value.
+                    block["transparent"] = master_transparent
                     wanted[wid] = block
+
+        # Placement (position / margins / snap) is kept in a side store, so an
+        # appearance or behaviour Apply can never reset where the user dragged a
+        # widget. The store wins on load and is re-synced on every reload.
+        placement.overlay(wanted)
+        placement.write_blocks(wanted)
 
         # Rebuild a widget when it is newly enabled or its block changed (a
         # style/source change needs a fresh widget — an in-place update cannot
@@ -389,6 +400,10 @@ class DesktopWidgetManager:
             config_module.save(self._cfg)
         except Exception:
             log.exception("could not persist widget layout")
+        try:
+            placement.write_blocks({wid: win._block for wid, win in self._wins.items()})
+        except Exception:
+            log.exception("could not persist widget positions")
 
     @staticmethod
     def _destroy(win) -> None:

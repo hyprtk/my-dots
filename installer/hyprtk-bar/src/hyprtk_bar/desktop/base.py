@@ -410,3 +410,9 @@ class DesktopWidgetWindow(Gtk.Window):
             config_module.save(self._cfg)
         except Exception:
             log.exception("could not persist position for widget %s", self.WIDGET_ID)
+        try:
+            from . import placement
+
+            placement.set_widget(self.WIDGET_ID, self._block)
+        except Exception:
+            log.exception("could not persist placement for widget %s", self.WIDGET_ID)

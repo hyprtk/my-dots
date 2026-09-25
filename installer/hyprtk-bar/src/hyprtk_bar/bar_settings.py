@@ -37,6 +37,7 @@ from .config import (  # noqa: E402
     WIDGET_LAYERS,
     WIDGET_POSITIONS,
 )
+from .desktop import placement  # noqa: E402
 from .desktop.clock_theme import list_clock_themes  # noqa: E402
 from .sysapps import (  # noqa: E402
     default_browser_command,
@@ -1410,6 +1411,9 @@ class BarSettings(Gtk.Window):
         self._widgets_enabled = self._radio_bool_row(
             page, "Desktop widgets", bool(widgets.get("enabled", True))
         )
+        self._widgets_transparent = self._radio_bool_row(
+            page, "Transparent pills", bool(widgets.get("transparent", False))
+        )
 
         notebook = Gtk.Notebook()
         notebook.set_vexpand(True)
@@ -1449,11 +1453,12 @@ class BarSettings(Gtk.Window):
             [(k, k.title()) for k in WIDGET_LAYERS],
             str(block.get("layer", "bottom")),
         )
-        controls["position"] = self._combo_row(
+        position = self._combo_row(
             tab, "Position",
             [(p, p.replace("-", " ").title()) for p in WIDGET_POSITIONS],
             str(block.get("position", "top-right")),
         )
+        controls["position"] = position
         controls["margin_x"] = self._spin_row(tab, "Margin X (px)", block.get("margin_x", 40), 0, 2000, 5)
         controls["margin_y"] = self._spin_row(tab, "Margin Y (px)", block.get("margin_y", 40), 0, 2000, 5)
         controls["width"] = self._spin_row(tab, "Width (px, 0=auto)", block.get("width", 0), 0, 2000, 10)
@@ -1464,9 +1469,6 @@ class BarSettings(Gtk.Window):
         controls["background"] = self._widget_color_row(tab, "Background", block.get("background"), "#1a1b26")
         controls["foreground"] = self._widget_color_row(tab, "Text colour", block.get("foreground"), "#c0caf5")
         controls["accent"] = self._widget_color_row(tab, "Accent colour", block.get("accent"), "#c084fc")
-        controls["transparent"] = self._radio_bool_row(
-            tab, "Transparent pill", bool(block.get("transparent", False))
-        )
         controls["snap_group"] = self._entry_row(tab, "Snap group", block.get("snap_group", ""))
         controls["snap_axis"] = self._combo_row(
             tab, "Snap axis",
@@ -1474,6 +1476,29 @@ class BarSettings(Gtk.Window):
             str(block.get("snap_axis", "horizontal")),
         )
         controls["snap_order"] = self._spin_row(tab, "Snap order", block.get("snap_order", 0), 0, 99, 1)
+
+        # Placement is tracked separately from appearance so that an Apply only
+        # rewrites the placement the user actually edited here; everything else
+        # keeps its live position (see ``_active_widgets_block``).
+        controls["_placement_dirty"] = False
+
+        def _mark_dirty(*_args) -> None:
+            controls["_placement_dirty"] = True
+
+        # Margins mean something different per anchor (a ``free`` margin is an
+        # absolute offset, an anchored one is the distance from that edge). A
+        # value carried across a position change would push the widget to the
+        # opposite edge, so reset them to the default inset on any change.
+        def _on_position_changed(_combo, _mx, _my) -> None:
+            _mx.set_value(40)
+            _my.set_value(40)
+
+        for widget in (controls["margin_x"], controls["margin_y"], controls["snap_order"]):
+            widget.connect("value-changed", _mark_dirty)
+        for widget in (controls["snap_group"], position):
+            widget.connect("changed", _mark_dirty)
+        controls["snap_axis"].connect("changed", _mark_dirty)
+        position.connect("changed", _on_position_changed, controls["margin_x"], controls["margin_y"])
 
     def _build_widget_clock(self, tab: Gtk.Box, block: dict, controls: dict) -> None:
         controls["style"] = self._combo_row(
@@ -1710,7 +1735,6 @@ class BarSettings(Gtk.Window):
             "background": self._read_widget_color(ctl["background"]),
             "foreground": self._read_widget_color(ctl["foreground"]),
             "accent": self._read_widget_color(ctl["accent"]),
-            "transparent": ctl["transparent"].get_active(),
             "snap_group": ctl["snap_group"].get_text().strip(),
             "snap_axis": self._combo_value(ctl["snap_axis"], "horizontal"),
             "snap_order": int(ctl["snap_order"].get_value()),
@@ -1802,11 +1826,23 @@ class BarSettings(Gtk.Window):
         return out
 
     def _active_widgets_block(self) -> dict:
-        widgets = dict(self._cfg.get("widgets") or {})
+        live_widgets = self._cfg.get("widgets") or {}
+        widgets = dict(live_widgets)
         widgets["enabled"] = self._widgets_enabled.get_active()
+        transparent = self._widgets_transparent.get_active()
+        widgets["transparent"] = transparent
         for wid, ctl in self._widget_controls.items():
             block = dict(ctl.get("_block") or {})
             block.update(self._read_widget_common(ctl))
+            # A widget whose placement controls were not edited keeps whatever
+            # position it has live on screen (a drag, or a store value restored
+            # on load): the build-time combo/spin values are stale by now.
+            dirty = bool(ctl.get("_placement_dirty"))
+            if not dirty:
+                live = live_widgets.get(wid) or {}
+                for key in placement.PLACEMENT_KEYS:
+                    if key in live:
+                        block[key] = live[key]
             if wid == "clock":
                 block.update(self._read_widget_clock(ctl))
             elif wid == "weather":
@@ -1821,6 +1857,14 @@ class BarSettings(Gtk.Window):
                 block.update(self._read_widget_resources(ctl))
             elif wid == "sysinfo":
                 block.update(self._read_widget_sysinfo(ctl))
+            # One master switch drives every pill.
+            block["transparent"] = transparent
+            # Persist placement edits to the side store so the manager's overlay
+            # (which runs on the reload that follows) uses them. The flag clears
+            # so a later drag (not touched here) is respected by the next Apply.
+            if dirty:
+                placement.set_widget(wid, block)
+            ctl["_placement_dirty"] = False
             widgets[wid] = block
         return widgets
 

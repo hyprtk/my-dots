@@ -348,6 +348,7 @@ DEFAULTS = {
     },
     "widgets": {
         "enabled": True,             # master switch for all desktop widgets
+        "transparent": False,        # master: drop every widget's pill bg/border
         "clock": {
             "enabled": True,
             "layer": "bottom",       # background | bottom | top
@@ -366,7 +367,6 @@ DEFAULTS = {
             "background": "",        # "" = follow the bar palette
             "foreground": "",
             "accent": "",
-            "transparent": False,    # no pill background/border
             "time_format": "%H:%M",
             "date_format": "%A, %d %B",
             "show_date": True,
@@ -389,7 +389,6 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
-            "transparent": False,
             "foreground": "",
             "accent": "",
             "show_icon": True,
@@ -426,7 +425,6 @@ DEFAULTS = {
             "radius": 16,
             "padding": 12,
             "background": "",
-            "transparent": False,
         },
         "disk": {
             "enabled": False,
@@ -440,7 +438,6 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
-            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -464,7 +461,6 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
-            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -489,7 +485,6 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
-            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -516,7 +511,6 @@ DEFAULTS = {
             "radius": 16,
             "padding": 18,
             "background": "",
-            "transparent": False,
             "foreground": "",
             "accent": "",
             "scale": 1.0,
@@ -883,6 +877,9 @@ def _validate_widgets(widgets: dict) -> dict:
     """
     valid = _deep_merge(DEFAULTS["widgets"], widgets)
     valid["enabled"] = bool(valid.get("enabled", True))
+    # One master "transparent pills" switch for every widget (propagated below).
+    master_transparent = bool(valid.get("transparent", False))
+    valid["transparent"] = master_transparent
 
     for wid in WIDGET_IDS:
         block = valid.get(wid)
@@ -908,7 +905,8 @@ def _validate_widgets(widgets: dict) -> dict:
         for key in ("background", "foreground", "accent"):
             block[key] = _str_field(block.get(key))
         # ``transparent`` drops the pill background + border (icons/text only).
-        block["transparent"] = bool(block.get("transparent", False))
+        # It is a master switch, so every widget follows the same value.
+        block["transparent"] = master_transparent
 
         # Snap groups: widgets sharing a non-empty snap_group are laid out
         # together along snap_axis (the group uses its first member's axis).

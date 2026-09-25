@@ -5,6 +5,30 @@ Dates are in YYYY-MM-DD format.
 
 ## [Unreleased]
 
+### Changed
+
+- **Desktop widgets: one master "Transparent pills" toggle.** The transparent
+  pill is no longer per widget — a single **Transparent pills** Enable/Disable
+  radio on the Widgets page (beside the desktop-widgets master switch, the
+  `widgets.transparent` key) drops every widget's background fill and border at
+  once. Any per-widget `transparent` value is ignored.
+
+### Fixed
+
+- **Desktop widgets: changing Position no longer flips a widget to the opposite
+  edge.** A margin is edge-relative for an anchored position but an absolute
+  offset for `free`, so a value left over from a drag (e.g. `margin_y = 930`)
+  pushed a `bottom-center` widget to the top and a `top-center` one to the
+  bottom. Changing Position in the settings now resets the margins to the default
+  inset.
+- **Desktop widgets: positions survive an Apply.** Placement (`position`,
+  `margin_x` / `margin_y`, `snap_group` / `snap_axis` / `snap_order`) is now kept
+  in a side store, `~/.config/hyprtk-bar/widget-positions.json` (new
+  `desktop/placement.py`), and overlaid on every reload. Editing one widget's
+  appearance or behaviour no longer resets the spots the user dragged widgets to
+  — the settings Apply only rewrites placement for a widget whose placement
+  controls were actually edited.
+
 ## [0.2.0] - 2026-09-24
 
 ### Added

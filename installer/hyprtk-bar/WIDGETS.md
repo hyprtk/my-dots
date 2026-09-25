@@ -18,6 +18,7 @@ src/hyprtk_bar/desktop/
 ├── base.py           DesktopWidgetWindow — surface, placement, theming, snap layout
 ├── theme.py          build_widget_css() — per-widget, scale-aware scoped CSS
 ├── manager.py        DesktopWidgetManager — diffing reload, snap groups, drag
+├── placement.py      placement side store (position/margins/snap) persistence
 ├── control.py        WidgetMoveControl — the Super+Shift move FIFO
 ├── sampled.py        SampledWidget base — periodic sample + render
 ├── clock.py          ClockWidget — digital / text / dials
@@ -61,6 +62,7 @@ clamps every field.
 ```jsonc
 "widgets": {
   "enabled": true,
+  "transparent": false,          // master: drop every widget's pill bg/border
   "clock": {
     "enabled": true,
     "layer": "bottom",           // background | bottom | top
@@ -72,7 +74,6 @@ clamps every field.
     "font": "", "scale": 1.0,
     "opacity": 0.75, "radius": 16, "padding": 18,
     "background": "", "foreground": "", "accent": "",  // "" = follow bar palette
-    "transparent": false,        // no pill background/border (content only)
     "time_format": "%H:%M", "date_format": "%A, %d %B",
     "show_date": true, "show_seconds": false,
     "dial_count": 1, "ring_thickness": 6
@@ -124,9 +125,11 @@ clamps every field.
 ```
 
 Every widget also carries the shared keys `layer`, `margin_x` / `margin_y`,
-`opacity`, `radius`, `padding`, `background` / `foreground` / `accent`,
-`transparent`, `scale`, and the snap keys (`snap_group`, `snap_axis`,
-`snap_order`) — see [Snapping](#snapping).
+`opacity`, `radius`, `padding`, `background` / `foreground` / `accent`, `scale`,
+and the snap keys (`snap_group`, `snap_axis`, `snap_order`) — see
+[Snapping](#snapping). The transparent pill is a **master** switch
+(`widgets.transparent`) that applies to every widget at once, not a per-widget
+key.
 
 ### Layers
 
@@ -149,6 +152,21 @@ is a Hyprland bind (press/release) that runs `hyprtk-bar-widget-move.sh`. The
 bar reads its control FIFO (`desktop/control.py`), polls the cursor over the
 command socket and moves the widget under it. Window drag stays on
 `Super + left mouse`; widgets are click-through when not being moved.
+
+Placement is kept separate from the rest of the widget config, in
+`~/.config/hyprtk-bar/widget-positions.json` (`desktop/placement.py`): the
+`position`, `margin_x` / `margin_y` and snap keys only. The manager **overlays**
+this store on the widgets on every reload, so an appearance/behaviour change
+applied from settings can never reset where a widget was dragged to. It is
+re-written on every drag, snap, detach and reload; the settings Apply only
+rewrites a widget's placement when that widget's placement controls were
+actually edited.
+
+Because a margin means something different per anchor (an absolute offset for
+`free`, the distance from the anchored edge otherwise), changing **Position** in
+the settings resets `margin_x` / `margin_y` to the default inset — otherwise a
+`free`-drag margin carried into an anchored position would push the widget to
+the opposite edge.
 
 ### Snapping
 
@@ -189,8 +207,9 @@ pulls the live wallpaper palette (background / foreground / `color5` accent)
 regardless of the bar's own theme source. Each widget's `background` /
 `foreground` / `accent` is `""` to follow that palette live, or an explicit
 `#RRGGBB` to pin it. The settings UI exposes this as a **Theme** checkbox +
-colour picker. The **Transparent pill** radio (`transparent: true`) drops the
-background fill and border entirely so only the content shows over the wallpaper.
+colour picker. The master **Transparent pills** switch (`widgets.transparent`)
+drops the background fill and border of every widget so only the content shows
+over the wallpaper.
 
 ---
 
@@ -264,10 +283,14 @@ a timer.
 
 ## Settings page
 
-A new **Widgets** sidebar entry (settings window) with a master enable and one
-notebook tab per widget. Every field maps 1:1 to the config keys above; Apply
-writes the config and the manager diffs it — creating, updating or destroying
-surfaces live (no bar restart).
+A new **Widgets** sidebar entry (settings window) with a master **Desktop
+widgets** enable, a master **Transparent pills** switch, and one notebook tab per
+widget. Every field maps 1:1 to the config keys above; Apply writes the config
+and the manager diffs it — creating, updating or destroying surfaces live (no bar
+restart). Placement controls are tracked separately from the rest of a widget's
+fields, so an Apply only rewrites the placement a widget's controls actually
+edited and everything else keeps its live position (see
+[Placement & dragging](#placement--dragging)).
 
 ---
 
@@ -294,7 +317,11 @@ Implemented in this scaffold:
       and content scaled to fit (`snap_group` / `snap_axis` / `snap_order`)
 - [x] **Bar avoidance**: widgets are clamped into the monitor minus the bar's
       exclusive zone (bar thickness as a border) and scaled down to fit
-- [x] **Transparent pill** toggle per widget (`transparent`) — no background/border
+- [x] Master **Transparent pills** switch (`widgets.transparent`) — every widget's
+      pill background/border on or off at once
+- [x] **Placement store** (`desktop/placement.py`) — position/margins/snap persist
+      in `widget-positions.json` and survive an appearance/behaviour Apply
+- [x] Position change resets margins to the default inset (no opposite-edge flip)
 
 Deliberately left for follow-up:
 
