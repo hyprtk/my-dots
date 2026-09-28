@@ -44,12 +44,22 @@ echo ""
 # with no visible error). The X11 greeter is reliable wherever the X server is
 # present, so keep Wayland on Arch (the known-good AUR theme + weston path) and
 # use X11 everywhere else.
-declare -A SDDM_QT6_COMPAT SDDM_XSERVER
+declare -A SDDM_QT6_COMPAT SDDM_QT5_QML SDDM_XSERVER
 SDDM_QT6_COMPAT[apt]="qml6-module-qt5compat-graphicaleffects qml6-module-qtquick-virtualkeyboard"
 SDDM_QT6_COMPAT[dnf]="qt6-qt5compat qt6-qtvirtualkeyboard"
 SDDM_QT6_COMPAT[zypper]="qt6-qt5compat-imports qt6-qtvirtualkeyboard-imports"
 SDDM_QT6_COMPAT[xbps]="qt6-qt5compat qt6-virtualkeyboard"
 SDDM_QT6_COMPAT[apk]="qt6-qt5compat qt6-qtvirtualkeyboard"
+# On a *Qt5* SDDM (Ubuntu/Mint 0.20; openSUSE's 0.21 is built Qt5) Sugar-Candy's
+# own Qt5 imports must resolve: QtGraphicalEffects 1.0, QtQuick.Controls 2.x,
+# QtQuick.Layouts and QtQuick.VirtualKeyboard. SDDM itself pulls only
+# qml-module-qtquick2, so without these the theme fails to load and SDDM
+# silently falls back to its built-in theme.
+SDDM_QT5_QML[apt]="qml-module-qtgraphicaleffects qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-virtualkeyboard"
+SDDM_QT5_QML[dnf]="qt5-qtgraphicaleffects qt5-qtquickcontrols2 qt5-qtvirtualkeyboard"
+SDDM_QT5_QML[zypper]="libqt5-qtgraphicaleffects libqt5-qtquickcontrols2 libqt5-qtvirtualkeyboard"
+SDDM_QT5_QML[xbps]="qt5-graphicaleffects qt5-quickcontrols2 qt5-virtualkeyboard"
+SDDM_QT5_QML[apk]="qt5-qtgraphicaleffects qt5-qtquickcontrols2 qt5-qtvirtualkeyboard"
 # X server + the input driver the greeter needs. Without an X input driver
 # (e.g. Alpine ships xorg-server but no xf86-input-libinput), Xorg ignores every
 # keyboard/pointer — "No input driver specified" — and the greeter cannot be
@@ -112,6 +122,12 @@ if [ "$HYPRTK_PM" != pacman ]; then
             echo "Sugar-Candy user field patched (icon background + robust login)."
         fi
         echo "Sugar-Candy theme patched for Qt6."
+    elif [ -d "$SUGAR_THEME" ]; then
+        # Qt5 SDDM (Ubuntu/Mint 0.20; openSUSE's 0.21 is built Qt5): the theme's
+        # own Qt5 QML imports must resolve or it will not load at all. See the
+        # SDDM_QT5_QML table above.
+        [ -n "${SDDM_QT5_QML[$HYPRTK_PM]:-}" ] && pkg_install ${SDDM_QT5_QML[$HYPRTK_PM]} || true
+        echo "Sugar-Candy Qt5 QML modules ensured (Qt5 SDDM)."
     fi
 fi
 

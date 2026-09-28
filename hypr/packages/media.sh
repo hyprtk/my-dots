@@ -6,23 +6,23 @@ _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 
 case "$HYPRTK_PM" in
 pacman)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg cava)
     AUR=(hyprquickframe-git)
     ;;
 apt)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg cava)
     ;;
 dnf)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg-free)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg-free cava)
     ;;
 zypper)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg cava)
     ;;
 xbps)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg cava)
     ;;
 apk)
-    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg)
+    PKGS=(xclip pamixer wf-recorder pavucontrol tumbler vlc mpv ffmpeg cava)
     ;;
 esac
 

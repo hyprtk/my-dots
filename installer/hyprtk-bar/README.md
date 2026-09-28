@@ -53,7 +53,8 @@ all themed live from your pywal16 palette.
 
 ## Screenshots
 
-See the [Showcase](SHOWCASE.md) for screenshots of every feature.
+See the [Showcase](SHOWCASE.md) for screenshots of every feature, including all
+nine settings pages and their nested tabs.
 
 ---
 
@@ -388,14 +389,18 @@ power bar, in four layouts — `whisker`, `win7`, `win11`, `plasma`.
 
 Opened from the bar's right-click menu. Every control applies live on *Apply*:
 
-- **Bar** — height, width (`NN%` or px), alignment.
-- **Theme** — source (pywal / imported / manual), imported theme, and
-  *Import…* to pull a theme folder into the bar.
+- **Bar** — height, width (`NN%` or px), alignment, position, gaps, opacity.
+- **Fonts** — text family/size and the icon font sizes for modules and
+  quick links.
+- **Themes** — source (pywal / imported / manual), imported theme, manual
+  colours, and *Import…* to pull a theme folder into the bar.
 - **Animations** — enable the pill border animation and pick its mode/speed.
 - **Arc Menu** — the FAB overlay: position, shape, sizes, colours, theming
   source, and its item list (add/edit/remove/reorder with installed-app search).
 - **Menu** — the start menu: enabled, layout, position, alignment, gaps, and a
   *Follow hyprtk-bar* toggle that anchors the menu to the bar's edge + pill.
+- **Quicklinks** — show/hide and reorder the quick-link buttons, and the icon
+  size.
 - **Modules** — show/hide each module, assign it to left / center / right, and
   reorder it within its section.
 - **Widgets** — enable the desktop widgets and configure each one (clock,

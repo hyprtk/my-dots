@@ -70,10 +70,85 @@ palette, rofi variants, bar themes, matuwall, swaylock, icons, and SDDM & GRUB.
 
 ## Settings
 
-The floating settings window — bar geometry, fonts, themes, modules, and the
-arc-menu and menu configuration tabs, all applied live.
+The floating settings window — nine pages in the sidebar, all applied live.
 
-![Settings](assets/screenshots/settings.png)
+### Bar
+
+Geometry, position, gaps and opacity.
+
+![Settings — Bar](assets/screenshots/settings.png)
+
+### Fonts
+
+Text family and size, plus the module and quick-link icon sizes.
+
+![Settings — Fonts](assets/screenshots/settings-fonts.png)
+
+### Themes
+
+Theme source (pywal / imported / manual), imported theme picker and manual
+colours.
+
+![Settings — Themes](assets/screenshots/settings-themes.png)
+
+### Animations
+
+The pill border animation, its mode and speed.
+
+![Settings — Animations](assets/screenshots/settings-animations.png)
+
+### Arc Menu
+
+The FAB overlay's own four tabs: general geometry, theming source, colours and
+the item list.
+
+| General | Source |
+|---------|--------|
+| ![Arc Menu — General](assets/screenshots/settings-arcmenu-general.png) | ![Arc Menu — Source](assets/screenshots/settings-arcmenu-source.png) |
+
+| Colors | Menu Items |
+|--------|------------|
+| ![Arc Menu — Colors](assets/screenshots/settings-arcmenu-colors.png) | ![Arc Menu — Menu Items](assets/screenshots/settings-arcmenu-items.png) |
+
+### Menu
+
+The start menu: enabled, layout, position, alignment and gaps, with a
+*Follow hyprtk-bar* anchor.
+
+![Settings — Menu](assets/screenshots/settings-menu.png)
+
+### Quicklinks
+
+Show, hide and reorder the quick-link buttons, and set their icon size.
+
+![Settings — Quicklinks](assets/screenshots/settings-quicklinks.png)
+
+### Modules
+
+Show/hide every module, assign it to left / center / right and reorder it
+within its section.
+
+![Settings — Modules](assets/screenshots/settings-modules.png)
+
+### Widgets
+
+The desktop widgets and one configuration tab per widget.
+
+| Clock | Weather |
+|-------|---------|
+| ![Widgets — Clock](assets/screenshots/settings-widgets-clock.png) | ![Widgets — Weather](assets/screenshots/settings-widgets-weather.png) |
+
+| Audio visualizer | Hard disks |
+|------------------|-----------|
+| ![Widgets — Audio visualizer](assets/screenshots/settings-widgets-visualizer.png) | ![Widgets — Hard disks](assets/screenshots/settings-widgets-disk.png) |
+
+| Network | Processor / RAM |
+|---------|-----------------|
+| ![Widgets — Network](assets/screenshots/settings-widgets-network.png) | ![Widgets — Processor / RAM](assets/screenshots/settings-widgets-resources.png) |
+
+| System information | |
+|--------------------|-|
+| ![Widgets — System information](assets/screenshots/settings-widgets-sysinfo.png) | |
 
 ---
 
