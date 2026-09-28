@@ -3,6 +3,30 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.7] - 2026-09-28
+
+### Added
+
+- **`cava` is now installed with the media stack on every family.** The audio
+  visualizer desktop widget looks for `cava`; it is added to the media package
+  list for pacman / apt / dnf / zypper / xbps / apk.
+
+### Fixed
+
+- **SDDM Sugar-Candy theme on Qt5 SDDM (Ubuntu/Mint, openSUSE).** Ubuntu/Mint's
+  SDDM 0.20 and openSUSE's 0.21 are built against Qt5, where the theme's own
+  QML imports (`QtGraphicalEffects`, `QtQuick.Controls 2`, `QtQuick.Layouts`,
+  `QtQuick.VirtualKeyboard`) are not pulled in by SDDM itself — the theme failed
+  to load and SDDM silently fell back to its built-in theme. A `SDDM_QT5_QML`
+  per-family table now installs those modules in the Qt5 branch.
+
+### Changed
+
+- **hyprtk-bar showcase refreshed.** The vendored bar's docs and screenshots
+  were re-captured on the current 3840x1080 layout, now covering all nine
+  settings pages (with the Arc Menu and Widgets nested tabs) and the seven
+  desktop widgets. The bar version is unchanged (0.3.2).
+
 ## [v1.3.6] - 2026-09-25
 
 ### Fixed
