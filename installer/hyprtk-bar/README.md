@@ -53,8 +53,8 @@ all themed live from your pywal16 palette.
 
 ## Screenshots
 
-See the [Showcase](SHOWCASE.md) for screenshots of every feature, including all
-nine settings pages and their nested tabs.
+See the [Showcase](SHOWCASE.md) for screenshots of every feature, including the
+desktop widgets and all nine settings pages with their nested tabs.
 
 ---
 

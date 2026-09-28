@@ -59,6 +59,30 @@ Memory, Disks, Network, GPU and Apps pages with live graphs and readouts.
 
 ---
 
+## Desktop widgets
+
+Free-floating layer surfaces, independent of the bar — each one can be enabled,
+placed (free or snapped into a row/column) and themed from the
+[Settings → Widgets](#widgets) tabs.
+
+| Clock | Weather |
+|-------|---------|
+| ![Clock widget](assets/screenshots/widget-clock.png) | ![Weather widget](assets/screenshots/widget-weather.png) |
+
+| Audio visualizer | Hard disks |
+|------------------|-----------|
+| ![Audio visualizer widget](assets/screenshots/widget-visualizer.png) | ![Hard disks widget](assets/screenshots/widget-disk.png) |
+
+| Network | Processor / RAM |
+|---------|-----------------|
+| ![Network widget](assets/screenshots/widget-network.png) | ![Processor / RAM widget](assets/screenshots/widget-resources.png) |
+
+| System information | |
+|--------------------|-|
+| ![System information widget](assets/screenshots/widget-sysinfo.png) | |
+
+---
+
 ## Theme manager
 
 The theming dialogue (click the wallpaper glyph): wallpaper picker, pywal
