@@ -3,6 +3,16 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.9] - 2026-09-28
+
+### Fixed
+
+- **Idle lock no longer bypasses the crash-recovering supervisor.** The
+  `swayidle` idle lock (`installer/scripts/lockscreentime.sh`) and the `lock`
+  shell alias called `swaylock` directly, so a lock that hit the upstream
+  aquamarine DRM page-flip race got no restart — only the logout menu was
+  covered. Both now route through `hypr/scripts/lock.sh`.
+
 ## [v1.3.8] - 2026-09-28
 
 ### Changed
