@@ -60,11 +60,11 @@ screen recordings are saved by default to your ~/videos/Recordings directory
   - Follow the github - https://github.com/hyprwm/Hyprland
 
 # user githubs
-  - https://github.com/mylinuxforwork/hyprtk
+  - https://github.com/mylinuxforwork/dotfiles
   - https://github.com/JaKooLit/Hyprland-Dots
   - https://github.com/eldermf/bspwm-hyprland
-  - https://github.com/lauroro/hyprland-hyprtk
-  - https://github.com/eneshecan/hyprtk
+  - https://github.com/lauroro/hyprland-dots
+  - https://github.com/eneshecan/dotfiles
 
 # share your own files on github 
   - so we can all learn
