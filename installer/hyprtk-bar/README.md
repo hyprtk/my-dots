@@ -16,6 +16,10 @@ all themed live from your pywal16 palette.
 - **Live theming** — one wallpaper drives the whole palette via **pywal16**.
   The bar re-themes itself the moment the palette changes, with zero restart.
   Themes can also come from an imported waybar theme or a manual color block.
+- **Theme Manager** — a built-in panel (opened from the bar's wallpaper glyph)
+  for the wallpaper, pywal palette, rofi variant, bar themes, **Matuwall**
+  picker config, swaylock colours, icon theme and SDDM/GRUB — everything applied
+  live from one place.
 - **Task list** — pinned and running applications grouped by class, with a
   running/active indicator, a hover preview of an app's windows, click to focus
   or minimize, middle-click to close, and launch-on-click for pinned apps.
@@ -503,6 +507,7 @@ src/hyprtk_bar/
 ├── colors.py          shared colour parsing / contrast / blending helpers
 ├── theme.py           palette resolution + GTK CSS generation
 ├── theme_import.py    imported-theme parsing (former waybar_theme.py)
+├── themer.py          Theme Manager (wallpaper / pywal / rofi / matuwall / …)
 ├── arcmenu.py         the arc menu overlay (FAB + fan-out items)
 ├── menu/              the in-bar start menu (hyprtk-menu merged in)
 │   ├── menu_window.py layer-shell start menu (layouts, power bar)

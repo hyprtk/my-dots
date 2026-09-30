@@ -3,7 +3,25 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
-## [0.4.0] - 2026-09-28
+## [0.4.0] - 2026-09-30
+
+### Added
+
+- **Containerized GTK3/GTK4 end-to-end harness** (`tools/e2e/`). Runs the bar
+  under headless sway in a rootless-podman Arch container with a fake Hyprland
+  IPC, and writes `tools/e2e/report/e2e-output.html` with a **GTK3/GTK4 parity**
+  column. Layers: L0 static (imports + an AST scan for removed GTK4 APIs), L1
+  construct, L2 settings-apply matrix, L3 functional (toggles/menus/dialogs),
+  L4 grim captures, L5 real-process smoke. Because the tree is dual-stack
+  (`HYPRTK_GTK=3|4`), the same suite runs on both stacks, so any divergence
+  flags a port regression.
+- **Theme Manager → Matuwall page.** Reads and writes the real
+  `~/.config/matuwall/config.toml` (a symlink to the pywal render) against the
+  matuwall 0.3.x schema — `general` (`backend`, plus `[backend.*] args` and
+  `[backend.command]`), `window`, `input`, `animation`, `grid` (incl. `edge`),
+  `thumbnail`, `colors` and `hooks`. The deprecated `grid.edge_peek` is folded
+  onto `grid.edge`; saving writes *through* the symlink and refreshes the pywal
+  template (comments and placeholders preserved) so edits survive `wal`.
 
 ### Changed
 
@@ -30,6 +48,16 @@ Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **GTK4 port defects, surfaced by the new E2E suite.** Arc-overlay reload and
+  the menu rebuild used the removed `Gtk.Container.remove` (now
+  `compat.clear_child`); the arc and start menus are created on demand
+  (`ensure_arc`/`ensure_menu`) so enabling them at runtime works; frameless
+  header drag uses a `Gtk.WindowDragGesture` (`compat.make_window_draggable`)
+  instead of the removed `begin_move_drag`; `Gtk.CenterBox` has a GTK3
+  `Gtk.Overlay` fallback (`compat.center_box`); and the start-menu power/confirm
+  dialogs use `compat.dialog_run` + `compat.set_secondary_text` (GTK4 removed
+  `Gtk.Dialog.run` and `MessageDialog.format_secondary_text`), so
+  logout/reboot/shutdown work again.
 - Quick-settings/scale sliders no longer emit GTK's `reported min height -2`
   warning (the `.qs-scale slider` rule now sets an explicit `margin`).
 - `deps_ok` also probes `import gi` and `import ensurepip`, so a GTK4 dev

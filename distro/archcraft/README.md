@@ -21,7 +21,7 @@ This will work on most flavours of Arch.
 
 ## Hyprland
 
-- Status Bar: waybar
+- Status Bar: hyprtk-bar
 - Screenshots: grim & slurp
 - Clipboard Manager: cliphist
 - Logout: hyprlogout
@@ -40,11 +40,7 @@ Hyprland: Included is a pywal16 configuration that changes the color scheme base
 
 See also the .zshrc and the key bindings on Hyprland and XFCE for more alias definitions.
 
-Hyprland: In addition, you can switch the Waybar Template
-
-	Keybinding SUPER + CTRL + T or by pressing the _ icon under the picture icon in waybar.
-
-The templates are available in ~/dotfiles/waybar/themes. You can add your own personal themes into this folder. The script will read in the folder structure.
+System theming (wallpaper, pywal, rofi, icons, swaylock, SDDM/GRUB) now lives in **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar. Bar themes ship with the bar; import or add your own from the Theme Manager's **Bar Themes** page.
 
 ## Getting started
 

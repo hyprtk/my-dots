@@ -116,8 +116,9 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | `Super + W` | Matuwall wallpaper picker |
 | `Super + Shift + W` | Random wallpaper |
 | `Super + Ctrl + W` | Wallpaper list (rofi) |
-| `Super + Ctrl + T` | Switch waybar theme |
-| `Super + Shift + B` | Reload waybar |
+
+All theming (bar theme, pywal, rofi, icons, swaylock, SDDM/GRUB) is changed from
+**hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar.
 
 ### Media & system
 
