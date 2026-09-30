@@ -71,6 +71,8 @@ desktop widgets and all nine settings pages with their nested tabs.
 - PyGObject and pycairo — installed from your package manager (they ship no
   binary wheels, so the installer never pip-builds them).
 - `dbus-next` — installed into the bar's virtualenv (pure Python).
+- `tomli` — installed into the virtualenv only on Python < 3.11 (3.11+ uses the
+  stdlib `tomllib` for the Theme Manager's Matuwall config editor).
 
 The installer handles the system packages for you: it detects your package
 manager and installs the right typelibs, Python GI bindings and venv tooling
@@ -99,8 +101,9 @@ This:
    (skipped automatically when already present).
 2. Creates `~/.local/share/hyprtk-bar/` with a `--system-site-packages`
    virtualenv and the source.
-3. Pip-installs `dbus-next` into the venv and editable-installs the bar
-   (`--no-deps` — PyGObject/pycairo come from the system, not pip).
+3. Pip-installs `dbus-next` (and `tomli` on Python < 3.11) into the venv and
+   editable-installs the bar (`--no-deps` — PyGObject/pycairo come from the
+   system, not pip).
 4. Drops a `hyprtk-bar` launcher on `~/.local/bin`.
 5. Vendors pywal16 (`vendor/pywal16/`) and drops a `wal` launcher on
    `~/.local/bin` (real launcher `venv/bin/wal`) — no separate AUR/PyPI pywal
@@ -492,6 +495,28 @@ single SNI watcher and a single notifications bus owner.
 - **Wrong monitor** — with `monitors: "all"` or a name list, make sure the
   names match your `hyprctl monitors` output (connector names like `DP-1` or
   model names).
+
+---
+
+## Security
+
+hyprtk-bar runs entirely as your user; the only privileged action is the
+SDDM/GRUB update, which runs a dotfiles script via `pkexec` after checking that
+the script and **every file it copies as root** are user-owned and not
+group/world-writable.
+
+- Config-sourced commands are never run through a shell. The updates
+  left-click command is parsed to argv and must reference an allowlisted script;
+  shell metacharacters are rejected.
+- Colours from the config and imported themes are validated before they reach
+  GTK CSS, so a crafted value cannot inject declarations.
+- Wallpaper helpers read pywal's **JSON** rather than `source`-ing generated
+  shell, so a filename can't inject commands.
+- The notification daemon and tray bound every remote field (label/body length,
+  actions, icon name and icon-theme path, pixmap dimensions, menu depth) before
+  use.
+- The animated-border and progress-fifo helpers keep state under
+  `$XDG_RUNTIME_DIR` (owner-only), not a shared `/tmp` path.
 
 ---
 
