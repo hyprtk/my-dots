@@ -107,7 +107,7 @@ def render(report_dir: Path, stacks: list[str]) -> Path:
     failures = [r for r in rows if r["parity"] == "fail"]
 
     parts = ["""<!doctype html><html><head><meta charset="utf-8">
-<title>hyprtk-bar-gtk4 · E2E results</title>
+<title>hyprtk-bar · E2E results</title>
 <style>
 :root{--bg:#14141c;--panel:#1c1c28;--fg:#e6e6f0;--dim:#9a9ab0;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--skip:#6e7681;--accent:#c084fc;--sky:#22d3ee}
 *{box-sizing:border-box}

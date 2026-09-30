@@ -1,5 +1,5 @@
 #!/bin/bash
-# ── hyprtk-bar-gtk4 · E2E in-container driver ───────────────────────────────
+# ── hyprtk-bar · E2E in-container driver ───────────────────────────────
 # Runs inside the test image. Starts a headless sway (wlr-layer-shell capable),
 # wires the fake hyprctl, then runs the suite (both GTK stacks + reporter).
 # ─────────────────────────────────────────────────────────────────────────────

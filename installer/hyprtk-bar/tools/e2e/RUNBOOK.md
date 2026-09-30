@@ -1,7 +1,7 @@
 # hyprtk-bar GTK3 → GTK4 · end-to-end runbook
 
 How to prove — exhaustively and reproducibly — that **every** setting and surface
-of `hyprtk-bar-gtk4` works, and which of them don't. The suite runs in a throwaway
+of `hyprtk-bar` works, and which of them don't. The suite runs in a throwaway
 Arch container, drives the real bar classes headlessly, and writes
 `tools/e2e/report/e2e-output.html`.
 

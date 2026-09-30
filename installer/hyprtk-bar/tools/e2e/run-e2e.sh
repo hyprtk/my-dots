@@ -1,5 +1,5 @@
 #!/bin/bash
-# ── hyprtk-bar-gtk4 · E2E runner (host entry point) ─────────────────────────
+# ── hyprtk-bar · E2E runner (host entry point) ─────────────────────────
 # Builds the Arch test image (once) and runs the full L0–L5 suite inside it for
 # BOTH GTK stacks, writing tools/e2e/report/e2e-output.html.
 #
@@ -10,14 +10,14 @@
 #   tools/e2e/run-e2e.sh --layer 2       # only the settings-apply matrix
 #   tools/e2e/run-e2e.sh -- -k arcmenu   # extra args go to pytest
 #
-# Environment: PODMAN (default podman), E2E_IMAGE (default hyprtk-bar-gtk4-e2e).
+# Environment: PODMAN (default podman), E2E_IMAGE (default hyprtk-bar-e2e).
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 PODMAN="${PODMAN:-podman}"
-IMAGE="${E2E_IMAGE:-hyprtk-bar-gtk4-e2e}"
+IMAGE="${E2E_IMAGE:-hyprtk-bar-e2e}"
 
 BUILD=0
 PASSTHRU=()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""hyprtk-bar-gtk4 E2E orchestrator.
+"""hyprtk-bar E2E orchestrator.
 
 Runs the pytest suite once per GTK stack (the ported tree is dual-stack via
 ``HYPRTK_GTK``), collects a JSON report for each, then renders the merged
