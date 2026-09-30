@@ -13,6 +13,7 @@ first sample runs during ``build`` so the widget is populated immediately.
 from __future__ import annotations
 
 import logging
+import threading
 
 from .. import compat  # noqa: E402
 from ..compat import GLib, Gtk  # noqa: E402
@@ -29,6 +30,8 @@ class SampledWidget(DesktopWidgetWindow):
 
     def __init__(self, cfg: dict, block: dict):
         self._timer_id: int | None = None
+        self._sampling = False
+        self._destroyed = False
         super().__init__(cfg, block)
 
     # ── subclass hooks ───────────────────────────────────────────
@@ -70,10 +73,40 @@ class SampledWidget(DesktopWidgetWindow):
             self._timer_id = GLib.timeout_add(self._refresh_ms(), self._tick)
 
     def _tick(self) -> bool:
-        self._sample()
+        # Sample off the GTK thread: collect() spawns subprocesses (lsblk) and
+        # reads /proc, which would stall the bar on the 1-2s poll. Only the
+        # render() call runs back on the main thread.
+        self._sample_async()
         return GLib.SOURCE_CONTINUE
 
+    def _sample_async(self) -> None:
+        if self._sampling:
+            return
+        self._sampling = True
+
+        def _work() -> None:
+            try:
+                data = self.collect()
+            except Exception:
+                log.exception("widget %s sample failed", self.WIDGET_ID)
+                data = None
+            GLib.idle_add(self._render_async, data)
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _render_async(self, data) -> bool:
+        self._sampling = False
+        if self._destroyed:
+            return GLib.SOURCE_REMOVE
+        if data is not None:
+            try:
+                self.render(data)
+            except Exception:
+                log.exception("widget %s render failed", self.WIDGET_ID)
+        return GLib.SOURCE_REMOVE
+
     def _sample(self) -> None:
+        # Initial synchronous sample at build time (one-off, before the poll).
         try:
             data = self.collect()
         except Exception:
@@ -85,6 +118,7 @@ class SampledWidget(DesktopWidgetWindow):
             log.exception("widget %s render failed", self.WIDGET_ID)
 
     def shutdown(self) -> None:
+        self._destroyed = True
         if self._timer_id is not None:
             GLib.source_remove(self._timer_id)
             self._timer_id = None

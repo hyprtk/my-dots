@@ -86,7 +86,13 @@ _APP_DIRS = [
 def _parse_desktop(path: Path) -> dict | None:
     name = exec_ = icon = comment = None
     in_section = False
-    for line in path.read_text(errors="ignore").splitlines():
+    try:
+        text = path.read_text(errors="ignore")
+    except OSError:
+        # Unreadable / dangling-symlink / vanished .desktop — skip it rather
+        # than crash the app-picker dialogs on open.
+        return None
+    for line in text.splitlines():
         line = line.strip()
         if not line:
             continue
@@ -458,10 +464,12 @@ class BarSettings(Gtk.Window):
                     ctx.add_class("settings-btn")
             elif isinstance(w, Gtk.Label):
                 ctx.add_class("settings-label")
+            elif compat.is_radio(w):
+                # Must precede the plain CheckButton test: GTK4 radios are
+                # grouped Gtk.CheckButtons, so the isinstance would swallow them.
+                ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.CheckButton):
                 ctx.add_class("settings-check")
-            elif compat.is_radio(w):
-                ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.Switch):
                 ctx.add_class("settings-switch")
             elif isinstance(w, Gtk.ComboBox):
@@ -2160,10 +2168,12 @@ class BarSettings(Gtk.Window):
                         self._update_source_state()
                         self._actions["set_source"]("imported")
                         self._actions["set_theme_name"](name)
-            compat.destroy(dialog)
+            # Gtk.FileChooserNative is a Gtk.NativeDialog, not a widget:
+            # use its own destroy/show rather than compat.* (set_visible/unparent).
+            dialog.destroy()
 
         chooser.connect("response", on_response)
-        compat.show(chooser)
+        chooser.show()
 
 class _ArcItemDialog(Gtk.Window):
     """Add/edit a single arc menu item (icon, command, tooltip), with an

@@ -15,6 +15,26 @@ from __future__ import annotations
 import re
 
 
+# Colour values from config / imported themes are interpolated into GTK CSS.
+# Anything that is not a plain hex/rgb/rgba colour (or a safe keyword) is
+# replaced, so a crafted value can not close a rule and inject declarations.
+_CSS_COLOR_RE = re.compile(
+    r"^(?:#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|#[0-9a-fA-F]{8}"
+    r"|rgba?\([0-9.,\s%/]+\))$"
+)
+_SAFE_CSS_KEYWORDS = {"transparent", "none", "currentcolor", "inherit"}
+
+
+def safe_css_color(value, fallback: str = "#000000") -> str:
+    """Return *value* when it is a safe CSS colour, else *fallback*."""
+    if not isinstance(value, str):
+        return fallback
+    v = value.strip()
+    if v.lower() in _SAFE_CSS_KEYWORDS or _CSS_COLOR_RE.match(v):
+        return v
+    return fallback
+
+
 def hex_to_rgb(hex_color) -> tuple[int, int, int] | None:
     """(r, g, b) ints from #rgb/#rrggbb/#rrggbbaa; None when unparseable."""
     if not isinstance(hex_color, str):

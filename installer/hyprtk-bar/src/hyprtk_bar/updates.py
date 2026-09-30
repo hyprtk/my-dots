@@ -60,6 +60,41 @@ def _allowed_script(path: str):
     return None
 
 
+# Characters that give a string shell semantics. The install command is run as
+# argv (never via a shell), so any of these means we cannot faithfully exec it —
+# reject and fall back to the bundled installer rather than risk injection.
+_SHELL_META = set(";&|`$(){}<>\n\\")
+
+
+def _install_argv(command: str):
+    """Parse a configured install command into a safe argv list, else None.
+
+    Requires no shell metacharacters and at least one element resolving to an
+    allowlisted script; the script element is rewritten to its absolute real
+    path and ``argv[0]`` is resolved on PATH.
+    """
+    if not command or any(ch in _SHELL_META for ch in command):
+        return None
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        return None
+    if not parts:
+        return None
+    found = False
+    for i, token in enumerate(parts):
+        expanded = os.path.expanduser(token)
+        if "/" in expanded:
+            script = _allowed_script(expanded)
+            if script:
+                parts[i] = script
+                found = True
+    if not found:
+        return None
+    parts[0] = proc.resolve_binary(parts[0]) or parts[0]
+    return parts
+
+
 class Updates(HoverButton):
     """Pending-update count with a hover tooltip; click runs the installer."""
 
@@ -86,35 +121,27 @@ class Updates(HoverButton):
                 # — expected, so stay quiet and just show the module as "?".
                 log.info("updates: no script at %r; polling disabled", configured)
             self._interval = 3600
-        self._install = u.get(
+        configured_install = u.get(
             "install_command",
             str(resolve_script("installupdates.sh", "installer", "scripts", "installupdates.sh")),
         ) or ""
-        # The install command also comes from user config; allow it only when it
-        # references an allowlisted script somewhere in it (so a legit wrapper
-        # like `alacritty -e ~/hyprtk/.../installupdates.sh` is fine, but a
-        # synced/malicious config can't get arbitrary shell on left-click).
-        # Empty stays empty (disabled); otherwise fall back to the bundled
-        # installer.
-        if self._install:
-            allowed = False
-            try:
-                tokens = shlex.split(self._install)
-            except ValueError:
-                tokens = []
-            for token in tokens:
-                tok = os.path.expanduser(token)
-                if "/" in tok and _allowed_script(tok):
-                    allowed = True
-                    break
-            if not allowed:
+        # The install command comes from user config, so it is never run through
+        # a shell: it is parsed to argv and only accepted when it contains no
+        # shell metacharacters AND at least one element resolves to an
+        # allowlisted script (so a legit wrapper like
+        # `alacritty -e ~/hyprtk/.../installupdates.sh` is fine, but a
+        # synced/malicious config cannot smuggle in extra commands on
+        # left-click). Empty/unsafe falls back to the bundled installer.
+        self._install_argv = _install_argv(configured_install)
+        if not self._install_argv:
+            if configured_install:
                 log.warning(
-                    "updates: refusing install command with no allowlisted script %r; using bundled installer",
-                    self._install,
+                    "updates: refusing install command %r; using bundled installer",
+                    configured_install,
                 )
-                self._install = str(
-                    resolve_script("installupdates.sh", "installer", "scripts", "installupdates.sh")
-                ) or ""
+            self._install_argv = _install_argv(
+                str(resolve_script("installupdates.sh", "installer", "scripts", "installupdates.sh"))
+            ) or []
         font_cfg = cfg.get("font") or {}
         self._glyph = Glyph(_GLYPH, "accent-icon")
         self._glyph.set_pixel_size(
@@ -127,6 +154,7 @@ class Updates(HoverButton):
         compat.pack_start(self.box, self._label, False, False, 0)
 
         self._tip = ""
+        self._busy = False
         self._update()
         self._tick_id = GLib.timeout_add_seconds(self._interval, self._tick)
         bind_hover_tooltip(self, cfg, lambda: self._tip)
@@ -145,15 +173,26 @@ class Updates(HoverButton):
         return GLib.SOURCE_CONTINUE
 
     def _update(self) -> None:
+        # One check at a time: the script can outrun _interval (a slow package
+        # manager), and stacking worker threads would spawn overlapping
+        # pacman/checkupdates and apply results out of order.
+        if self._busy:
+            return
+        self._busy = True
         # Run the (potentially slow) update check on a worker thread so the bar
         # never stalls waiting for pacman/checkupdates on the UI thread.
         def _work():
-            text, css, tooltip = self._query()
+            try:
+                text, css, tooltip = self._query()
+            except Exception:
+                log.exception("updates check failed")
+                text, css, tooltip = "?", "green", ""
             GLib.idle_add(self._apply, text, css, tooltip)
 
         threading.Thread(target=_work, daemon=True).start()
 
     def _apply(self, text: str, css: str, tooltip: str) -> None:
+        self._busy = False
         self._label.set_text(text)
         ctx = compat.style_context(self._label)
         if css == "red":
@@ -183,8 +222,7 @@ class Updates(HoverButton):
             return "?", "green", ""
 
     def _on_button_press(self, _widget, event):
-        if event.button == 1 and self._install:
-            # Trusted config command; run through one explicit sh -c so the
-            # embedded ~/ path expands.
-            proc.run_shell(self._install)
+        if event.button == 1 and self._install_argv:
+            # Validated to an argv list at construction; no shell involved.
+            proc.spawn_argv(self._install_argv)
         return True

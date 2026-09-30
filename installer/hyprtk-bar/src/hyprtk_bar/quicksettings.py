@@ -376,6 +376,7 @@ class QuickSettings(Popup):
         self._cfg = cfg
         self._timer = None
         self._brightness_row = None
+        self._refresh_busy = False
 
         title = Gtk.Label(label="Quick Settings", xalign=0)
         compat.add_class(title, "qs-title")
@@ -423,28 +424,41 @@ class QuickSettings(Popup):
         super().hide_popup()
 
     def refresh(self) -> None:
+        # One fetch at a time: the 5s poll and every open both call this, and
+        # bluetoothctl/nmcli can be slow enough to stack overlapping worker
+        # fleets (whose out-of-order snapshots make the flyout flicker).
+        if self._refresh_busy:
+            return
+        self._refresh_busy = True
         self._ensure_brightness()
         # Collect state off the GTK thread — nmcli/bluetoothctl/wpctl/
         # brightnessctl are subprocesses that would stall the flyout on open.
         def _work() -> None:
-            data = {
-                "wifi": get_wifi(),
-                "bt": get_bt(),
-                "volume": get_volume_state(),
-                "mic": get_mic_state(),
-                "brightness": None,
-            }
-            br = self._brightness_row
-            if br is not None:
-                try:
-                    data["brightness"] = br._get_pct()
-                except Exception:
-                    data["brightness"] = None
+            try:
+                data = {
+                    "wifi": get_wifi(),
+                    "bt": get_bt(),
+                    "volume": get_volume_state(),
+                    "mic": get_mic_state(),
+                    "brightness": None,
+                }
+                br = self._brightness_row
+                if br is not None:
+                    try:
+                        data["brightness"] = br._get_pct()
+                    except Exception:
+                        data["brightness"] = None
+            except Exception:
+                log.exception("quick-settings refresh failed")
+                data = {}
             GLib.idle_add(self._apply_refresh, data)
 
         threading.Thread(target=_work, daemon=True).start()
 
     def _apply_refresh(self, data: dict) -> bool:
+        self._refresh_busy = False
+        if not data:
+            return GLib.SOURCE_REMOVE
         self._wifi.set_state(data["wifi"])
         self._bt.set_state(data["bt"])
         vol = data["volume"]

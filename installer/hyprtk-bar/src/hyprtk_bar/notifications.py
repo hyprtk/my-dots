@@ -217,6 +217,8 @@ class NotificationController:
         self._bus: MessageBus | None = None
         self._service: NotificationService | None = None
         self._am_server = False
+        self._name_retries = 0
+        self._name_retry_id: int | None = None
         self._listeners: list = []  # cb(kind, nid) on the main loop
         self._toast: "Toast | None" = None
 
@@ -255,6 +257,9 @@ class NotificationController:
 
     def shutdown(self) -> None:
         self._dismiss_toast()
+        if self._name_retry_id is not None:
+            GLib.source_remove(self._name_retry_id)
+            self._name_retry_id = None
         if self._bus is not None:
             try:
                 self._bus.disconnect()
@@ -286,17 +291,19 @@ class NotificationController:
                 NAME, self._name_retries, _MAX_NAME_RETRIES,
             )
             self._kill_competing_daemons()
-            if self._bus is not None:
+            if self._bus is not None and self._name_retry_id is None:
                 delay = min(5000, 150 * self._name_retries)  # linear backoff
-                GLib.timeout_add(
-                    delay,
-                    lambda: (
+
+                def _retry() -> bool:
+                    self._name_retry_id = None
+                    # _bus can be torn down by shutdown() before this fires.
+                    if self._bus is not None:
                         self._bus.request_name(
                             NAME, NameFlag.DO_NOT_QUEUE, self._on_name_reply
-                        ),
-                        GLib.SOURCE_REMOVE,
-                    )[1],
-                )
+                        )
+                    return GLib.SOURCE_REMOVE
+
+                self._name_retry_id = GLib.timeout_add(delay, _retry)
 
     # ── UI wiring ─────────────────────────────────────────────────
 
@@ -427,6 +434,10 @@ class NotificationController:
     def _dismiss_toast(self) -> None:
         if self._toast is not None:
             toast, self._toast = self._toast, None
+            try:
+                toast._cancel_timer()
+            except Exception:
+                pass
             try:
                 toast.hide_popup()
                 compat.destroy(toast)

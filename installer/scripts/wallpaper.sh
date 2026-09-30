@@ -16,15 +16,17 @@ if [ "$selected" ]; then
     # Wait for 1 sec
     sleep 1
 
-    # Get new theme
-    source "$HOME/.cache/wal/colors.sh"
+    # Read the selected wallpaper from pywal's JSON. Never `source` colors.sh:
+    # the generated shell embeds the raw filename (a name with quotes/`;`/`$()`
+    # would execute as shell).
+    wallpaper="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("wallpaper",""))' "$HOME/.cache/wal/colors.json" 2>/dev/null)"
 
     newwall=$(basename "$wallpaper")
 
     # ----------------------------------------------------- 
     # Copy selected wallpaper into .cache folder
     # ----------------------------------------------------- 
-    cp "$wallpaper" ~/.cache/current-wallpaper.png
+    [ -f "$wallpaper" ] && cp "$wallpaper" ~/.cache/current-wallpaper.png
 
     ~/hyprtk/assets/papirus-icons/scripts/change-icons.sh
 

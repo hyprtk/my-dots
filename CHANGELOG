@@ -3,6 +3,23 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.11] - 2026-09-30
+
+### Changed
+
+- **hyprtk-bar 0.4.1** — an audit pass (see the bar `CHANGELOG.md`): security
+  hardening (argv-only update command, no `source`-ing pywal output, validated
+  palette/SNI/SDDM inputs, pinned `yay`), GTK4 correctness fixes (toggle-script
+  lock file, file choosers, input region, radio styling, monitor/sampler
+  robustness) and performance/concurrency fixes.
+- **The progress fifo (`wobpipe`) moved to `$XDG_RUNTIME_DIR` (mode 600)** in
+  the wallpaper watcher and the volume/brightness OSD writers, replacing the
+  predictable `/tmp` path (and dropping `pkill wob` for a tracked PID).
+- **Wallpaper scripts read pywal's JSON instead of `source`-ing
+  `~/.cache/wal/colors.sh`**, so a wallpaper filename can no longer inject
+  shell (`wallpaper.sh`, `wallpaper-awww.sh`, `updatewal.sh`, `gengtk.sh`,
+  `hypr/scripts/wal-watcher.sh`).
+
 ## [v1.3.10] - 2026-09-30
 
 ### Added

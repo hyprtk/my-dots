@@ -5,11 +5,11 @@
 # by hyprtk (Kori Tk) (2026)
 # -----------------------------------------------------   
 
-source "$HOME/.cache/wal/colors.sh"
-
-background="$color0"
+# Read colours from pywal's JSON. Never `source` colors.sh: the generated shell
+# embeds the raw wallpaper filename and is injectable.
+background="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("colors",{}).get("color0","#000000"))' "$HOME/.cache/wal/colors.json" 2>/dev/null)"
+foreground="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("colors",{}).get("color14","#ffffff"))' "$HOME/.cache/wal/colors.json" 2>/dev/null)"
 background=${background:1}
-foreground="$color14"
 foreground=${foreground:1}
 
 oomoxconf="$(mktemp)"

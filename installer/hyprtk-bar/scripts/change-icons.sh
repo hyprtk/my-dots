@@ -66,8 +66,8 @@ if [[ ! -f "$INPUT_FILE" ]]; then
 else
     # Read the specific line and trim whitespace
     hex=$(sed -n "${LINE_NUMBER}p" "$INPUT_FILE" | tr -d '[:space:]')
-    if [[ -z "$hex" ]]; then
-        echo "WARNING: No color found at line $LINE_NUMBER, using fallback." >&2
+    if [[ ! "$hex" =~ ^#?[0-9A-Fa-f]{6}$ ]]; then
+        echo "WARNING: No valid hex at line $LINE_NUMBER ('$hex'), using fallback." >&2
         closest_color="$DEFAULT_COLOR"
     else
         # Save the hex for later reference (optional)
@@ -186,6 +186,14 @@ fi
 
 # Apply the chosen color to Papirus folders
 echo "Closest color to $hex is: $closest_color"
-~/.local/share/icons/papirus-folders.sh -C "$closest_color" -t ~/.local/share/icons/Papirus-Dark
-
-notify-send "Icon Colors updated" "with $closest_color"
+PAPIRUS="$HOME/.local/share/icons/papirus-folders.sh"
+if [[ -x "$PAPIRUS" ]]; then
+    if "$PAPIRUS" -C "$closest_color" -t "$HOME/.local/share/icons/Papirus-Dark"; then
+        notify-send "Icon Colors updated" "with $closest_color"
+    else
+        notify-send "Icon colors failed" "papirus-folders returned an error"
+    fi
+else
+    echo "papirus-folders.sh not found" >&2
+    notify-send "Icon colors failed" "papirus-folders not found"
+fi

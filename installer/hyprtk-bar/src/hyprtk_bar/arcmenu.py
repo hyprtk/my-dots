@@ -25,7 +25,7 @@ import time
 from . import compat  # noqa: E402
 from .compat import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
-from .colors import contrast_fg as _contrast_fg  # noqa: E402
+from .colors import contrast_fg as _contrast_fg, safe_css_color  # noqa: E402
 from .config import load_pywal_colors  # noqa: E402
 from .hypr_animations import active_border_colors, border_animation, lerp_color  # noqa: E402
 from .widgets import Glyph, spawn  # noqa: E402
@@ -195,6 +195,12 @@ def arc_palette(cfg: dict, bar_palette: dict) -> dict:
         palette["item_color"] = item
         palette["fab_icon_color"] = _contrast_fg(fab)
         palette["item_icon_color"] = _contrast_fg(item)
+    # Config-supplied colours go straight into the arc CSS; validate them.
+    for key in ("fab_color", "item_color", "fab_icon_color", "item_icon_color"):
+        palette[key] = safe_css_color(palette.get(key), "#c084fc")
+    for key in ("fab_border", "item_border"):
+        if key in palette:
+            palette[key] = safe_css_color(palette[key], "none")
     return palette
 
 

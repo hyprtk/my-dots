@@ -80,10 +80,12 @@ def _copy(entry):
             args = ["wl-copy", "--type", "image/" + entry["image"]]
         else:
             args = ["wl-copy"]
-        subprocess.Popen(args, stdin=decode.stdout)
+        # Keep the wl-copy handle so it is reaped (not left a zombie) and so a
+        # failed copy is reported instead of silently "succeeding".
+        copy = subprocess.Popen(args, stdin=decode.stdout)
         decode.stdout.close()
         decode.wait()
-        return True
+        return copy.wait() == 0
     except (OSError, subprocess.SubprocessError) as exc:
         log.warning("cliphist copy %s failed: %s", cid, exc)
         return False
@@ -166,7 +168,7 @@ class CliphistDialog(Popup):
         self._clear_armed = False
         self._clear_btn.set_label("Clear all")
         self._search.set_text("")
-        self._refresh()
+        self._reload()
         super().show_above(widget)
 
     def _on_key(self, _window, event) -> bool:
@@ -177,8 +179,12 @@ class CliphistDialog(Popup):
 
     # ── data ──────────────────────────────────────────────────────
 
-    def _refresh(self) -> None:
+    def _reload(self) -> None:
+        # `cliphist list` is a subprocess — fetch once, then filter in memory.
         self._entries = _list_entries()
+        self._render()
+
+    def _render(self) -> None:
         for child in compat.children(self._listbox):
             self._listbox.remove(child)
             compat.destroy(child)
@@ -218,7 +224,8 @@ class CliphistDialog(Popup):
     # ── actions ───────────────────────────────────────────────────
 
     def _on_search(self, _entry) -> None:
-        self._refresh()
+        # Filter the already-loaded list; do not re-run `cliphist list` per key.
+        self._render()
 
     def _on_row_activated(self, _listbox, row) -> None:
         index = row.get_index()
@@ -229,7 +236,7 @@ class CliphistDialog(Popup):
 
     def _on_delete(self, entry) -> None:
         _delete(entry["id"])
-        self._refresh()
+        self._reload()
 
     def _on_clear(self, _btn) -> None:
         if not self._clear_armed:
@@ -241,7 +248,7 @@ class CliphistDialog(Popup):
         _wipe()
         self._clear_armed = False
         self._clear_btn.set_label("Clear all")
-        self._refresh()
+        self._reload()
 
     def _reset_clear(self) -> bool:
         self._clear_reset_id = None

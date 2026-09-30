@@ -113,11 +113,6 @@ class DesktopWidgetWindow(Gtk.Window):
         compat.add_provider_for_display(
             self._provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
-        if compat.IS_GTK4:
-            self.connect("notify::width", self._on_size_allocate)
-            self.connect("notify::height", self._on_size_allocate)
-        else:
-            self.connect("size-allocate", self._on_size_allocate)
         # Drop the per-window CSS provider when the surface goes away, or every
         # rebuild (a settings Apply, each drag) would leak one into the screen.
         self.connect("destroy", self._on_destroy)
@@ -196,6 +191,12 @@ class DesktopWidgetWindow(Gtk.Window):
         self.apply_theme(self._palette)
 
     # ── geometry (anchors + margins) ─────────────────────────────
+
+    def do_size_allocate(self, *args) -> None:
+        # GTK4 removed the size-allocate signal; override the vfunc for both
+        # toolkits (GTK4: width, height, baseline; GTK3: allocation).
+        Gtk.Window.do_size_allocate(self, *args)
+        self._on_size_allocate()
 
     def _on_size_allocate(self, *_args) -> None:
         # Defer margin changes out of the allocation pass (applying them inline

@@ -9,7 +9,12 @@ from __future__ import annotations
 
 import logging
 
-from .colors import contrast_fg as _contrast_fg, hover_color, rgba  # noqa: E402
+from .colors import (  # noqa: E402
+    contrast_fg as _contrast_fg,
+    hover_color,
+    rgba,
+    safe_css_color,
+)
 from .config import load_pywal_colors  # noqa: E402
 from .theme_import import parse_palette  # noqa: E402
 
@@ -141,7 +146,23 @@ def resolve_palette(cfg: dict) -> dict:
     if not icon_sz:
         icon_sz = max(14, int(round(size * 1.25)))
     palette["dot_size"] = max(4, int(round(icon_sz * 0.30)))
+    _sanitize_palette_colors(palette)
     return palette
+
+
+def _sanitize_palette_colors(palette: dict) -> None:
+    fallback = safe_css_color(palette.get("background"), "#000000")
+    for key in (
+        "background", "foreground", "accent", "hover", "running",
+        "border_color", "red", "warn", "green", "sky", "high", "active_fg",
+    ):
+        if key in palette:
+            palette[key] = safe_css_color(palette[key], fallback)
+    module_colors = palette.get("module_colors")
+    if isinstance(module_colors, dict):
+        palette["module_colors"] = {
+            k: safe_css_color(v, "#ffffff") for k, v in module_colors.items()
+        }
 
 
 def import_theme_palette(theme: dict) -> dict | None:
@@ -257,7 +278,7 @@ def build_css(palette: dict, cfg: dict) -> str:
                 "fg": fg,
                 "foreground": fg,
                 "running": running,
-            }.get(gcolor, gcolor)
+            }.get(gcolor, safe_css_color(gcolor, accent))
     except AttributeError:
         pass
 

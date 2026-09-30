@@ -118,11 +118,6 @@ class Popup(Gtk.Window):
         )
         GtkLayerShell.set_anchor(self, edge, True)
 
-        if compat.IS_GTK4:
-            self.connect("notify::width", self._on_size_allocate)
-            self.connect("notify::height", self._on_size_allocate)
-        else:
-            self.connect("size-allocate", self._on_size_allocate)
         compat.on_hover(self, self._on_enter, self._on_leave)
         compat.on_motion(self, self._on_motion)
 
@@ -332,7 +327,9 @@ class Popup(Gtk.Window):
 
     # ── input shape: only the content box is interactive ──────────
 
-    def _on_size_allocate(self, *_args) -> None:
+    def do_size_allocate(self, *args) -> None:
+        # GTK4 has no size-allocate signal; override the vfunc for both toolkits.
+        Gtk.Window.do_size_allocate(self, *args)
         region = cairo.Region()
         bounds = compat.compute_bounds(self.content, self)
         if bounds is not None:

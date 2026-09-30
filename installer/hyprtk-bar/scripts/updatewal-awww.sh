@@ -13,15 +13,27 @@ if [ -z "$WAL" ] && [ -x "$SCRIPT_DIR/../venv/bin/wal" ]; then
 fi
 WAL="${WAL:-wal}"
 
+WALL_DIR="$HOME/Pictures/Wallpapers"
+[ -d "$WALL_DIR" ] || { notify-send "Wallpaper update failed" "no $WALL_DIR"; exit 1; }
+
 # ----------------------------------------------------- 
 # Select random wallpaper and create color scheme
 # ----------------------------------------------------- 
-"$WAL" -q -i ~/Pictures/Wallpapers/ 
+"$WAL" -q -i "$WALL_DIR"
 
 # ----------------------------------------------------- 
-# Load current pywal16 color scheme
+# Read the selected wallpaper path from pywal's JSON.
+# Never `source` colors.sh: it is generated with the raw (unescaped) filename,
+# so a wallpaper name containing quotes/`;`/`$()` would execute as shell.
 # ----------------------------------------------------- 
-source "$HOME/.cache/wal/colors.sh"
+PY="$SCRIPT_DIR/../venv/bin/python3"
+[ -x "$PY" ] || PY=python3
+wallpaper="$("$PY" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("wallpaper",""))' \
+    "$HOME/.cache/wal/colors.json" 2>/dev/null)"
+if [ -z "$wallpaper" ] || [ ! -f "$wallpaper" ]; then
+    notify-send "Wallpaper update failed" "no wallpaper in pywal output"
+    exit 1
+fi
 
 # ----------------------------------------------------- 
 # Copy selected wallpaper into .cache folder

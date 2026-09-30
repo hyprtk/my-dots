@@ -6,12 +6,12 @@
 set -uo pipefail
 
 runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-pid_file="$runtime/hyprtk-bar.lock"
+pid_file="$runtime/hyprtk-bar-$(id -u).lock"
 
 if [ -r "$pid_file" ]; then
     pid="$(cat "$pid_file" 2>/dev/null || true)"
-    if [ -n "$pid" ] && [ -d "/proc/$pid" ]; then
-        kill -USR1 "$pid" 2>/dev/null
+    if [[ "$pid" =~ ^[0-9]+$ ]] && [ -d "/proc/$pid" ]; then
+        kill -USR1 -- "$pid" 2>/dev/null
     fi
 fi
 exit 0

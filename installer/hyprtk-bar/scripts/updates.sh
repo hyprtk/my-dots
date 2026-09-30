@@ -77,7 +77,9 @@ pending_count() {
 }
 
 PM="$(detect_pm)"
-updates="$(pending_count "$PM" | tr -dc '0-9')"
+# Take only the first numeric token; `tr -dc` would concatenate digits across
+# multiple output lines (e.g. 3 + 4 -> 34).
+updates="$(pending_count "$PM" | grep -oE '[0-9]+' | head -n1)"
 [ -n "$updates" ] || updates=0
 
 css_class="green"

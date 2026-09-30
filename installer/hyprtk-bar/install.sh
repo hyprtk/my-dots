@@ -29,12 +29,34 @@ usage() {
     echo "  --uninstall   Remove the bar, its launcher and desktop entry."
 }
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-    usage
-    exit 0
-fi
+DRY_RUN=0
+SKIP_DEPS=0
+SKIP_EXTRAS=0
+WAL_ONLY=0
+DO_UNINSTALL=0
 
-if [[ "${1:-}" == "--uninstall" || "${1:-}" == "-u" ]]; then
+# Parse every argument (not just $1) so e.g. `./install.sh --no-deps --dry-run`
+# honours --dry-run instead of performing a real install.
+for _arg in "$@"; do
+    case "$_arg" in
+        -h|--help) usage; exit 0 ;;
+        -u|--uninstall) DO_UNINSTALL=1 ;;
+        --dry-run) DRY_RUN=1 ;;
+        --no-deps) SKIP_DEPS=1 ;;
+        --no-extras) SKIP_EXTRAS=1 ;;
+        --wal-only)
+            WAL_ONLY=1
+            # pywal16 is pure vendored Python: provisioning `wal` needs neither
+            # the GTK/PyGObject system deps nor any optional feature binaries.
+            # Skipping both means --wal-only never touches the package manager
+            # and never needs root — what 1-install.sh relies on early.
+            SKIP_DEPS=1
+            SKIP_EXTRAS=1 ;;
+        *) echo ":: WARN: unknown option '$_arg' (ignored)" >&2 ;;
+    esac
+done
+
+if [ "$DO_UNINSTALL" -eq 1 ]; then
     echo ":: Uninstalling $APP_NAME..."
     rm -rf "$INSTALL_DIR"
     rm -f "$BIN_DIR/$APP_NAME"
@@ -50,7 +72,8 @@ if [[ "${1:-}" == "--uninstall" || "${1:-}" == "-u" ]]; then
     # Remove the autostart block added to the Hyprland config.
     for f in "$HOME/.config/hypr/autostart.lua" "$HOME/.config/hypr/hyprland.lua"; do
         [ -f "$f" ] || continue
-        if grep -q -- "-- >>> hyprtk-bar autostart" "$f" 2>/dev/null; then
+        if grep -q -- "-- >>> hyprtk-bar autostart" "$f" 2>/dev/null \
+            && grep -q -- "-- <<< hyprtk-bar autostart <<<" "$f" 2>/dev/null; then
             sed -i '/-- >>> hyprtk-bar autostart/,/-- <<< hyprtk-bar autostart <<</d' "$f"
             echo ":: Removed hyprtk-bar autostart from $f"
         fi
@@ -63,32 +86,6 @@ if [[ "${1:-}" == "--uninstall" || "${1:-}" == "-u" ]]; then
     fi
     echo ":: Done. $APP_NAME has been uninstalled."
     exit 0
-fi
-
-DRY_RUN=0
-if [[ "${1:-}" == "--dry-run" ]]; then
-    DRY_RUN=1
-fi
-
-SKIP_DEPS=0
-if [[ "${1:-}" == "--no-deps" ]]; then
-    SKIP_DEPS=1
-fi
-
-SKIP_EXTRAS=0
-if [[ "${1:-}" == "--no-extras" ]]; then
-    SKIP_EXTRAS=1
-fi
-
-WAL_ONLY=0
-if [[ "${1:-}" == "--wal-only" ]]; then
-    WAL_ONLY=1
-    # pywal16 is pure vendored Python: provisioning `wal` needs neither the
-    # GTK/PyGObject system deps nor any optional feature binaries. Skipping both
-    # means --wal-only never touches the package manager and never needs root —
-    # which is what 1-install.sh relies on when it calls this early.
-    SKIP_DEPS=1
-    SKIP_EXTRAS=1
 fi
 
 # ── Package-manager detection ──────────────────────────────────────────────
@@ -240,6 +237,10 @@ install_pkgs() {
     esac
 }
 
+# Pinned AUR commit for the yay bootstrap: makepkg runs whatever PKGBUILD it
+# finds, so pin a known-good revision instead of executing HEAD of the AUR repo.
+YAY_REF="cb43f84828ab4f9700f7c6f9c6d7a923d4cfaff0"
+
 install_yay() {
     # Build yay from the AUR when no helper is present (Arch only). makepkg
     # must run as a normal user, so refuse when running as root.
@@ -247,11 +248,12 @@ install_yay() {
         echo ":: NOTE: running as root — cannot build yay; install an AUR helper manually." >&2
         return 1
     fi
-    echo ":: No AUR helper found — building yay from the AUR ..."
+    echo ":: No AUR helper found — building yay from the AUR (pinned ${YAY_REF:0:12}) ..."
     install_pkgs pacman base-devel git || return 1
     local tmp
     tmp="$(mktemp -d)"
-    if git clone --depth=1 https://aur.archlinux.org/yay.git "$tmp/yay" \
+    if git clone https://aur.archlinux.org/yay.git "$tmp/yay" \
+        && git -C "$tmp/yay" checkout --quiet "$YAY_REF" \
         && ( cd "$tmp/yay" && makepkg -si --noconfirm ); then
         rm -rf "$tmp"
         return 0
@@ -461,7 +463,7 @@ mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$APPS_DIR" "$CONFIG_DIR"
 # Install the bundled font so they render even without a system font package.
 if [ -f "$SCRIPT_DIR/assets/fonts/SymbolsNerdFont-Regular.ttf" ]; then
     mkdir -p "$HOME/.local/share/fonts"
-    cp -f "$SCRIPT_DIR/assets/fonts/SymbolsNerdFont-Regular.ttf" "$HOME/.local/share/fonts/"
+    cp -n "$SCRIPT_DIR/assets/fonts/SymbolsNerdFont-Regular.ttf" "$HOME/.local/share/fonts/"
     if command -v fc-cache >/dev/null 2>&1; then
         fc-cache -f "$HOME/.local/share/fonts" >/dev/null 2>&1 || true
     fi
@@ -507,6 +509,8 @@ if [ -f "$CONFIG_FILE" ]; then
     echo ":: Backed up existing config to $CONFIG_DIR/config.json.bak"
 fi
 
+# Replace (not merge) src so modules removed upstream do not linger.
+rm -rf "$INSTALL_DIR/src"
 cp -r "$SCRIPT_DIR/src" "$INSTALL_DIR/"
 cp -r "$SCRIPT_DIR/assets" "$INSTALL_DIR/" 2>/dev/null || true
 cp -r "$SCRIPT_DIR/scripts" "$INSTALL_DIR/" 2>/dev/null || true
@@ -573,7 +577,8 @@ configure_autostart() {
         return 0
     fi
     # Drop any block we added previously so it can be upgraded in place.
-    if grep -q -- "-- >>> hyprtk-bar autostart" "$target" 2>/dev/null; then
+    if grep -q -- "-- >>> hyprtk-bar autostart" "$target" 2>/dev/null \
+        && grep -q -- "-- <<< hyprtk-bar autostart <<<" "$target" 2>/dev/null; then
         sed -i '/-- >>> hyprtk-bar autostart/,/-- <<< hyprtk-bar autostart <<</d' "$target"
     fi
     # If the bar is autostarted elsewhere (e.g. the hyprtk dotfiles' own
@@ -620,7 +625,8 @@ fi
 
 # Rewrite Exec to this user's actual launcher path — the .desktop ships with a
 # placeholder path that is wrong for any account other than the packager's.
-sed "s|^Exec=.*|Exec=$BIN_DIR/$APP_NAME|" "$SCRIPT_DIR/$APP_NAME.desktop" > "$APPS_DIR/$APP_NAME.desktop"
+_exec_path="$(printf '%s' "$BIN_DIR/$APP_NAME" | sed -e 's/[\\&|]/\\&/g')"
+sed "s|^Exec=.*|Exec=$_exec_path|" "$SCRIPT_DIR/$APP_NAME.desktop" > "$APPS_DIR/$APP_NAME.desktop"
 update-desktop-database "$APPS_DIR" 2>/dev/null || true
 
 configure_autostart

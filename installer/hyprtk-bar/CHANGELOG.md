@@ -3,6 +3,82 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.1] - 2026-09-30
+
+Audit fixes (security, correctness, performance, concurrency).
+
+### Security
+
+- **`updates.install_command` runs as argv, never through a shell.** The old
+  allowlist only required one token to be an allowlisted script and then ran the
+  whole string via `sh -c`, so a crafted config could append `; curl … | sh`.
+  The command is now parsed to argv, shell metacharacters are rejected, and the
+  resolved script is exec'd directly.
+- **Wallpaper filenames can no longer inject shell.** `updatewal-awww.sh` read
+  the selected path by `source`-ing pywal's generated `colors.sh` (which embeds
+  the raw filename); it now reads the JSON `wallpaper` key. Same fix in the
+  dotfiles wallpaper scripts (`wallpaper.sh`, `wallpaper-awww.sh`,
+  `updatewal.sh`, `gengtk.sh`).
+- **The progress fifo (`wobpipe`) moved to `$XDG_RUNTIME_DIR` (mode 600)** and
+  the previous reader is reaped, replacing the predictable `/tmp` path and the
+  broad `pkill wob`.
+- **Config / imported-theme colours are validated before CSS interpolation**
+  (new `colors.safe_css_color`), closing a GTK-CSS injection path; the arc-menu
+  and quicklink colours are covered too.
+- **The SNI icon-theme path check is path-component aware** (`/home/user-evil`
+  no longer matches `/home/user`).
+- **The SDDM/GRUB root flow validates every file `update.sh` copies as root**
+  (not just the script) for ownership/mode.
+- **The `yay` bootstrap is pinned to a commit** instead of building the AUR
+  `HEAD`.
+- Toggle scripts validate the PID before `kill --` and read the correct per-uid
+  lock file.
+
+### Fixed
+
+- **Start-menu / arc-menu / clipboard toggle keybindings did nothing** — the
+  scripts read `hyprtk-bar.lock` but the bar writes `hyprtk-bar-<uid>.lock`.
+- **Theme Manager "Browse…", "Choose folder" and "Import theme…" crashed** —
+  GTK4 removed `Gtk.STOCK_*` and `Gtk.FileChooser.get_filename()`, and
+  `Gtk.FileChooserNative` is not a widget (new `compat.chooser_path`).
+- **The GTK4 build never applied the bar's input region** — `notify::width` /
+  `notify::height` are not real properties; replaced with `do_size_allocate`
+  vfunc overrides (bar, popups, desktop widgets), so the transparent gaps are
+  click-through again instead of the full surface swallowing input.
+- **Radio buttons rendered as checkboxes** (styling branch order).
+- **App-picker dialogs crashed on an unreadable/dangling `.desktop`** (guarded
+  read).
+- **The system monitor could freeze permanently** after a sampler exception —
+  the refresh/GPU/DIMM busy flags are now exception-safe.
+- Notification name-request retry timer is cancelled on shutdown (no `self._bus`
+  deref); toast expiry timers are cancelled on dismiss.
+- Installer flags are parsed from **all** args (`--dry-run` is honoured even
+  when not first); autostart removal runs only when both markers are present;
+  `src` is replaced (not merged) so removed modules do not linger; the glyph
+  font is installed no-clobber.
+
+### Performance / concurrency
+
+- Desktop-widget `collect()` runs on a worker thread (`lsblk`/`/proc` off the
+  GTK main loop); only `render()` stays on the main thread.
+- The bar refresh has an in-flight guard — no unbounded worker-thread/subprocess
+  spawning per Hyprland event, and no out-of-order snapshots.
+- `gtk-update-icon-cache` runs off the GTK thread.
+- `top_processes`' shared baseline is lock-protected and the Apps refresh is
+  guarded (no corrupted CPU%).
+- Quick Settings, Updates and tray tooltips no longer spawn overlapping/
+  duplicate work; clipboard search filters in memory (no `cliphist list` per
+  keystroke).
+- The animated border reloads its stylesheet ~10×/s with a quantised colour
+  guard, down from ~15×/s.
+
+### Fixed (lower)
+
+- `updatewal-awww.sh` quotes the wallpaper dir and fails loudly; `updates.sh`
+  takes the first numeric token; `change-icons.sh` validates the hex and only
+  reports success on a real papirus-folders exit; `fix-imagemagick-policy.sh`
+  strips `TXT` only on the module-domain line.
+
 ## [0.4.0] - 2026-09-30
 
 ### Added

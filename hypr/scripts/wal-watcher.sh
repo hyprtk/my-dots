@@ -3,8 +3,14 @@
 
 LAST_WALL=""
 
+# Progress fifo lives in the private runtime dir (mode 600) so another user
+# cannot plant/hijack it.
+WOB_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+WOB_FIFO="$WOB_DIR/wobpipe"
+WOB_PID="$WOB_DIR/hyprtk-wob.pid"
+
 while true; do
-    CURRENT=$(awww query 2>/dev/null | grep -oP '(?<=image: ).*')
+    CURRENT=$(awww query 2>/dev/null | sed -n 's/.*image: //p')
     if [ -n "$CURRENT" ] && [ "$CURRENT" != "$LAST_WALL" ] && [ -f "$CURRENT" ]; then
         echo "Wallpaper changed: $CURRENT"
         LAST_WALL="$CURRENT"
@@ -19,10 +25,13 @@ while true; do
         hyprctl reload 2>/dev/null
         ~/hyprtk/assets/papirus-icons/scripts/change-icons.sh
         # hyprtk-bar owns the taskbar + notifications bus
-        pkill wob 2>/dev/null
-        rm -f /tmp/wobpipe
-        mkfifo /tmp/wobpipe
-        tail -f /tmp/wobpipe | wob -c ~/.config/wob/wob.ini &
+        [ -r "$WOB_PID" ] && kill "$(cat "$WOB_PID")" 2>/dev/null
+        pkill -f "tail -f $WOB_FIFO" 2>/dev/null
+        rm -f "$WOB_FIFO"
+        if mkfifo -m 600 "$WOB_FIFO" 2>/dev/null; then
+            tail -f "$WOB_FIFO" 2>/dev/null | wob -c ~/.config/wob/wob.ini >/dev/null 2>&1 &
+            echo "$!" > "$WOB_PID"
+        fi
     fi
     sleep 1
 done

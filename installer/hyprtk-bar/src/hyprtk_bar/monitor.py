@@ -210,7 +210,11 @@ class DimmSection(Gtk.Box):
         threading.Thread(target=self._fetch_worker, daemon=True).start()
 
     def _fetch_worker(self) -> None:
-        slots = monitor_data.dimm_slots(use_cache=False)
+        try:
+            slots = monitor_data.dimm_slots(use_cache=False)
+        except Exception:
+            log.exception("dimm_slots failed")
+            slots = None
         GLib.idle_add(self._on_fetch_done, slots)
 
     def _on_fetch_done(self, slots) -> bool:
@@ -548,6 +552,7 @@ class SysMonitorDialog(Popup):
         }
         self._built_pages = set(self._pages_enabled())
         self._refresh_busy = False
+        self._apps_busy = False
 
         self._refresh_colors(force=True)
 
@@ -1184,7 +1189,11 @@ class SysMonitorDialog(Popup):
         threading.Thread(target=self._gpu_static_worker, daemon=True).start()
 
     def _gpu_static_worker(self) -> None:
-        info = monitor_data.gpu_static(use_cache=False)
+        try:
+            info = monitor_data.gpu_static(use_cache=False)
+        except Exception:
+            log.exception("gpu_static failed")
+            info = None
         GLib.idle_add(self._on_gpu_static, info)
 
     def _on_gpu_static(self, info) -> bool:
@@ -1219,13 +1228,24 @@ class SysMonitorDialog(Popup):
     def _update_apps(self) -> None:
         # Collect process rows off the GTK thread (the /proc walk + hyprctl
         # spawn are the slow part), then apply to the stores on the main thread.
+        # Guarded so the switch-page refresh cannot overlap the 1s poll (they
+        # would race the shared top_processes baseline).
+        if self._apps_busy:
+            return
+        self._apps_busy = True
+
         def _work() -> None:
-            rows = monitor_data.top_processes(window_pids=self._window_pids())
+            try:
+                rows = monitor_data.top_processes(window_pids=self._window_pids())
+            except Exception:
+                log.exception("top_processes failed")
+                rows = []
             GLib.idle_add(self._apply_apps_rows, rows)
 
         threading.Thread(target=_work, daemon=True).start()
 
     def _apply_apps_rows(self, rows: list[dict]) -> bool:
+        self._apps_busy = False
         if not getattr(self, "_apps_stores", None):
             return GLib.SOURCE_REMOVE
         buckets = {
@@ -1288,21 +1308,26 @@ class SysMonitorDialog(Popup):
         # UI on a 1s poll. Widget updates are applied back on the main thread.
         def _work() -> None:
             data = {}
-            if "cpu" in built:
-                data["cpu"] = self._samplers["cpu"].sample()
-            if "memory" in built:
-                data["memory"] = monitor_data.memory()
-            if "disks" in built:
-                data["disk"] = self._samplers["disk"].sample()
-                data["drives"] = monitor_data.drives()
-            if "network" in built:
-                data["net"] = self._samplers["net"].sample()
-            if "gpu" in built:
-                data["gpu"] = monitor_data.gpu()
-            if self._active == "apps" and "apps" in built:
-                data["apps"] = monitor_data.top_processes(
-                    window_pids=self._window_pids()
-                )
+            try:
+                if "cpu" in built:
+                    data["cpu"] = self._samplers["cpu"].sample()
+                if "memory" in built:
+                    data["memory"] = monitor_data.memory()
+                if "disks" in built:
+                    data["disk"] = self._samplers["disk"].sample()
+                    data["drives"] = monitor_data.drives()
+                if "network" in built:
+                    data["net"] = self._samplers["net"].sample()
+                if "gpu" in built:
+                    data["gpu"] = monitor_data.gpu()
+                if self._active == "apps" and "apps" in built:
+                    data["apps"] = monitor_data.top_processes(
+                        window_pids=self._window_pids()
+                    )
+            except Exception:
+                # Never let a sampler exception leave _refresh_busy latched True
+                # (the UI would stop updating for the rest of the process).
+                log.exception("system-monitor sample failed")
             GLib.idle_add(self._apply_refresh, data)
 
         threading.Thread(target=_work, daemon=True).start()

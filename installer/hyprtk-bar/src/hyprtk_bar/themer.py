@@ -25,6 +25,7 @@ import logging
 import os
 import random
 import re
+import stat
 import subprocess
 import threading
 from pathlib import Path
@@ -95,6 +96,26 @@ def _root_script_safe(path) -> bool:
         if st.st_uid != uid or (st.st_mode & 0o022):
             return False
     return True
+
+
+# Files update.sh copies into root-owned paths (as root via pkexec). They are
+# validated like the script itself: regular, user-owned, not group/other-writable.
+SDDM_CONFIG_FILES = (
+    HYPRTK / "configs" / "sddm" / "sddm.conf",
+    HYPRTK / "configs" / "sddm" / "theme.conf",
+    HOME / ".cache" / "current-wallpaper.png",
+)
+
+
+def _root_file_safe(path) -> bool:
+    uid = os.getuid()
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    if not stat.S_ISREG(st.st_mode):
+        return False
+    return st.st_uid == uid and not (st.st_mode & 0o022)
 ICON_CACHE_THEME_DIRS = [
     HOME / ".local" / "share" / "icons" / "Papirus-Dark",
     HOME / ".local" / "share" / "icons" / "Papirus",
@@ -876,8 +897,8 @@ class BarThemeImportDialog(Popup):
             action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
         chooser.add_buttons(
-            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT,
+            "Cancel", Gtk.ResponseType.CANCEL,
+            "Open", Gtk.ResponseType.ACCEPT,
         )
         downloads = Path.home() / "Downloads"
         chooser.set_current_folder(
@@ -891,7 +912,7 @@ class BarThemeImportDialog(Popup):
 
     def _on_browse_response(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
-            filename = dialog.get_filename()
+            filename = compat.chooser_path(dialog)
             if filename:
                 path = Path(filename)
                 self._path_entry.set_text(str(path))
@@ -1055,10 +1076,11 @@ class ThemerDialog(Popup):
                     ctx.add_class("settings-btn")
             elif isinstance(w, Gtk.Label):
                 ctx.add_class("settings-label")
+            elif compat.is_radio(w):
+                # Before the CheckButton test: GTK4 radios are CheckButtons.
+                ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.CheckButton):
                 ctx.add_class("settings-check")
-            elif compat.is_radio(w):
-                ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.Switch):
                 ctx.add_class("settings-switch")
             elif isinstance(w, (Gtk.SpinButton, Gtk.Entry, Gtk.SearchEntry)):
@@ -1410,16 +1432,17 @@ class ThemerDialog(Popup):
             transient_for=parent if isinstance(parent, Gtk.Window) else None,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
-        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                           Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT)
+        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
+                           "Open", Gtk.ResponseType.ACCEPT)
         dialog.set_current_folder(str(self._wall_dir))
         dialog.connect("response", self._on_dir_chosen)
         compat.show(dialog)
 
     def _on_dir_chosen(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
-            folder = Path(dialog.get_filename())
-            if folder.is_dir():
+            chosen = compat.chooser_path(dialog)
+            folder = Path(chosen) if chosen else None
+            if folder and folder.is_dir():
                 self._wall_dir = folder
                 self._dir_label.set_text(str(folder))
                 self._dir_label.set_tooltip_text(str(folder))
@@ -1569,16 +1592,17 @@ class ThemerDialog(Popup):
             transient_for=parent if isinstance(parent, Gtk.Window) else None,
             action=Gtk.FileChooserAction.SELECT_FOLDER,
         )
-        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-                           Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT)
+        dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL,
+                           "Open", Gtk.ResponseType.ACCEPT)
         dialog.set_current_folder(str(self._wal_dir))
         dialog.connect("response", self._on_wal_dir_chosen)
         compat.show(dialog)
 
     def _on_wal_dir_chosen(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
-            folder = Path(dialog.get_filename())
-            if folder.is_dir():
+            chosen = compat.chooser_path(dialog)
+            folder = Path(chosen) if chosen else None
+            if folder and folder.is_dir():
                 self._wal_dir = folder
                 self._wal_dir_label.set_text(str(folder))
         compat.destroy(dialog)
@@ -2441,7 +2465,7 @@ class ThemerDialog(Popup):
         hex_val = self._icon_custom.get_text().strip()
         if not hex_val.startswith("#"):
             hex_val = f"#{hex_val}"
-        if len(hex_val) != 7:
+        if len(hex_val) != 7 or not _is_valid_hex(hex_val):
             self._toast("Invalid hex color (use #RRGGBB)")
             return
         if _run_papirus_folders("-C", hex_val.lstrip("#"), "--theme", "Papirus-Dark"):
@@ -2456,6 +2480,8 @@ class ThemerDialog(Popup):
         return GLib.SOURCE_REMOVE
 
     def _update_icon_cache(self):
+        # Run off the GTK thread: gtk-update-icon-cache can block for up to 30s
+        # per theme dir, which would freeze the whole bar on the main loop.
         def _do():
             for theme_dir in ICON_CACHE_THEME_DIRS:
                 if theme_dir.exists():
@@ -2466,8 +2492,7 @@ class ThemerDialog(Popup):
                         )
                     except (OSError, subprocess.TimeoutExpired):
                         pass
-            return GLib.SOURCE_REMOVE
-        GLib.idle_add(_do)
+        threading.Thread(target=_do, daemon=True).start()
 
     # ── sddm ──────────────────────────────────────────────────────
 
@@ -2534,6 +2559,13 @@ class ThemerDialog(Popup):
         self._refresh_sddm_preview()
         if not self._sddm_wallpaper_path.exists():
             self._toast("No current wallpaper found")
+            return
+        # update.sh copies these into root-owned paths, so validate their
+        # ownership/mode too (not just the script).
+        unsafe = [p.name for p in SDDM_CONFIG_FILES if not _root_file_safe(p)]
+        if unsafe:
+            log.warning("SDDM/GRUB: refusing unsafe root-input files: %s", unsafe)
+            self._toast("SDDM/GRUB inputs are not safely owned — refusing")
             return
         self._sddm_status.set_text("Updating SDDM & GRUB...")
         btn.set_sensitive(False)

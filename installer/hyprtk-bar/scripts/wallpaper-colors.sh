@@ -30,8 +30,15 @@ fi
 cp "$WALLPAPER" ~/.cache/current-wallpaper.png 2>/dev/null
 hyprctl reload 2>/dev/null
 "$SCRIPT_DIR/change-icons.sh"
-# hyprtk-bar owns the taskbar + notifications bus
-pkill wob 2>/dev/null
-rm -f /tmp/wobpipe
-mkfifo /tmp/wobpipe
-tail -f /tmp/wobpipe | wob -c ~/.config/wob/wob.ini &
+# hyprtk-bar owns the taskbar + notifications bus. Keep the progress fifo in
+# the private runtime dir (mode 600) so another user can't plant/hijack it.
+WOB_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+WOB_FIFO="$WOB_DIR/wobpipe"
+WOB_PID="$WOB_DIR/hyprtk-wob.pid"
+[ -r "$WOB_PID" ] && kill "$(cat "$WOB_PID")" 2>/dev/null
+pkill -f "tail -f $WOB_FIFO" 2>/dev/null
+rm -f "$WOB_FIFO"
+if mkfifo -m 600 "$WOB_FIFO" 2>/dev/null; then
+    tail -f "$WOB_FIFO" 2>/dev/null | wob -c ~/.config/wob/wob.ini >/dev/null 2>&1 &
+    echo "$!" > "$WOB_PID"
+fi

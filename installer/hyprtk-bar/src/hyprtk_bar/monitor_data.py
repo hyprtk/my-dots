@@ -18,6 +18,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -1188,6 +1189,10 @@ def _window_pids() -> set[int]:
 # The previous poll's process sample, so top_processes() can diff against it
 # instead of sleeping for a second sample (keeps the caller's thread unblocked).
 _PROC_CACHE: dict = {}
+# top_processes() can be called from two worker threads at once (the 1s monitor
+# poll + the Apps page's switch-page refresh); the baseline is a read-modify-write
+# and must not be raced.
+_PROC_LOCK = threading.Lock()
 
 
 def top_processes(n: int | None = None, window_pids: set[int] | None = None) -> list[dict]:
@@ -1231,9 +1236,10 @@ def top_processes(n: int | None = None, window_pids: set[int] | None = None) -> 
             pass
         return max(total, 1), pids
 
-    t2, p2 = sample()
-    prev = _PROC_CACHE.get("sample")
-    _PROC_CACHE["sample"] = (t2, p2)
+    with _PROC_LOCK:
+        t2, p2 = sample()
+        prev = _PROC_CACHE.get("sample")
+        _PROC_CACHE["sample"] = (t2, p2)
     # With no baseline yet, treat every process as freshly seen (0% CPU) rather
     # than returning an empty list, so the first open already shows them all.
     t1, p1 = prev if prev is not None else (t2, p2)

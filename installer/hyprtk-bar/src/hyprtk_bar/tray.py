@@ -118,7 +118,31 @@ def _fmt_rate(value: float | None) -> str:
     return "--" if value is None else f"{value:.1f} KiB/s"
 
 
+_TOOLTIP_TTL_S = 4.0
+_tooltip_cache: dict = {}
+
+
+def _cached_tooltip(name: str, producer) -> str:
+    """Cache a subprocess-backed tooltip briefly.
+
+    Tooltips are built on the GTK main thread from `on_enter`; without a cache
+    every hover spawns nmcli/bluetoothctl and can freeze the bar for hundreds
+    of ms.
+    """
+    now = time.monotonic()
+    hit = _tooltip_cache.get(name)
+    if hit is not None and now - hit[1] < _TOOLTIP_TTL_S:
+        return hit[0]
+    text = producer()
+    _tooltip_cache[name] = (text, now)
+    return text
+
+
 def network_tooltip(net_rate: _NetRate) -> str:
+    return _cached_tooltip("network", lambda: _network_tooltip(net_rate))
+
+
+def _network_tooltip(net_rate: _NetRate) -> str:
     dev = _active_network_device()
     lines = ["Network"]
     if not dev:
@@ -135,6 +159,10 @@ def network_tooltip(net_rate: _NetRate) -> str:
 
 
 def bluetooth_tooltip() -> str:
+    return _cached_tooltip("bluetooth", _bluetooth_tooltip)
+
+
+def _bluetooth_tooltip() -> str:
     show = _tray_run(["bluetoothctl", "show"])
     m = re.search(r"Powered:\s+(yes|no)", show)
     power = "on" if (m and m.group(1) == "yes") else "off"
@@ -262,7 +290,9 @@ def _safe_icon_theme_path(value) -> str:
     except OSError:
         return ""
     allowed = (str(Path.home()), "/usr/share/icons", "/usr/local/share/icons", "/usr/share/pixmaps")
-    if not real.startswith(allowed):
+    # Compare path components, not raw prefixes: a prefix test would accept a
+    # sibling like /home/user-evil or /usr/share/icons-evil.
+    if not any(real == root or real.startswith(root + os.sep) for root in allowed):
         return ""
     if not os.path.isdir(real):
         return ""

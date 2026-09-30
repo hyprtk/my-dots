@@ -151,6 +151,8 @@ class BarWindow(Gtk.Window):
         self.monitor = monitor
         self.is_primary = is_primary
         self._refresh_id: int | None = None
+        self._refresh_busy = False
+        self._refresh_pending = False
         self._wal_monitor: Gio.FileMonitor | None = None
         self._theme_dir_monitor: Gio.FileMonitor | None = None
         self._hypr_monitor: Gio.FileMonitor | None = None
@@ -193,10 +195,6 @@ class BarWindow(Gtk.Window):
         self._bar.set_height_callback(self._on_bar_height)
         self._bar.set_position_callback(self._on_bar_position)
         compat.set_single_child(self, self._bar)
-        if compat.IS_GTK4:
-            self._bar.connect("notify::width", self._on_size_allocate)
-        else:
-            self._bar.connect("size-allocate", self._on_size_allocate)
 
         self._provider = Gtk.CssProvider()
         compat.add_provider_for_display(
@@ -330,7 +328,7 @@ class BarWindow(Gtk.Window):
             "color_b": colors[1],
         }
         self._border_hue = 0.0
-        self._border_anim_id = GLib.timeout_add(66, self._border_anim_tick)
+        self._border_anim_id = GLib.timeout_add(100, self._border_anim_tick)
 
     def _border_anim_tick(self) -> bool:
         """Advance the border blend and re-render with the animated color."""
@@ -338,19 +336,25 @@ class BarWindow(Gtk.Window):
             return GLib.SOURCE_REMOVE
         period = self._border_anim["period_ms"]
         # Ping-pong: 0 -> 1 -> 0 over the period (one leg = half the period).
-        # Tick at ~15fps — a slow border blend needs no more; keeps the CSS
-        # rebuild + redraw cheap.
-        self._border_hue = (self._border_hue + 66.0 / (period / 2.0)) % 2.0
+        # Tick at 10fps — a slow border blend needs no more; each tick reloads a
+        # display-wide CssProvider + redraws, so keep it deliberate.
+        self._border_hue = (self._border_hue + 100.0 / (period / 2.0)) % 2.0
         t = self._border_hue if self._border_hue <= 1.0 else 2.0 - self._border_hue
         color = lerp_color(
             self._border_anim["color_a"], self._border_anim["color_b"], t
         )
-        # The blend moves in tiny steps per frame (long periods); skip frames
-        # whose color hasn't visibly changed to avoid rebuilding CSS + redrawing
-        # ~30×/s needlessly. Updates still apply as soon as the color shifts.
-        if color == getattr(self, "_border_last_color", None):
+        # Only reload the stylesheet when the colour has moved by a visible step
+        # (quantise each channel), so a slow blend does not rebuild CSS ~10×/s
+        # for sub-perceptual changes.
+        try:
+            r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+        except (ValueError, IndexError):
+            r = g = b = 0
+        step = 12
+        key = (round(r / step), round(g / step), round(b / step))
+        if key == getattr(self, "_border_last_key", None):
             return GLib.SOURCE_CONTINUE
-        self._border_last_color = color
+        self._border_last_key = key
         try:
             # Animate the pill border plus every popup/dialogue that carries
             # the themed ``.popup-box`` border (notification center, quick
@@ -569,7 +573,11 @@ class BarWindow(Gtk.Window):
 
     # ── input shape: only the pill is clickable ─────────────────────
 
-    def _on_size_allocate(self, *_args) -> None:
+    def do_size_allocate(self, *args) -> None:
+        # GTK4 has no size-allocate signal; override the vfunc (GTK4:
+        # width, height, baseline; GTK3: allocation). After allocation, shape the
+        # input region so only the pill is clickable.
+        Gtk.Window.do_size_allocate(self, *args)
         self._apply_input_shape()
 
     def _apply_input_shape(self) -> None:
@@ -606,24 +614,42 @@ class BarWindow(Gtk.Window):
 
     def _refresh(self) -> bool:
         self._refresh_id = None
+        # One refresh at a time: an event storm (or a hung hyprctl) must not
+        # spawn overlapping worker threads/subprocesses or apply stale snapshots
+        # out of order.
+        if self._refresh_busy:
+            self._refresh_pending = True
+            return GLib.SOURCE_REMOVE
+        self._refresh_busy = True
+        self._refresh_pending = False
         # The four hyprctl queries run on a worker thread so a focus/move burst
         # never stalls the GTK main loop (each spawn can block up to 5s). Results
         # are marshalled back to the main thread via idle_add.
         def _work() -> None:
-            clients = self._ipc.query("clients")
-            if clients is None:
-                return
-            workspaces = self._ipc.query("workspaces") or []
-            focus = self._ipc.query("activewindow") or {}
-            monitors = self._ipc.query("monitors") or []
-            a_id = self._active_workspace_on_this_monitor(monitors)
-            GLib.idle_add(
-                self._bar.update,
-                clients, workspaces, a_id,
-                focus.get("address"), focus.get("title"), focus.get("class"),
-            )
+            try:
+                clients = self._ipc.query("clients")
+                if clients is None:
+                    return
+                workspaces = self._ipc.query("workspaces") or []
+                focus = self._ipc.query("activewindow") or {}
+                monitors = self._ipc.query("monitors") or []
+                a_id = self._active_workspace_on_this_monitor(monitors)
+                GLib.idle_add(
+                    self._bar.update,
+                    clients, workspaces, a_id,
+                    focus.get("address"), focus.get("title"), focus.get("class"),
+                )
+            finally:
+                GLib.idle_add(self._clear_refresh_busy)
 
         threading.Thread(target=_work, daemon=True).start()
+        return GLib.SOURCE_REMOVE
+
+    def _clear_refresh_busy(self) -> bool:
+        self._refresh_busy = False
+        # A coalesced event arrived while we were busy — refresh once more.
+        if self._refresh_pending:
+            self._schedule_refresh()
         return GLib.SOURCE_REMOVE
 
     def _active_workspace_on_this_monitor(self, monitors: list) -> int:

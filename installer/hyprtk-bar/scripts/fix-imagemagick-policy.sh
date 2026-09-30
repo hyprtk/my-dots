@@ -38,7 +38,15 @@ for f in "${POLICIES[@]}"; do
     [ -f "$f" ] || continue
     grep -qE 'domain="module"[^>]*TXT' "$f" || continue
     as_root cp -n "$f" "$f.hyprtk-bak" 2>/dev/null || true
-    as_root sed -i 's/TXT,//; s/,TXT//' "$f"
+    before="$(grep -c 'TXT' "$f" 2>/dev/null || true)"
+    # Only touch the module-domain line(s); a bare `s/TXT,//` would strip TXT
+    # from every coder policy in the file.
+    as_root sed -i '/domain="module"/{s/TXT,//g; s/,TXT//g}' "$f"
+    after="$(grep -c 'TXT' "$f" 2>/dev/null || true)"
+    if [ "${before:-0}" = "${after:-0}" ]; then
+        echo "no TXT restriction changed in $f" >&2
+        continue
+    fi
     echo "allowed TXT coder in $f"
     changed=1
 done

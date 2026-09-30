@@ -183,24 +183,17 @@ class Bar(Gtk.Box):
         self.pill.set_end_widget(self._sections["right"])
         self._apply_content_spacing()
 
-        if compat.IS_GTK4:
-            self.connect("notify::width", self._on_bar_width_changed)
-        else:
-            self.connect("size-allocate", self._on_bar_size_allocate)
         self._apply_width()
 
         self._build_layout(cfg.get("layout") or DEFAULT_LAYOUT)
 
     # ── width & alignment ────────────────────────────────────────
 
-    def _on_bar_size_allocate(self, _widget, allocation, *_args) -> None:
-        # Defer geometry changes out of the size-allocate pass (applying them
-        # inline is overridden by the pass that already computed sizes).
-        self._schedule_width(allocation.width)
-
-    def _on_bar_width_changed(self, *_args) -> None:
-        # GTK4 replacement for the size-allocate signal: the allocated width is
-        # only readable after allocation, which notify::width guarantees.
+    def do_size_allocate(self, *args) -> None:
+        # GTK4 removed the size-allocate signal, so override the vfunc for both
+        # toolkits (GTK4: width, height, baseline; GTK3: allocation). Defer the
+        # geometry change out of the pass that computed the sizes.
+        Gtk.Box.do_size_allocate(self, *args)
         self._schedule_width(compat.allocated_width(self))
 
     def _schedule_width(self, total: int) -> None:

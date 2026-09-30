@@ -378,6 +378,17 @@ def destroy(widget) -> None:
         widget.destroy()
 
 
+def chooser_path(dialog):
+    """Selected path from a ``Gtk.FileChooserDialog``.
+
+    GTK4 removed ``Gtk.FileChooser.get_filename``; use ``get_file()``.
+    """
+    if IS_GTK4:
+        gfile = dialog.get_file()
+        return gfile.get_path() if gfile is not None else None
+    return dialog.get_filename()
+
+
 # ── Containers ───────────────────────────────────────────────────────────────
 def set_child(container, child) -> None:
     """Attach the single child of a window (GTK4) or ``add`` it (GTK3)."""

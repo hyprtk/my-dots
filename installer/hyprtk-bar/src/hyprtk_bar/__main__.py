@@ -51,6 +51,9 @@ def _acquire_lock() -> bool:
     path = Path(runtime) / f"hyprtk-bar-{os.getuid()}.lock"
     try:
         fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    except OSError:
+        return False
+    try:
         _lock_file = os.fdopen(fd, "w")
         fcntl.flock(_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
         _lock_file.seek(0)
@@ -59,6 +62,13 @@ def _acquire_lock() -> bool:
         _lock_file.flush()
         return True
     except (OSError, ValueError):
+        # Another instance holds the lock, or the fdopen/flock failed — close the
+        # fd so it is not leaked (the bar can reach here again in-process).
+        try:
+            _lock_file.close()
+        except Exception:
+            pass
+        _lock_file = None
         return False
 
 

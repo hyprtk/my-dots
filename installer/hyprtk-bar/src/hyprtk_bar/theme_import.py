@@ -248,21 +248,33 @@ def _resolve_import(origin: Path, imp: str) -> Path | None:
     return None
 
 
-def _read_with_imports(path: Path, _seen: set | None = None) -> str:
+# An imported theme can @import arbitrary files (absolute / ~ paths). Cap the
+# total bytes read across the whole import graph so a crafted theme cannot force
+# a huge allocation / stall the bar on every re-theme.
+_MAX_IMPORT_BYTES = 512 * 1024
+
+
+def _read_with_imports(path: Path, _seen: set | None = None,
+                       _budget: list | None = None) -> str:
     _seen = _seen or set()
-    if path in _seen:
+    if _budget is None:
+        _budget = [_MAX_IMPORT_BYTES]
+    if path in _seen or _budget[0] <= 0:
         return ""
     _seen.add(path)
     try:
+        if path.stat().st_size > _budget[0]:
+            return ""
         text = path.read_text(errors="replace")
     except OSError:
         return ""
+    _budget[0] -= len(text)
     parts, pos = [], 0
     for match in _IMPORT_RE.finditer(text):
         parts.append(text[pos:match.start()])
         target = _resolve_import(path, match.group(1).strip())
         if target is not None:
-            parts.append(_read_with_imports(target, _seen))
+            parts.append(_read_with_imports(target, _seen, _budget))
         pos = match.end()
     parts.append(text[pos:])
     return "".join(parts)
