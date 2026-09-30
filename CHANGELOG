@@ -3,6 +3,13 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.12] - 2026-09-30
+
+### Changed
+
+- **hyprtk-bar 0.4.2** — refreshed the showcase screenshots for the GTK4 build,
+  and fixed the Windows 7 start-menu layout (GTK4 removed `Gtk.Button.xalign`).
+
 ## [v1.3.11] - 2026-09-30
 
 ### Changed

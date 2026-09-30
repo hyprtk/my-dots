@@ -3,6 +3,21 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.2] - 2026-09-30
+
+### Fixed
+
+- **Windows 7 start-menu layout crashed when opened.** `_build_win7` passed
+  `xalign` to a `Gtk.Button`, which GTK4 removed; the "All Programs" row now
+  left-aligns its label child instead.
+
+### Changed
+
+- **Showcase screenshots refreshed** for the GTK4 build — the bar, four menu
+  layouts, arc menu, quick settings, system monitor, desktop widgets, theme
+  manager, every settings page/tab, notifications and calendar, captured on an
+  empty workspace.
+
 ## [0.4.1] - 2026-09-30
 
 Audit fixes (security, correctness, performance, concurrency).

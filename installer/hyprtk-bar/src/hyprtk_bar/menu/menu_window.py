@@ -634,7 +634,9 @@ class MenuWindow(Gtk.Window):
         compat.pack_start(left, self._make_app_list(), True, True, 0)
 
         # All Programs row at bottom of left pane
-        allprog = Gtk.Button(label="All Programs  ▸", xalign=0)
+        allprog = Gtk.Button(label="All Programs  ▸")
+        # GTK4 Gtk.Button has no xalign; left-align its label child instead.
+        allprog.get_child().set_xalign(0)
         compat.add_class(allprog, "win7-allprograms")
         compat.add_class(allprog.get_child(), "win7-allprograms-label")
         allprog.connect("clicked", self._on_win7_allprograms)
