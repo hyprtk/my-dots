@@ -3,6 +3,21 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.4] - 2026-09-30
+
+### Added
+
+- **Desktop-widget borders can be toggled** — a new **Widget borders**
+  Enable/Disable radio in Settings → Widgets, beside *Transparent pills*
+  (`widgets.border`). When on, each widget draws the same border as a Hyprland
+  window: `general:border_size` in width, coloured from Hyprland's active
+  border colour (the previous faint 1px line is gone). *Transparent pills*
+  still removes the border.
+
+### Changed
+
+- **Showcase screenshots refreshed** for the widget border option.
+
 ## [0.4.3] - 2026-09-30
 
 ### Fixed

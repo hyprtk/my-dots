@@ -356,6 +356,7 @@ DEFAULTS = {
     "widgets": {
         "enabled": True,             # master switch for all desktop widgets
         "transparent": False,        # master: drop every widget's pill bg/border
+        "border": True,              # master: draw a Hyprland-matching border
         "clock": {
             "enabled": True,
             "layer": "bottom",       # background | bottom | top
@@ -900,6 +901,8 @@ def _validate_widgets(widgets: dict) -> dict:
     # One master "transparent pills" switch for every widget (a legacy
     # per-widget value is migrated onto it in ``validate``).
     valid["transparent"] = bool(valid.get("transparent", False))
+    # Master "widget borders" switch (borders match the Hyprland window border).
+    valid["border"] = bool(valid.get("border", True))
 
     for wid in WIDGET_IDS:
         block = valid.get(wid)
@@ -924,9 +927,10 @@ def _validate_widgets(widgets: dict) -> dict:
         block["padding"] = _clamp_int(block.get("padding"), 0, 80, 16)
         for key in ("background", "foreground", "accent"):
             block[key] = _str_field(block.get(key))
-        # ``transparent`` is a master switch (read from the widgets block); a
-        # legacy per-widget value is dropped so there is a single source.
+        # ``transparent``/``border`` are master switches (read from the widgets
+        # block); a legacy per-widget value is dropped so there is one source.
         block.pop("transparent", None)
+        block.pop("border", None)
 
         # Snap groups: widgets sharing a non-empty snap_group are laid out
         # together along snap_axis (the group uses its first member's axis).

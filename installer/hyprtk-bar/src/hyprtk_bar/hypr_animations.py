@@ -203,6 +203,22 @@ def active_border_colors() -> tuple[str, str] | None:
     return _norm(c1), _norm(c2)
 
 
+def border_size() -> int:
+    """Hyprland's ``general:border_size`` in px (fallback 2)."""
+    import json
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["hyprctl", "-j", "getoption", "general:border_size"],
+            capture_output=True, text=True, timeout=2,
+        )
+        data = json.loads(out.stdout)
+        return max(1, int(data.get("int", 2)))
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return 2
+
+
 def lerp_color(c1: str, c2: str, t: float) -> str:
     """Linear interpolation between two ``#rrggbb`` colours (t in 0..1)."""
     def _rgb(c: str) -> tuple[int, int, int]:

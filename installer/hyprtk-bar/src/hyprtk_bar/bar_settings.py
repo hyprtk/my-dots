@@ -1420,6 +1420,9 @@ class BarSettings(Gtk.Window):
         self._widgets_transparent = self._radio_bool_row(
             page, "Transparent pills", bool(widgets.get("transparent", False))
         )
+        self._widgets_border = self._radio_bool_row(
+            page, "Widget borders", bool(widgets.get("border", True))
+        )
 
         notebook = Gtk.Notebook()
         notebook.set_vexpand(True)
@@ -1848,6 +1851,7 @@ class BarSettings(Gtk.Window):
         widgets["enabled"] = self._widgets_enabled.get_active()
         transparent = self._widgets_transparent.get_active()
         widgets["transparent"] = transparent
+        widgets["border"] = self._widgets_border.get_active()
         for wid, ctl in self._widget_controls.items():
             block = dict(ctl.get("_block") or {})
             block.update(self._read_widget_common(ctl))

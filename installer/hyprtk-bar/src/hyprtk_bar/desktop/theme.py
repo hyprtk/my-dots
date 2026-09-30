@@ -22,6 +22,7 @@ from __future__ import annotations
 import re
 
 from ..colors import rgba
+from ..hypr_animations import active_border_colors, border_size
 
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 _CSS_RGB_RE = re.compile(r"^rgba?\([0-9.,%\s/]+\)$")
@@ -226,13 +227,23 @@ def build_widget_css(
     transparent = bool(
         (cfg.get("widgets") or {}).get("transparent", block.get("transparent", False))
     )
+    border_on = bool(
+        (cfg.get("widgets") or {}).get("border", block.get("border", True))
+    )
     if transparent:
         # Transparent pill: drop the background fill and border, keep the content.
         bg_rule = "background-color: transparent;"
         border_rule = "border: none;"
     else:
         bg_rule = f"background-color: {rgba(background, opacity)};"
-        border_rule = f"border: 1px solid {rgba(fg, 0.12)};"
+        if border_on:
+            # Match the Hyprland window border: same width and active border
+            # colour (the first of the two colours Hyprland's window.lua uses).
+            hypr = active_border_colors()
+            bcol = _safe_color(hypr[0] if hypr else accent, accent)
+            border_rule = f"border: {border_size()}px solid {bcol};"
+        else:
+            border_rule = "border: none;"
 
     prefix = f".widget-{widget_id}"
     css = f"""
