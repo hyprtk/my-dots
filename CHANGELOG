@@ -3,6 +3,14 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.13] - 2026-09-30
+
+### Changed
+
+- **hyprtk-bar 0.4.3** — desktop widgets keep the Hyprland window gap
+  (`general:gaps_out`) from the bar, so a widget stacked against the bar no
+  longer sits edge-to-edge with it.
+
 ## [v1.3.12] - 2026-09-30
 
 ### Changed

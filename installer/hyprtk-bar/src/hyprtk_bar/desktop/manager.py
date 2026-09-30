@@ -278,23 +278,54 @@ class DesktopWidgetManager:
         return GLib.SOURCE_REMOVE
 
     def _usable_rect(self):
-        """The monitor inset by the bar thickness (the widget-free border)."""
+        """The monitor inset by the bar's reserved border.
+
+        The bar thickness acts as a widget-free border on every side; on the
+        side(s) the bar actually occupies, the Hyprland window gap is added so a
+        widget stacked nearest the bar keeps the same padding a tiled window
+        would (instead of sitting flush against the bar).
+        """
         if not self._wins:
             return None
         mon_x, mon_y, mon_w, mon_h = next(iter(self._wins.values()))._monitor_geometry()
-        inset = 0
+        reserved = [0, 0, 0, 0]
         if self._ipc is not None:
             monitors = self._ipc.query("monitors")
             if isinstance(monitors, list) and monitors:
                 mon = next((m for m in monitors if m.get("focused")), monitors[0])
-                reserved = mon.get("reserved")
-                if isinstance(reserved, list) and reserved:
+                res = mon.get("reserved")
+                if isinstance(res, list) and len(res) >= 4:
                     try:
-                        inset = max(int(v) for v in reserved)
+                        reserved = [max(0, int(v)) for v in res[:4]]
                     except (TypeError, ValueError):
-                        inset = 0
-        inset = max(0, inset)
-        return (mon_x + inset, mon_y + inset, mon_x + mon_w - inset, mon_y + mon_h - inset)
+                        reserved = [0, 0, 0, 0]
+        border = max(reserved)
+        gap = self._window_gap()
+        # reserved is [left, top, right, bottom] — add the window gap only on the
+        # sides the bar occupies.
+        left = border + (gap if reserved[0] else 0)
+        top = border + (gap if reserved[1] else 0)
+        right = border + (gap if reserved[2] else 0)
+        bottom = border + (gap if reserved[3] else 0)
+        return (mon_x + left, mon_y + top, mon_x + mon_w - right, mon_y + mon_h - bottom)
+
+    def _window_gap(self) -> int:
+        """The largest Hyprland ``general:gaps_out`` value in pixels, or 0.
+
+        Windows are inset from the bar's reserved area by this gap, so widgets
+        use it too to line up with the windows beside them.
+        """
+        if self._ipc is None:
+            return 0
+        opt = self._ipc.query("getoption", "general:gaps_out")
+        css = opt.get("css", "") if isinstance(opt, dict) else ""
+        vals = []
+        for token in str(css).split():
+            try:
+                vals.append(int(round(float(token))))
+            except ValueError:
+                pass
+        return max(vals) if vals else 0
 
     def _apply_snap_layout(self) -> None:
         """Lay out every widget inside the usable area; snap groups get a uniform

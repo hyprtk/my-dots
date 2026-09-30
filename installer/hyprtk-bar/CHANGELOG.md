@@ -3,6 +3,16 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.3] - 2026-09-30
+
+### Fixed
+
+- **Desktop widgets no longer sit flush against the bar.** The widget usable
+  area inset the monitor by the bar's reserved thickness alone, so a widget
+  stacked against the bar touched it edge-to-edge. It now adds the Hyprland
+  `general:gaps_out` value on the side(s) the bar occupies, so the widget
+  nearest the bar keeps the same padding a tiled window would.
+
 ## [0.4.2] - 2026-09-30
 
 ### Fixed
