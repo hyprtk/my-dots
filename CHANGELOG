@@ -3,6 +3,35 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.10] - 2026-09-30
+
+### Added
+
+- **hyprtk-bar 0.4.0 — GTK4 port.** The bundled bar is now the GTK4-native
+  build (dual-stack through a `compat.py` shim, `HYPRTK_GTK=3|4`), shipped with
+  a containerized GTK3/GTK4 end-to-end harness (`tools/e2e/`). The Theme
+  Manager's Matuwall page now reads and writes the real
+  `~/.config/matuwall/config.toml` against the matuwall 0.3.x schema
+  (`grid.edge`, `[backend.*] args`, `[backend.command]`); the pywal template was
+  brought up to the same schema.
+- **Compositor watchdog to capture the idle-lock freeze.** Hyprland could hang
+  on the DPMS-off → wake path (the upstream aquamarine DRM page-flip race),
+  freezing the session while locked — and its log lives in tmpfs, so a reboot
+  left no evidence. `hypr/scripts/hypr-watchdog.sh` (started from
+  `hypr/autostart.lua`) mirrors the runtime log and monitor/DPMS events into
+  `~/.local/state/hyprtk/`, heartbeats the compositor, and on a stall writes a
+  snapshot (process state/`wchan`, kernel + user journals, DRM connector state,
+  `hyprctl` output) for later diagnosis.
+- **DPMS transitions are timestamped.** `hypr/scripts/dpms.sh` logs each
+  on/off transition (before/after state) so a freeze can be correlated with the
+  event that preceded it.
+
+### Changed
+
+- **Idle monitor-off routes through `hypr/scripts/dpms.sh`.** The `swayidle`
+  DPMS commands (`installer/scripts/lockscreentime.sh`) now go through the
+  logging wrapper instead of calling `hyprctl dispatch` directly.
+
 ## [v1.3.9] - 2026-09-28
 
 ### Fixed

@@ -10,10 +10,8 @@ from __future__ import annotations
 import logging
 import shutil
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import GLib, Gtk  # noqa: E402
 
 from .config import icon_size_for  # noqa: E402
 from .monitor import SysMonitorDialog  # noqa: E402
@@ -88,11 +86,11 @@ class SysMon(HoverButton):
             img = Glyph(glyph, "accent-icon")
             img.set_pixel_size(icon_size)
             self._icons.append(img)
-            item.pack_start(img, False, False, 0)
+            compat.pack_start(item, img, False, False, 0)
             label = Gtk.Label(label="--%")
-            label.get_style_context().add_class("sysmon-value")
-            item.pack_start(label, False, False, 0)
-            self.box.pack_start(item, False, False, 0)
+            compat.add_class(label, "sysmon-value")
+            compat.pack_start(item, label, False, False, 0)
+            compat.pack_start(self.box, item, False, False, 0)
             self._labels[key] = label
 
         self._update()
@@ -134,7 +132,7 @@ class SysMon(HoverButton):
         if self._popup is not None:
             if self._popup.get_visible():
                 self._popup.hide_popup()
-            self._popup.destroy()
+            compat.destroy(self._popup)
             self._popup = None
 
     def _on_button_press(self, _widget, event):
@@ -174,7 +172,7 @@ class SysMon(HoverButton):
 
     @staticmethod
     def _apply_level(label: Gtk.Label, pct: float) -> None:
-        ctx = label.get_style_context()
+        ctx = compat.style_context(label)
         if pct >= 90:
             ctx.add_class("high")
             ctx.remove_class("warn")

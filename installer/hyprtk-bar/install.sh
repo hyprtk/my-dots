@@ -112,16 +112,20 @@ detect_pkg_manager() {
 # therefore uses them through a `--system-site-packages` venv, and only the
 # pure-Python `dbus-next` is pip-installed.
 declare -A DEPS
-DEPS[pacman]="gtk3 gtk-layer-shell gdk-pixbuf2 pango cairo gobject-introspection-runtime python python-gobject python-cairo python-pip"
-DEPS[apt]="gir1.2-gtk-3.0 gir1.2-gtklayershell-0.1 gir1.2-gdkpixbuf-2.0 gir1.2-pango-1.0 gir1.2-cairo-1.0 gir1.2-xlib-2.0 python3-gi python3-gi-cairo python3-venv python3-pip"
-DEPS[dnf]="gtk3 gtk-layer-shell gdk-pixbuf2 pango cairo gobject-introspection python3-gobject python3-cairo python3-pip"
-DEPS[zypper]="typelib-1_0-Gtk-3_0 typelib-1_0-GtkLayerShell-0_1 typelib-1_0-GdkPixbuf-2_0 typelib-1_0-Pango-1_0 girepository-1_0 python3-gobject python3-gobject-Gdk python3-gobject-cairo python3-pip"
+DEPS[pacman]="gtk4 gtk4-layer-shell gdk-pixbuf2 pango cairo gobject-introspection-runtime python python-gobject python-cairo python-pip"
+DEPS[apt]="gir1.2-gtk-4.0 gir1.2-gdkpixbuf-2.0 gir1.2-pango-1.0 gir1.2-cairo-1.0 gir1.2-xlib-2.0 python3-gi python3-gi-cairo python3-venv python3-pip"
+# NOTE: gtk4-layer-shell has no GI package in the Debian/Ubuntu archive
+# (<= 24.04). The multi-distro installer builds it from source with
+# -Dintrospection=true (see installer/scripts/srcapps-install.sh); standalone
+# installs need it built manually (the installer warns below).
+DEPS[dnf]="gtk4 gtk4-layer-shell gdk-pixbuf2 pango cairo gobject-introspection python3-gobject python3-cairo python3-pip"
+DEPS[zypper]="typelib-1_0-Gtk-4_0 typelib-1_0-Gtk4LayerShell-1_0 typelib-1_0-GdkPixbuf-2_0 typelib-1_0-Pango-1_0 girepository-1_0 python3-gobject python3-gobject-Gdk python3-gobject-cairo python3-pip"
 # Void/Alpine ship the GI typelibs in the -devel/-dev subpackages, not the base
 # lib packages.
-DEPS[xbps]="gtk+3-devel gtk-layer-shell-devel gdk-pixbuf-devel pango-devel cairo-devel gobject-introspection python3-gobject python3-cairo python3-pip"
-DEPS[apk]="gtk+3.0-dev gtk-layer-shell-dev gdk-pixbuf-dev pango-dev cairo-dev gobject-introspection-dev py3-gobject3 py3-cairo py3-pip py3-virtualenv"
-DEPS[emerge]="x11-libs/gtk+:3 gui-libs/gtk-layer-shell x11-libs/gdk-pixbuf x11-libs/pango x11-libs/cairo dev-libs/gobject-introspection dev-python/pygobject dev-python/pycairo"
-DEPS[nix]="gtk3 gtk-layer-shell gdk-pixbuf pango cairo gobject-introspection python3"
+DEPS[xbps]="gtk4-devel gtk4-layer-shell-devel gdk-pixbuf-devel pango-devel cairo-devel gobject-introspection python3-gobject python3-cairo python3-pip"
+DEPS[apk]="gtk4.0-dev gtk4-layer-shell-dev gdk-pixbuf-dev pango-dev cairo-dev gobject-introspection-dev py3-gobject3 py3-cairo py3-pip py3-virtualenv"
+DEPS[emerge]="x11-libs/gtk+:4 gui-libs/gtk4-layer-shell x11-libs/gdk-pixbuf x11-libs/pango x11-libs/cairo dev-libs/gobject-introspection dev-python/pygobject dev-python/pycairo"
+DEPS[nix]="gtk4 gtk4-layer-shell gdk-pixbuf pango cairo gobject-introspection python3"
 
 # openSUSE ships the Python bindings under versioned names — python313-gobject,
 # python313-pycairo, python313-psutil — with no unversioned python3-* alias.
@@ -131,7 +135,7 @@ DEPS[nix]="gtk3 gtk-layer-shell gdk-pixbuf pango cairo gobject-introspection pyt
 if command -v zypper >/dev/null 2>&1; then
     __py="$(python3 -c 'import sys; print("python%d%d" % sys.version_info[:2])' 2>/dev/null || true)"
     if [ -n "${__py:-}" ]; then
-        DEPS[zypper]="typelib-1_0-Gtk-3_0 typelib-1_0-GtkLayerShell-0_1 typelib-1_0-GdkPixbuf-2_0 typelib-1_0-Pango-1_0 girepository-1_0 ${__py}-gobject ${__py}-gobject-Gdk ${__py}-gobject-cairo ${__py}-pip"
+        DEPS[zypper]="typelib-1_0-Gtk-4_0 typelib-1_0-Gtk4LayerShell-1_0 typelib-1_0-GdkPixbuf-2_0 typelib-1_0-Pango-1_0 girepository-1_0 ${__py}-gobject ${__py}-gobject-Gdk ${__py}-gobject-cairo ${__py}-pip"
     fi
     unset __py
 fi
@@ -160,40 +164,45 @@ typelib_present() {
     for d in /usr/lib/girepository-1.0 /usr/lib64/girepository-1.0 \
              /usr/lib/x86_64-linux-gnu/girepository-1.0 \
              /usr/lib/aarch64-linux-gnu/girepository-1.0 \
-             /usr/local/lib/girepository-1.0; do
+             /usr/local/lib/girepository-1.0 \
+             /usr/local/lib/x86_64-linux-gnu/girepository-1.0 \
+             /usr/local/lib/aarch64-linux-gnu/girepository-1.0; do
         [ -f "$d/${name}.typelib" ] && return 0
     done
     return 1
 }
 
 deps_ok() {
-    # `xlib-2.0` is required to import Gtk at all (PyGObject pulls GDK's
-    # GdkX11 into the namespace). On Arch it ships in gobject-introspection-
-    # runtime; checking it here stops the installer skipping that runtime when
-    # Gtk/gtk-layer-shell typelibs alone happen to be present.
-    typelib_present "Gtk-3.0" \
-        && typelib_present "GtkLayerShell-0.1" \
-        && typelib_present "xlib-2.0"
+    # GTK4 + gtk4-layer-shell typelibs, plus the Python GI bindings. A GTK4 dev
+    # package can bring the typelib without python3-gi (so the typelib checks
+    # alone would skip installing the bindings), hence the import probe.
+    # `xlib-2.0` keeps GDK's GdkX11 namespace importable; on Arch it ships in
+    # gobject-introspection-runtime.
+    typelib_present "Gtk-4.0" \
+        && typelib_present "Gtk4LayerShell-1.0" \
+        && typelib_present "xlib-2.0" \
+        && python3 -c 'import gi' >/dev/null 2>&1 \
+        && python3 -c 'import ensurepip' >/dev/null 2>&1
 }
 
-# gtk-layer-shell version as "major.minor.micro", or "" when not importable.
+# gtk4-layer-shell version as "major.minor.micro", or "" when not importable.
 layer_shell_version() {
-    python3 -c 'import gi; gi.require_version("GtkLayerShell", "0.1"); from gi.repository import GtkLayerShell as G; print("%d.%d.%d" % (G.get_major_version(), G.get_minor_version(), G.get_micro_version()))' 2>/dev/null || echo ""
+    python3 -c 'import gi; gi.require_version("Gtk4LayerShell", "1.0"); from gi.repository import Gtk4LayerShell as G; print("%d.%d.%d" % (G.get_major_version(), G.get_minor_version(), G.get_micro_version()))' 2>/dev/null || echo ""
 }
 
-# 0 when gtk-layer-shell is importable AND >= 0.9; 1 otherwise. Older releases
-# lack the layer-shell API the bar anchors on (Debian <=12 0.8.0, Ubuntu <=24.04
-# 0.8.2, Fedora <=40, Leap 15.x, Alpine <=3.20).
+# 0 when gtk4-layer-shell is importable AND >= 1.0; 1 otherwise. The GTK4 bar
+# requires the gtk4-layer-shell namespace (typelib Gtk4LayerShell-1.0).
 layer_shell_new_enough() {
-    python3 -c 'import sys, gi; gi.require_version("GtkLayerShell", "0.1"); from gi.repository import GtkLayerShell as G; sys.exit(0 if (G.get_major_version(), G.get_minor_version(), G.get_micro_version()) >= (0, 9, 0) else 1)' 2>/dev/null
+    python3 -c 'import sys, gi; gi.require_version("Gtk4LayerShell", "1.0"); from gi.repository import Gtk4LayerShell as G; sys.exit(0 if (G.get_major_version(), G.get_minor_version(), G.get_micro_version()) >= (1, 0, 0) else 1)' 2>/dev/null
 }
 
 warn_layershell() {
-    echo ":: WARN: gtk-layer-shell $(layer_shell_version) is below 0.9 — the bar" >&2
-    echo "   may misbehave (missing layer-shell API). Upgrade the distro release," >&2
-    echo "   or build a newer one from source:" >&2
-    echo "     git clone https://github.com/wmww/gtk-layer-shell" >&2
-    echo "     cd gtk-layer-shell && meson build && ninja -C build && sudo ninja -C build install" >&2
+    echo ":: WARN: gtk4-layer-shell $(layer_shell_version) is missing or below 1.0 —" >&2
+    echo "   the GTK4 bar cannot anchor without it. Install the distro package, or" >&2
+    echo "   build it from source (introspection on, so the GI typelib is made):" >&2
+    echo "     git clone https://github.com/wmww/gtk4-layer-shell" >&2
+    echo "     cd gtk4-layer-shell && meson setup build -Dintrospection=true \\" >&2
+    echo "       && ninja -C build && sudo ninja -C build install" >&2
 }
 
 # Run a package-manager command with root (directly if already root, else sudo).
@@ -328,7 +337,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
     echo ":: Dry run — nothing will be installed or modified."
     echo ":: Package manager: $PM"
     echo ":: Required typelibs:"
-    for t in Gtk-3.0 GtkLayerShell-0.1 xlib-2.0; do
+    for t in Gtk-4.0 Gtk4LayerShell-1.0 xlib-2.0; do
         if typelib_present "$t"; then
             printf '     OK       %s\n' "$t"
         else
@@ -337,12 +346,12 @@ if [ "$DRY_RUN" -eq 1 ]; then
     done
     v="$(layer_shell_version)"
     if [ -n "$v" ]; then
-        echo ":: gtk-layer-shell version: $v (needs >= 0.9)"
+        echo ":: gtk4-layer-shell version: $v (needs >= 1.0)"
         if ! layer_shell_new_enough; then
-            echo "::   -> below 0.9; the bar may misbehave on this release."
+            echo "::   -> below 1.0; the bar needs a newer gtk4-layer-shell."
         fi
     else
-        echo ":: gtk-layer-shell version: not importable"
+        echo ":: gtk4-layer-shell version: not importable"
     fi
     printf ':: python3: %s\n' "$(command -v python3 || echo MISSING)"
     if python3 -c 'import venv' >/dev/null 2>&1; then
@@ -394,7 +403,7 @@ if [ "$SKIP_DEPS" -eq 0 ]; then
         echo ":: System dependencies present."
     elif [ "$PM" = "none" ]; then
         echo ":: WARN: no supported package manager detected." >&2
-        echo ":: Install GTK3 + gtk-layer-shell typelibs manually, then rerun." >&2
+        echo ":: Install GTK4 + gtk4-layer-shell typelibs manually, then rerun." >&2
     else
         echo ":: Installing system dependencies via $PM ..."
         # Non-fatal: a package manager that needs an interactive credential
@@ -404,12 +413,12 @@ if [ "$SKIP_DEPS" -eq 0 ]; then
         # warning below makes explicit.
         if ! install_pkgs "$PM" ${DEPS[$PM]:-}; then
             echo ":: WARN: could not install all system dependencies via $PM (see above)." >&2
-            echo "::       The bar will not start until the GTK, gtk-layer-shell and" >&2
+            echo "::       The bar will not start until the GTK4, gtk4-layer-shell and" >&2
             echo "::       xlib typelibs plus PyGObject are present." >&2
         fi
     fi
-    # After the deps step, gtk-layer-shell should be importable; warn (don't
-    # fail) if it's present but below the 0.9 floor the bar expects.
+    # After the deps step, gtk4-layer-shell should be importable; warn (don't
+    # fail) if it's present but below the 1.0 floor the bar expects.
     if [ "$SKIP_DEPS" -eq 0 ] && [ "$PM" != "none" ] && ! layer_shell_new_enough; then
         warn_layershell
     fi
@@ -513,12 +522,31 @@ python3 -m venv --system-site-packages "$INSTALL_DIR/venv" \
     || echo ":: WARN: could not create the venv — is python3 (with venv) installed?" >&2
 "$INSTALL_DIR/venv/bin/pip" install --quiet "dbus-next>=0.2.3,<0.3" \
     || echo ":: WARN: could not install dbus-next (bar IPC may be unavailable)." >&2
+# tomllib is stdlib on Python 3.11+; older interpreters need the tomli shim for
+# the Theme Manager's matuwall config editor.
+if ! "$INSTALL_DIR/venv/bin/python3" -c 'import tomllib' >/dev/null 2>&1; then
+    "$INSTALL_DIR/venv/bin/pip" install --quiet "tomli>=2.0" \
+        || echo ":: WARN: could not install tomli (matuwall config editor disabled)." >&2
+fi
 "$INSTALL_DIR/venv/bin/pip" install --quiet --no-deps -e "$INSTALL_DIR" \
     || echo ":: WARN: could not editable-install the bar." >&2
 
-# Main launcher
+# Main launcher. gtk4-layer-shell must be preloaded on GTK4 builds without the
+# layer-shell patch (the common case); harmless where GTK4 is patched.
 cat > "$BIN_DIR/$APP_NAME" << LAUNCHER
 #!/bin/bash
+for _ls in /usr/lib/libgtk4-layer-shell.so /usr/lib64/libgtk4-layer-shell.so \
+           /usr/lib/*/libgtk4-layer-shell.so \
+           /usr/local/lib/libgtk4-layer-shell.so \
+           /usr/lib/libgtk4-layer-shell.so.[0-9]* /usr/lib64/libgtk4-layer-shell.so.[0-9]* \
+           /usr/lib/*/libgtk4-layer-shell.so.[0-9]* \
+           /usr/local/lib/*/libgtk4-layer-shell.so.[0-9]*; do
+    if [ -e "\$_ls" ]; then
+        export LD_PRELOAD="\$_ls\${LD_PRELOAD:+:\$LD_PRELOAD}"
+        break
+    fi
+done
+unset _ls
 exec "$INSTALL_DIR/venv/bin/python3" -m hyprtk_bar "\$@"
 LAUNCHER
 chmod +x "$BIN_DIR/$APP_NAME"
@@ -604,11 +632,11 @@ if [ ! -f "$CONFIG_FILE" ] && [ -f "$CONFIG_DIR/config.json.bak" ]; then
     echo ":: Restored config from backup"
 fi
 
-# ── Self-test: verify the venv can import GTK + gtk-layer-shell ────────────
+# ── Self-test: verify the venv can import GTK4 + gtk4-layer-shell ──────────
 # The installer can succeed while the runtime is still unusable (e.g. GDK
 # needs the xlib typelib, which Arch ships in gobject-introspection-runtime).
 # Catch that here with a clear cause instead of a silent no-launch later.
-if ! "$INSTALL_DIR/venv/bin/python3" -c 'import gi; gi.require_version("Gtk", "3.0"); from gi.repository import Gtk; gi.require_version("GtkLayerShell", "0.1"); from gi.repository import GtkLayerShell' 2>"$INSTALL_DIR/self-test.err"; then
+if ! "$INSTALL_DIR/venv/bin/python3" -c 'import gi; gi.require_version("Gtk", "4.0"); from gi.repository import Gtk; gi.require_version("Gtk4LayerShell", "1.0"); from gi.repository import Gtk4LayerShell' 2>"$INSTALL_DIR/self-test.err"; then
     echo ":: ERROR: the bar cannot import GTK — the install is incomplete." >&2
     sed 's/^/   /' "$INSTALL_DIR/self-test.err" >&2 || true
     echo ":: On Arch this is usually fixed by:" >&2

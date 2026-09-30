@@ -12,11 +12,8 @@ the title is ellipsized within it.
 
 from __future__ import annotations
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Pango", "1.0")
-
-from gi.repository import Gtk, Pango  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gtk, Pango  # noqa: E402
 
 from .popup import bind_hover_tooltip  # noqa: E402
 from .widgets import HoverButton  # noqa: E402
@@ -46,9 +43,12 @@ class Window(HoverButton):
         self._label.set_xalign(0)
         self._label.set_ellipsize(Pango.EllipsizeMode.END)
         self._label.set_max_width_chars(self._max_length)
-        self._label.set_no_show_all(True)
+        if compat.IS_GTK3:
+            self._label.set_no_show_all(True)
+        else:
+            self._label.set_visible(False)
         # Expand so the label fills the fixed box and ellipsizes within it.
-        self.box.pack_start(self._label, True, True, 0)
+        compat.pack_start(self.box, self._label, True, True, 0)
         self.set_size_request(self._width, -1)
         bind_hover_tooltip(self, cfg, lambda: self._tip)
 
@@ -56,6 +56,12 @@ class Window(HoverButton):
         # A TRUE fixed width: size_request alone is only a minimum and a long
         # title would still widen the module (shifting its neighbors).
         return self._width, self._width
+
+    def do_measure(self, orientation, for_size):
+        # GTK4 equivalent of the fixed-width do_get_preferred_width above.
+        if orientation == Gtk.Orientation.HORIZONTAL:
+            return (self._width, self._width, -1, -1)
+        return super().do_measure(orientation, for_size)
 
     def apply_font(self, font_size, icon_size=0) -> None:
         """Scale the fixed title box with the bar's fit-to-width content scale."""
@@ -71,11 +77,11 @@ class Window(HoverButton):
         title = (title or "").strip()
         self._app_class = app_class or ""
         if not title:
-            self._label.hide()
+            compat.hide(self._label)
             self._tip = ""
             return
         if len(title) > self._max_length:
             title = title[: self._max_length].rstrip() + "…"
         self._label.set_text(title)
-        self._label.show()
+        compat.show(self._label)
         self._tip = f"{self._app_class} — {title}" if self._app_class else title

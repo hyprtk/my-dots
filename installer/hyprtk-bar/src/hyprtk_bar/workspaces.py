@@ -7,10 +7,8 @@
 
 from __future__ import annotations
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gtk  # noqa: E402
 
 from .popup import bind_hover_tooltip  # noqa: E402
 from .widgets import HoverButton  # noqa: E402
@@ -23,11 +21,11 @@ class WorkspaceChip(HoverButton):
         self._ipc = ipc
         self._label = Gtk.Label(label=str(workspace_id))
         self._label.set_xalign(0.5)
-        self.box.pack_start(self._label, True, True, 0)
+        compat.pack_start(self.box, self._label, True, True, 0)
         bind_hover_tooltip(self, cfg, lambda: f"Workspace {self._wid}")
 
     def set_state(self, active: bool, occupied: bool) -> None:
-        ctx = self.box.get_style_context()
+        ctx = compat.style_context(self.box)
         if active:
             ctx.add_class("active")
         else:
@@ -62,13 +60,13 @@ class Workspaces(Gtk.Box):
 
         for wid in list(self._chips):
             if wid not in ordered:
-                self._chips.pop(wid).destroy()
+                compat.destroy(self._chips.pop(wid))
         for wid in ordered:
             if wid not in self._chips:
                 chip = WorkspaceChip(wid, self._ipc, self._bar_cfg)
                 self._chips[wid] = chip
-                self.pack_start(chip, False, False, 0)
+                compat.pack_start(self, chip, False, False, 0)
 
         for wid, chip in self._chips.items():
             chip.set_state(wid == active_id, wid in ids)
-        self.show_all()
+        compat.show_all(self)

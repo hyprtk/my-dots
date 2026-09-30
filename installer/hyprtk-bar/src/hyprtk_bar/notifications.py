@@ -18,12 +18,8 @@ import logging
 import subprocess
 import time
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 from dbus_next import Variant  # noqa: E402
 from dbus_next.constants import NameFlag, RequestNameReply  # noqa: E402
@@ -424,6 +420,8 @@ class NotificationController:
     def show_toast(self, notif: Notification) -> None:
         self._dismiss_toast()
         self._toast = Toast(self._cfg, self, notif, self._monitor, self._bar_win)
+        # Call the Toast's own show() (it anchors/centres the layer surface);
+        # compat.show() would set_visible() directly and skip the geometry.
         self._toast.show()
 
     def _dismiss_toast(self) -> None:
@@ -431,7 +429,7 @@ class NotificationController:
             toast, self._toast = self._toast, None
             try:
                 toast.hide_popup()
-                toast.destroy()
+                compat.destroy(toast)
             except Exception:
                 pass
 
@@ -454,17 +452,17 @@ class NotificationCenterButton(HoverButton):
         # Unread indicator: a numbered dot overlaid on the icon's bottom-left
         # corner (mirrors the tasklist running dot) so the bar never resizes.
         self._overlay = Gtk.Overlay()
-        self._overlay.add(self._icon)
+        compat.add(self._overlay, self._icon)
         self._badge = Gtk.Label(label="")
-        self._badge.get_style_context().add_class("notif-dot")
-        self._badge.set_no_show_all(True)
+        compat.add_class(self._badge, "notif-dot")
+        compat.hide_from_show_all(self._badge)
         self._badge.set_halign(Gtk.Align.START)
         self._badge.set_valign(Gtk.Align.END)
         self._badge.set_margin_start(2)
         self._badge.set_margin_bottom(2)
-        self._badge.hide()
+        compat.hide(self._badge)
         self._overlay.add_overlay(self._badge)
-        self.box.pack_start(self._overlay, True, True, 0)
+        compat.pack_start(self.box, self._overlay, True, True, 0)
 
         ctrl.add_listener(self._on_change)
         self._refresh_badge()
@@ -492,9 +490,9 @@ class NotificationCenterButton(HoverButton):
         count = self._ctrl._store.unread_count()
         if count > 0:
             self._badge.set_text(str(count))
-            self._badge.show()
+            compat.show(self._badge)
         else:
-            self._badge.hide()
+            compat.hide(self._badge)
 
     def _toggle(self) -> None:
         # Click-opened, interactive panel: it does NOT auto-hide on mouse-leave
@@ -510,7 +508,7 @@ class NotificationCenterButton(HoverButton):
     def shutdown(self) -> None:
         self._ctrl.remove_listener(self._on_change)
         self._popup.hide_popup()
-        self._popup.destroy()
+        compat.destroy(self._popup)
 
     def _on_button_press(self, _widget, event):
         if event.button == 1:
@@ -535,27 +533,27 @@ class NotificationCenter(Popup):
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title = Gtk.Label(label="Notifications", xalign=0)
-        title.get_style_context().add_class("notif-title")
-        header.pack_start(title, True, True, 0)
+        compat.add_class(title, "notif-title")
+        compat.pack_start(header, title, True, True, 0)
         clear_btn = Gtk.Button(label="Clear all")
-        clear_btn.get_style_context().add_class("notif-clear")
+        compat.add_class(clear_btn, "notif-clear")
         clear_btn.connect("clicked", lambda *_a: self._ctrl.clear_all())
-        header.pack_start(clear_btn, False, False, 0)
-        self.content.pack_start(header, False, False, 0)
+        compat.pack_start(header, clear_btn, False, False, 0)
+        compat.pack_start(self.content, header, False, False, 0)
 
         self._list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_max_content_height(self.MAX_HEIGHT)
-        scroller.add(self._list_box)
-        self.content.pack_start(scroller, True, True, 0)
+        compat.add(scroller, self._list_box)
+        compat.pack_start(self.content, scroller, True, True, 0)
 
         self.set_size_request(self.WIDTH, self.MIN_HEIGHT)
 
     def refresh(self) -> None:
-        for child in self._list_box.get_children():
+        for child in compat.children(self._list_box):
             self._list_box.remove(child)
-            child.destroy()
+            compat.destroy(child)
         try:
             items = self._ctrl._store.list()
             if not items:
@@ -563,66 +561,66 @@ class NotificationCenter(Popup):
                 empty.set_opacity(0.6)
                 empty.set_margin_top(12)
                 empty.set_margin_bottom(12)
-                self._list_box.pack_start(empty, False, False, 0)
+                compat.pack_start(self._list_box, empty, False, False, 0)
             else:
                 for notif in reversed(items):  # newest first
-                    self._list_box.pack_start(
+                    compat.pack_start(self._list_box, 
                         self._make_row(notif), False, False, 0
                     )
         except Exception as exc:
             # A malformed notification must never take down the bar.
             log.warning("could not build notification center list: %s", exc)
-        self._list_box.show_all()
+        compat.show_all(self._list_box)
 
     def _make_row(self, notif: Notification) -> Gtk.Widget:
         row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        row.get_style_context().add_class("notif-row")
+        compat.add_class(row, "notif-row")
 
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        icon = Gtk.Image.new_from_icon_name(
-            self._icon_name(notif.app_icon), Gtk.IconSize.INVALID
+        icon = compat.new_image_from_icon_name(
+            self._icon_name(notif.app_icon)
         )
         icon.set_pixel_size(16)
-        head.pack_start(icon, False, False, 0)
+        compat.pack_start(head, icon, False, False, 0)
         app = Gtk.Label(label=notif.app_name or "Notification", xalign=0)
-        app.get_style_context().add_class("notif-app")
-        head.pack_start(app, True, True, 0)
+        compat.add_class(app, "notif-app")
+        compat.pack_start(head, app, True, True, 0)
         when = Gtk.Label(label=self._time_str(notif), xalign=1)
-        when.get_style_context().add_class("notif-time")
-        head.pack_start(when, False, False, 0)
-        row.pack_start(head, False, False, 0)
+        compat.add_class(when, "notif-time")
+        compat.pack_start(head, when, False, False, 0)
+        compat.pack_start(row, head, False, False, 0)
 
         summary = Gtk.Label(label=notif.summary, xalign=0, wrap=True)
-        summary.get_style_context().add_class("notif-summary")
-        row.pack_start(summary, False, False, 0)
+        compat.add_class(summary, "notif-summary")
+        compat.pack_start(row, summary, False, False, 0)
 
         if notif.body:
             body = Gtk.Label(label=notif.body, xalign=0, wrap=True)
-            body.get_style_context().add_class("notif-body")
+            compat.add_class(body, "notif-body")
             body.set_max_width_chars(self.WIDTH // 7)
-            row.pack_start(body, False, False, 0)
+            compat.pack_start(row, body, False, False, 0)
 
         if notif.actions:
             actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             actions.set_halign(Gtk.Align.END)
             for key, label in notif.actions:
                 btn = Gtk.Button(label=label)
-                btn.get_style_context().add_class("notif-action")
+                compat.add_class(btn, "notif-action")
                 btn.connect("clicked", lambda *_a, k=key: self._ctrl.invoke_action(notif.id, k))
-                actions.pack_start(btn, False, False, 0)
-            row.pack_start(actions, False, False, 0)
+                compat.pack_start(actions, btn, False, False, 0)
+            compat.pack_start(row, actions, False, False, 0)
 
-        dismiss = Gtk.Button.new_from_icon_name(
-            "window-close-symbolic", Gtk.IconSize.MENU
+        dismiss = compat.new_button_from_icon_name(
+            "window-close-symbolic"
         )
-        dismiss.set_relief(Gtk.ReliefStyle.NONE)
+        compat.set_relief(dismiss)
         dismiss.connect("clicked", lambda *_a: self._ctrl.remove(notif.id))
-        head.pack_start(dismiss, False, False, 0)
+        compat.pack_start(head, dismiss, False, False, 0)
         return row
 
     @staticmethod
     def _icon_name(app_icon: str) -> str:
-        theme = Gtk.IconTheme.get_default()
+        theme = compat.icon_theme()
         if app_icon and theme.has_icon(app_icon):
             return app_icon
         return GENERIC_ICON
@@ -657,53 +655,53 @@ class Toast(Popup):
         notif = self._notif
 
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        icon = Gtk.Image.new_from_icon_name(
-            self._icon_name(notif.app_icon), Gtk.IconSize.INVALID
+        icon = compat.new_image_from_icon_name(
+            self._icon_name(notif.app_icon)
         )
         icon.set_pixel_size(18)
-        head.pack_start(icon, False, False, 0)
+        compat.pack_start(head, icon, False, False, 0)
         app = Gtk.Label(label=notif.app_name or "Notification", xalign=0)
-        app.get_style_context().add_class("notif-app")
-        head.pack_start(app, True, True, 0)
-        close = Gtk.Button.new_from_icon_name(
-            "window-close-symbolic", Gtk.IconSize.MENU
+        compat.add_class(app, "notif-app")
+        compat.pack_start(head, app, True, True, 0)
+        close = compat.new_button_from_icon_name(
+            "window-close-symbolic"
         )
-        close.set_relief(Gtk.ReliefStyle.NONE)
+        compat.set_relief(close)
         close.connect("clicked", lambda *_a: self._ctrl.dismiss(notif.id))
-        head.pack_start(close, False, False, 0)
-        self.content.pack_start(head, False, False, 0)
+        compat.pack_start(head, close, False, False, 0)
+        compat.pack_start(self.content, head, False, False, 0)
 
         summary = Gtk.Label(label=notif.summary, xalign=0, wrap=True)
-        summary.get_style_context().add_class("notif-summary")
-        self.content.pack_start(summary, False, False, 0)
+        compat.add_class(summary, "notif-summary")
+        compat.pack_start(self.content, summary, False, False, 0)
 
         if notif.body:
             body = Gtk.Label(label=notif.body, xalign=0, wrap=True)
-            body.get_style_context().add_class("notif-body")
+            compat.add_class(body, "notif-body")
             body.set_max_width_chars(self.WIDTH // 7)
-            self.content.pack_start(body, False, False, 0)
+            compat.pack_start(self.content, body, False, False, 0)
 
         if notif.actions:
             actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             actions.set_halign(Gtk.Align.END)
             for key, label in notif.actions:
                 btn = Gtk.Button(label=label)
-                btn.get_style_context().add_class("notif-action")
+                compat.add_class(btn, "notif-action")
                 btn.connect("clicked", lambda *_a, k=key: self._ctrl.invoke_action(notif.id, k))
-                actions.pack_start(btn, False, False, 0)
-            self.content.pack_start(actions, False, False, 0)
+                compat.pack_start(actions, btn, False, False, 0)
+            compat.pack_start(self.content, actions, False, False, 0)
 
-        self.content.connect("button-press-event", self._on_content_press)
+        compat.on_press(self.content, self._on_content_press)
         self.set_size_request(self.WIDTH, -1)
 
     def _icon_name(self, app_icon: str) -> str:
-        theme = Gtk.IconTheme.get_default()
+        theme = compat.icon_theme()
         if app_icon and theme.has_icon(app_icon):
             return app_icon
         return GENERIC_ICON
 
     def show(self) -> None:
-        self.content.show_all()
+        compat.show_all(self.content)
         nat = self.content.get_preferred_size().natural_size
         w = max(nat.width, 1)
         h = max(nat.height, 1)
@@ -716,7 +714,7 @@ class Toast(Popup):
             geo = self._monitor.get_geometry()
             screen_w = geo.width
         else:
-            screen_w = Gdk.Screen.get_default().get_width()
+            screen_w = compat.screen_size()[0]
         x = max(margin, (screen_w - w) // 2)
 
         edge = (
@@ -736,7 +734,7 @@ class Toast(Popup):
         GtkLayerShell.set_margin(self, edge, offset)
         GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, x)
 
-        self.show_all()
+        compat.show_all(self)
 
         if not self._notif.persistent and self._notif.timeout_ms > 0:
             self._timer = GLib.timeout_add(self._notif.timeout_ms, self._expire)

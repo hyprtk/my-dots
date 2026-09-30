@@ -7,10 +7,8 @@
 
 from __future__ import annotations
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import Gtk  # noqa: E402
 
 from ..graphs import HistoryGraph  # noqa: E402
 from ..widgets import Glyph  # noqa: E402
@@ -36,20 +34,20 @@ class NetworkWidget(SampledWidget):
     def build_content(self) -> None:
         head = row(8)
         self._icon = Glyph("\uf1eb", "widget-icon")
-        head.pack_start(self._icon, False, False, 0)
+        compat.pack_start(head, self._icon, False, False, 0)
         self._name = label("", "net-name")
-        head.pack_start(self._name, True, True, 0)
-        self.root.pack_start(head, False, False, 0)
+        compat.pack_start(head, self._name, True, True, 0)
+        compat.pack_start(self.root, head, False, False, 0)
         if self._block.get("show_ip", True):
             self._ip = label("", "net-ip")
-            self.root.pack_start(self._ip, False, False, 0)
+            compat.pack_start(self.root, self._ip, False, False, 0)
         if self._block.get("show_rates", True):
             self._rates = label("", "net-rates")
-            self.root.pack_start(self._rates, False, False, 0)
+            compat.pack_start(self.root, self._rates, False, False, 0)
         if self._block.get("show_graph", True):
             self._graph = HistoryGraph(color=self._accent, height=44, max_points=60, scale=None)
-            self._graph.get_style_context().add_class("widget-graph")
-            self.root.pack_start(self._graph, False, False, 0)
+            compat.add_class(self._graph, "widget-graph")
+            compat.pack_start(self.root, self._graph, False, False, 0)
 
     def collect(self):
         return self._sampler.sample()

@@ -13,12 +13,8 @@ import subprocess
 import threading
 import time
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, Gio, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 from .bar import Bar  # noqa: E402
 from .config import PYWAL_PATH, ROFI_SYNC_SH  # noqa: E402
@@ -73,7 +69,7 @@ def select_monitors(cfg: dict) -> list[Gdk.Monitor]:
     display = Gdk.Display.get_default()
     if display is None:
         return []
-    monitors = [display.get_monitor(i) for i in range(display.get_n_monitors())]
+    monitors = compat.monitors()
     mode = cfg.get("monitors", "primary")
     if mode == "all":
         return list(monitors)
@@ -89,7 +85,7 @@ def select_monitors(cfg: dict) -> list[Gdk.Monitor]:
             if name in names or model in names:
                 matched.append(m)
         return matched
-    primary = [m for m in monitors if m.is_primary()]
+    primary = [m for m in monitors if compat.monitor_is_primary(m)]
     return primary or monitors[:1]
 
 
@@ -146,7 +142,11 @@ class BarWindow(Gtk.Window):
         start_ipc: bool = False,
         notif_ctrl: NotificationController | None = None,
     ):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        if compat.IS_GTK4:
+            super().__init__()
+        else:
+            super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self._cfg = cfg
         self.monitor = monitor
         self.is_primary = is_primary
@@ -168,14 +168,16 @@ class BarWindow(Gtk.Window):
 
         self.set_title("hyprtk-bar")
         self.set_decorated(False)
-        self.set_skip_taskbar_hint(True)
-        self.set_skip_pager_hint(True)
-        self.set_app_paintable(True)
-        self.set_accept_focus(False)
-
-        visual = self.get_screen().get_rgba_visual()
-        if visual:
-            self.set_visual(visual)
+        if not compat.IS_GTK4:
+            # GTK4 layer-shell surfaces are unmanaged and RGBA by default, so
+            # these window hints (all removed in GTK4) only matter on GTK3.
+            self.set_skip_taskbar_hint(True)
+            self.set_skip_pager_hint(True)
+            self.set_app_paintable(True)
+            self.set_accept_focus(False)
+            visual = self.get_screen().get_rgba_visual()
+            if visual:
+                self.set_visual(visual)
 
         self._ipc = ipc if ipc is not None else HyprIPC()
         self._notif_ctrl = notif_ctrl
@@ -190,18 +192,21 @@ class BarWindow(Gtk.Window):
         self._bar.set_theme_callback(self._apply_theme)
         self._bar.set_height_callback(self._on_bar_height)
         self._bar.set_position_callback(self._on_bar_position)
-        self.add(self._bar)
-        self._bar.connect("size-allocate", self._on_size_allocate)
+        compat.set_single_child(self, self._bar)
+        if compat.IS_GTK4:
+            self._bar.connect("notify::width", self._on_size_allocate)
+        else:
+            self._bar.connect("size-allocate", self._on_size_allocate)
 
         self._provider = Gtk.CssProvider()
-        Gtk.StyleContext.add_provider_for_screen(
-            self.get_screen(), self._provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+        compat.add_provider_for_display(
+            self._provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
         )
         # Tiny provider that only overrides the pill's border-color each tick;
         # loaded after the base provider so it wins the cascade for that property.
         self._anim_provider = Gtk.CssProvider()
-        Gtk.StyleContext.add_provider_for_screen(
-            self.get_screen(), self._anim_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+        compat.add_provider_for_display(
+            self._anim_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
         )
         self._apply_theme()
 
@@ -568,28 +573,17 @@ class BarWindow(Gtk.Window):
         self._apply_input_shape()
 
     def _apply_input_shape(self) -> None:
-        wnd = self.get_window()
-        if wnd is None:
-            return
         region = cairo.Region()
-
-        def add(widget, inset_left: int, inset_top: int, inset_right: int, inset_bottom: int) -> None:
-            alloc = widget.get_allocation()
-            rect = cairo.RectangleInt(
-                alloc.x + inset_left,
-                alloc.y + inset_top,
-                max(alloc.width - inset_left - inset_right, 0),
-                max(alloc.height - inset_top - inset_bottom, 0),
-            )
-            region.union(rect)
-
-        for child in self._bar.get_children():
-            if child is getattr(self._bar, "pill_clip", None):
-                # The pill_clip owns the .taskbar background and its CSS margins,
-                # so its allocation is already the pill's rect (GTK margins are
-                # outside the allocation).
-                add(child, 0, 0, 0, 0)
-        wnd.input_shape_combine_region(region, 0, 0)
+        pill = getattr(self._bar, "pill_clip", None)
+        if pill is not None:
+            # The pill_clip owns the .taskbar background and its CSS margins, so
+            # its bounds are already the pill's rect (GTK margins are outside the
+            # allocation). Union it so only the pill is clickable; the surface's
+            # gaps/margins stay click-through.
+            bounds = compat.compute_bounds(pill, self._bar)
+            if bounds is not None:
+                region.union(cairo.RectangleInt(*bounds))
+        compat.set_input_region(self, region)
 
     # ── IPC ───────────────────────────────────────────────────────
 

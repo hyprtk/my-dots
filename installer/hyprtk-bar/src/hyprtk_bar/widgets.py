@@ -9,11 +9,8 @@ from __future__ import annotations
 
 import logging
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Pango", "1.0")
-
-from gi.repository import Gtk, Pango  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gtk, Pango  # noqa: E402
 
 from . import proc  # noqa: E402
 
@@ -35,7 +32,7 @@ class Glyph(Gtk.Label):
         super().__init__(label=codepoint)
         self._font = (font or "").strip() or GLYPH_FONT
         if css_class:
-            self.get_style_context().add_class(css_class)
+            compat.add_class(self, css_class)
         self.set_pixel_size(16)
 
     def set_pixel_size(self, size: int) -> None:
@@ -75,40 +72,43 @@ def safe_icon_name(name) -> str:
     return name
 
 
-class HoverButton(Gtk.EventBox):
-    """An EventBox with a styled child box and a hover-highlight CSS class.
+class HoverButton(compat.EventSurface):
+    """A hover-highlighting button surface with a styled child box.
 
-    GTK3 EventBoxes with visible_window=False do not reliably paint CSS
-    backgrounds themselves, so the hover state is toggled as a class on the
-    inner box, which draws through to the transparent toplevel.
+    GTK3 used an ``EventBox`` with ``visible_window=False`` (an EventBox with no
+    window does not reliably paint CSS backgrounds, so the hover state is toggled
+    as a class on the inner box). GTK4 has no ``EventBox``: the surface is a plain
+    ``Gtk.Box`` and input comes from gesture/motion controllers, while the hover
+    class still lives on the inner box so it draws through to the transparent
+    toplevel.
     """
 
     def __init__(self, css_class: str, vertical: bool = True, spacing: int = 3):
-        super().__init__()
-        self.set_visible_window(False)
+        if compat.IS_GTK4:
+            super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
+        else:
+            super().__init__()
+            self.set_visible_window(False)
         self._box = Gtk.Box(
             orientation=(
                 Gtk.Orientation.VERTICAL if vertical else Gtk.Orientation.HORIZONTAL
             ),
             spacing=spacing,
         )
-        self._box.get_style_context().add_class(css_class)
-        self.add(self._box)
-        self.connect("enter-notify-event", self._on_enter)
-        self.connect("leave-notify-event", self._on_leave)
-        self.connect("button-press-event", self._on_button_press)
+        compat.add_class(self._box, css_class)
+        compat.set_single_child(self, self._box)
+        compat.on_hover(self, self._on_enter, self._on_leave)
+        compat.on_press(self, self._on_button_press)
 
     @property
     def box(self) -> Gtk.Box:
         return self._box
 
     def _on_enter(self, *_args):
-        self._box.get_style_context().add_class("hover")
-        return False
+        compat.add_class(self._box, "hover")
 
     def _on_leave(self, *_args):
-        self._box.get_style_context().remove_class("hover")
-        return False
+        compat.remove_class(self._box, "hover")
 
-    def _on_button_press(self, _widget, event):
+    def _on_button_press(self, _widget, _button):
         return False

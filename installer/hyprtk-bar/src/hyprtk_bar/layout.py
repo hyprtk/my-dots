@@ -13,26 +13,27 @@ opens the bar menu (entry point to the settings window).
 
 from __future__ import annotations
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gtk  # noqa: E402
 
 # order of the sections, left to right
 SECTION_ORDER = ("left", "center", "right")
 
 
-class SectionBox(Gtk.EventBox):
+class SectionBox(compat.EventSurface):
     """One left/center/right slot: hosts module widgets + right-click menu."""
 
     def __init__(self, section_id: str, bar):
-        super().__init__()
+        if compat.IS_GTK4:
+            super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
+        else:
+            super().__init__()
+            self.set_visible_window(False)
         self.section_id = section_id
         self._bar = bar
-        self.set_visible_window(False)
         self._box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        self.add(self._box)
-        self.connect("button-press-event", self._on_button_press)
+        compat.set_single_child(self, self._box)
+        compat.on_press(self, self._on_button_press)
 
     @property
     def box(self) -> Gtk.Box:
@@ -40,6 +41,6 @@ class SectionBox(Gtk.EventBox):
 
     def _on_button_press(self, _widget, event):
         if event.button == 3:
-            self._bar.show_bar_menu(event)
+            self._bar.show_bar_menu(self, at=(event.x, event.y))
             return True
         return False

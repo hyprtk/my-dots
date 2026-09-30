@@ -17,10 +17,8 @@ from __future__ import annotations
 import logging
 import re
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gtk  # noqa: E402
 
 from .clipboard import CliphistDialog  # noqa: E402
 from .config import DEFAULT_LINKS, icon_size_for  # noqa: E402
@@ -70,7 +68,7 @@ class QuickLinkButton(HoverButton):
             "quicklink-glyph",
             (ql.get("glyph_font") or "").strip(),
         )
-        self.box.pack_start(self._glyph, False, False, 0)
+        compat.pack_start(self.box, self._glyph, False, False, 0)
         self._glyph.set_pixel_size(icon_size)
         label = link.get("label") or link.get("id") or ""
         bind_hover_tooltip(self, cfg, lambda: label)
@@ -198,7 +196,7 @@ class QuickLinks(Gtk.Box):
             else:
                 button = QuickLinkButton(cfg, link, self._glyph_size())
             self._buttons.append(button)
-            self.pack_start(button, False, False, 0)
+            compat.pack_start(self, button, False, False, 0)
 
     def shutdown(self) -> None:
         for button in self._buttons:

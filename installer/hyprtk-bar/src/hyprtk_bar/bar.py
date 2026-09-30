@@ -18,10 +18,8 @@ from __future__ import annotations
 import logging
 import os
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GLib, Gtk  # noqa: E402
 
 from . import config as config_module  # noqa: E402
 from . import proc  # noqa: E402
@@ -57,7 +55,7 @@ class StartButton(HoverButton):
             icon_size_for(font_cfg.get("size", 16), font_cfg.get("icon_size", 0))
         )
         self._icon = glyph
-        self.box.pack_start(self._icon, True, True, 0)
+        compat.pack_start(self.box, self._icon, True, True, 0)
         # Keep the start icon clear of the bar's left edge, with the same
         # breathing room as the spacing between the other modules.
         self.set_margin_start(6)
@@ -79,7 +77,7 @@ class StartButton(HoverButton):
         return True
 
 
-class ClipBox(Gtk.EventBox):
+class ClipBox(compat.EventSurface):
     """Clip the pill's content to the pill's own box.
 
     A GTK box propagates its minimum size up to the window, so the bar's layer
@@ -90,19 +88,33 @@ class ClipBox(Gtk.EventBox):
     content.
 
     The overflow must not be visible outside the bar's border. This widget owns
-    the ``.taskbar`` background (and its margins/rounded ends) and has its own
-    GdkWindow, so GTK clips the child's drawing to the pill — content overflows
+    the ``.taskbar`` background (and its margins/rounded ends). On GTK3 it had
+    its own GdkWindow so GTK clipped the child's drawing to the pill; on GTK4 it
+    is a Box with ``overflow: hidden`` (the modern equivalent). Content overflows
     only as far as the border, never into the surface's margin.
     """
 
     def __init__(self):
-        super().__init__()
-        self.set_visible_window(True)
+        if compat.IS_GTK4:
+            super().__init__(orientation=Gtk.Orientation.HORIZONTAL)
+            self.set_overflow(Gtk.Overflow.HIDDEN)
+        else:
+            super().__init__()
+            self.set_visible_window(True)
 
     def do_get_preferred_width(self):
-        child = self.get_child()
-        natural = child.get_preferred_width()[1] if child is not None else 0
+        child = compat.single_child(self)
+        natural = compat.preferred_width(child) if child is not None else 0
         return 0, natural
+
+    def do_measure(self, orientation, for_size):
+        # GTK4: report a 0 minimum width (so the surface can be narrower than the
+        # content) while keeping the child's natural width.
+        if orientation == Gtk.Orientation.HORIZONTAL:
+            child = compat.single_child(self)
+            natural = compat.preferred_width(child) if child is not None else 0
+            return (0, natural, -1, -1)
+        return super().do_measure(orientation, for_size)
 
 
 class Bar(Gtk.Box):
@@ -136,37 +148,45 @@ class Bar(Gtk.Box):
         self._scale_min = 0.35
         self._pill_spacing = 8
 
-        self.pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=self._pill_spacing)
+        # A centre box keeps the center section on the bar's midpoint without
+        # needing equal-width left/right sections. A plain Gtk.Box does not
+        # honour halign on its main axis, so a halign=CENTER child stayed at the
+        # left of its section (the center drifted off-middle). compat supplies
+        # Gtk.CenterBox on GTK4 and an Overlay-based emulation on GTK3.
+        self.pill = compat.center_box()
         self.pill.set_hexpand(True)
         self.pill.set_halign(Gtk.Align.FILL)
+        # The sections only cover their own content now (CenterBox centres the
+        # middle rather than stretching it), so the empty bar space between them
+        # belongs to the pill: right-clicking there must still open the menu.
+        compat.on_press(self.pill, self._on_pill_press)
         # ClipBox owns the .taskbar background (+ margins/rounded ends) and
         # clips the content to the pill: the bar's surface may be narrower than
         # the pill's content, and the overflow must not spill outside the border.
         self.pill_clip = ClipBox()
-        self.pill_clip.get_style_context().add_class("taskbar")
+        compat.add_class(self.pill_clip, "taskbar")
         self.pill_clip.set_hexpand(True)
         self.pill_clip.set_halign(Gtk.Align.FILL)
-        self.pill_clip.add(self.pill)
-        self.pack_start(self.pill_clip, True, True, 0)
+        compat.set_single_child(self.pill_clip, self.pill)
+        compat.pack_start(self, self.pill_clip, True, True, 0)
 
         for section_id in SECTION_ORDER:
             section = SectionBox(section_id, self)
             self._sections[section_id] = section
-            # The left/right sections are given EQUAL widths (_balance_sections)
-            # so the center's midpoint stays the pill's midpoint, but without the
-            # wasted space of fully homogeneous cells (which size every cell to
-            # the widest one). The center expands to take the rest.
-            is_center = section_id == "center"
-            section.set_hexpand(is_center)
-            if is_center:
-                section.box.set_halign(Gtk.Align.CENTER)
-            elif section_id == "right":
-                section.box.set_halign(Gtk.Align.END)
-            else:
-                section.box.set_halign(Gtk.Align.START)
-            self.pill.pack_start(section, is_center, is_center, 0)
+            section.box.set_halign(
+                Gtk.Align.CENTER if section_id == "center"
+                else Gtk.Align.END if section_id == "right"
+                else Gtk.Align.START
+            )
+        self.pill.set_start_widget(self._sections["left"])
+        self.pill.set_center_widget(self._sections["center"])
+        self.pill.set_end_widget(self._sections["right"])
+        self._apply_content_spacing()
 
-        self.connect("size-allocate", self._on_bar_size_allocate)
+        if compat.IS_GTK4:
+            self.connect("notify::width", self._on_bar_width_changed)
+        else:
+            self.connect("size-allocate", self._on_bar_size_allocate)
         self._apply_width()
 
         self._build_layout(cfg.get("layout") or DEFAULT_LAYOUT)
@@ -176,7 +196,15 @@ class Bar(Gtk.Box):
     def _on_bar_size_allocate(self, _widget, allocation, *_args) -> None:
         # Defer geometry changes out of the size-allocate pass (applying them
         # inline is overridden by the pass that already computed sizes).
-        self._pending_total = allocation.width
+        self._schedule_width(allocation.width)
+
+    def _on_bar_width_changed(self, *_args) -> None:
+        # GTK4 replacement for the size-allocate signal: the allocated width is
+        # only readable after allocation, which notify::width guarantees.
+        self._schedule_width(compat.allocated_width(self))
+
+    def _schedule_width(self, total: int) -> None:
+        self._pending_total = total
         if self._width_idle is None:
             self._width_idle = GLib.idle_add(self._apply_width_idle)
 
@@ -214,14 +242,14 @@ class Bar(Gtk.Box):
         must NOT be used as the percentage base (that would collapse: 50% of
         50% of …). The Gdk monitor geometry stays constant.
         """
-        win = self.get_toplevel()
+        win = compat.toplevel(self)
         monitor = getattr(win, "monitor", None)
         if monitor is not None:
             try:
                 return monitor.get_geometry().width
             except Exception:
                 pass
-        return self.get_allocated_width()
+        return compat.allocated_width(self)
 
     def _apply_width(self, total: int | None = None) -> None:
         """Constrain the bar to the configured width (px or %), aligned.
@@ -237,7 +265,7 @@ class Bar(Gtk.Box):
         allocation — using the allocation collapses it (50% of 50% of …) which
         showed up as the bar flickering narrower on hover.
         """
-        observed = total if (total and total > 0) else self.get_allocated_width()
+        observed = total if (total and total > 0) else compat.allocated_width(self)
         if observed > self._max_total:
             self._max_total = observed
         monitor_w = self._monitor_width()
@@ -247,7 +275,7 @@ class Bar(Gtk.Box):
             monitor_w = observed
         px = self._width_px(monitor_w)
 
-        toplevel = self.get_toplevel()
+        toplevel = compat.toplevel(self)
         set_width = getattr(toplevel, "set_surface_width", None)
         if set_width is not None:
             set_width(px, monitor_w, self._align)
@@ -276,8 +304,7 @@ class Bar(Gtk.Box):
         """
         if px <= 0:
             return
-        self._balance_sections()
-        natural = self.pill.get_preferred_width()[1]
+        natural = compat.preferred_width(self.pill)
         if natural <= 0:
             return
         target = (px * self._content_scale) / natural
@@ -293,34 +320,13 @@ class Bar(Gtk.Box):
         if self._theme_cb is not None:
             self._theme_cb()
 
-    def _balance_sections(self) -> None:
-        """Give the left/right sections equal width so the center stays centered.
-
-        Fully homogeneous cells size every cell to the widest one, which wastes
-        ~2x the space and forces the fit-to-width scale far lower than needed.
-        Equal left/right widths keep the center's midpoint at the pill's
-        midpoint while letting the center take the remaining space.
-        """
-        left = self._sections.get("left")
-        right = self._sections.get("right")
-        if left is None or right is None:
-            return
-        # Use the inner box's natural width: the SectionBox's own preferred
-        # width is pinned by the size_request we set, which would otherwise
-        # freeze the balance at its first value.
-        w = max(
-            left.box.get_preferred_width()[1],
-            right.box.get_preferred_width()[1],
-        )
-        if getattr(self, "_balanced_w", None) == w:
-            return
-        self._balanced_w = w
-        left.set_size_request(w, -1)
-        right.set_size_request(w, -1)
-
     def _apply_content_spacing(self) -> None:
-        """Scale the pill's inter-module gap with the content scale."""
-        self.pill.set_spacing(max(2, int(round(self._pill_spacing * self._content_scale))))
+        """Scale the gap between the center section and its neighbours."""
+        sp = max(2, int(round(self._pill_spacing * self._content_scale)))
+        center = self._sections.get("center")
+        if center is not None:
+            center.set_margin_start(sp)
+            center.set_margin_end(sp)
 
     # ── layout ──────────────────────────────────────────────────
 
@@ -328,14 +334,14 @@ class Bar(Gtk.Box):
         """Empty all sections and repack the module widgets per ``layout``."""
         for section_id in SECTION_ORDER:
             box = self._sections[section_id].box
-            for child in list(box.get_children()):
+            for child in list(compat.children(box)):
                 box.remove(child)
         for section_id in SECTION_ORDER:
             for mid in layout.get(section_id, []):
                 widget = self._ensure_module(mid)
                 if widget is not None:
                     widget.set_valign(Gtk.Align.CENTER)
-                    self._sections[section_id].box.pack_start(widget, False, False, 0)
+                    compat.pack_start(self._sections[section_id].box, widget, False, False, 0)
 
     def _ensure_module(self, mid: str) -> Gtk.Widget | None:
         if mid in self._widgets:
@@ -348,7 +354,7 @@ class Bar(Gtk.Box):
         # the window's show_all(), but a mid-session rebuild (e.g. re-enabling a
         # module) packs it into an already-shown box, so it must be shown here
         # or it stays invisible until the next reload.
-        widget.show_all()
+        compat.show_all(widget)
         return widget
 
     def _build_widget(self, mid: str) -> Gtk.Widget | None:
@@ -435,7 +441,7 @@ class Bar(Gtk.Box):
         # spaces/quotes in $HOME are safe.
         if not proc.spawn_argv(["/bin/sh", "-c", 'sleep 1; exec "$@"', "sh", launcher]):
             return
-        GLib.timeout_add(200, lambda: Gtk.main_quit() or False)
+        GLib.timeout_add(200, lambda: compat.quit_main() or False)
 
     def apply_palette_layout(self, palette: dict) -> None:
         """Apply theme-derived layout (module spacing) to the bar sections."""
@@ -461,11 +467,25 @@ class Bar(Gtk.Box):
 
     # ── bar menu ────────────────────────────────────────────────
 
-    def show_bar_menu(self, event) -> None:
-        from .bar_menu import build_bar_menu
-        menu = build_bar_menu(self._cfg, self._menu_actions())
-        menu.show_all()
-        menu.popup_at_pointer(event)
+    def _on_pill_press(self, _widget, event) -> bool:
+        """Right-click on the bar's empty space opens the bar menu."""
+        if event.button == 3:
+            self.show_bar_menu(self.pill, at=(event.x, event.y))
+            return True
+        return False
+
+    def show_bar_menu(self, anchor=None, at=None) -> None:
+        from . import bar_menu
+
+        anchor = anchor or self.pill_clip or self
+        if compat.IS_GTK4:
+            bar_menu.show_bar_menu(anchor, self._cfg, self._menu_actions(), at=at)
+            return
+        menu = bar_menu.build_bar_menu(self._cfg, self._menu_actions())
+        compat.show_all(menu)
+        menu.popup_at_widget(
+            anchor, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None
+        )
 
     def open_settings(self, initial_page: str | None = None) -> None:
         from .bar_settings import BarSettings
@@ -473,7 +493,7 @@ class Bar(Gtk.Box):
             self._settings_win = BarSettings(
                 self._cfg, self._menu_actions(), initial_page=initial_page
             )
-            toplevel = self.get_toplevel()
+            toplevel = compat.toplevel(self)
             if toplevel is not None and toplevel is not self:
                 self._settings_win.set_transient_for(toplevel)
         elif initial_page:
@@ -669,7 +689,7 @@ class Bar(Gtk.Box):
 
         def open_about() -> None:
             from .bar_menu import show_about
-            show_about(self.get_toplevel())
+            show_about(compat.toplevel(self))
 
         return {
             "set_source": set_source,

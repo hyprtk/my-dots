@@ -14,17 +14,13 @@ import subprocess
 import pwd
 import urllib.parse
 
-import gi
-
-gi.require_version("Gdk", "3.0")
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell, Pango
+from .. import compat  # noqa: E402
+from ..compat import Gdk, GLib, Gtk, GtkLayerShell, Pango  # noqa: E402
 
 from . import apps, config as cfg, theme
 from ..hypr_animations import active_border_colors, border_period_ms, lerp_color
 from .theme import apply_border_color, apply_css, build_css
+from ..theme import pill_margins
 from ..widgets import Glyph
 from ..popup import center_layer_dialog
 
@@ -226,7 +222,8 @@ class MenuWindow(Gtk.Window):
     """
 
     def __init__(self, bar_cfg: dict | None = None, on_settings=None):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        super().__init__() if compat.IS_GTK4 else super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self._bar_cfg = bar_cfg or {}
         self._on_settings = on_settings
         cfg.set_bar_cfg(self._bar_cfg)
@@ -244,15 +241,13 @@ class MenuWindow(Gtk.Window):
         self.set_default_size(width, height)
         self.set_resizable(True)
         self.set_decorated(False)
-        self.set_keep_above(True)
-        self.set_accept_focus(True)
-        self.set_skip_taskbar_hint(True)
-        self.set_skip_pager_hint(True)
+        compat.set_keep_above(self, True)
+        compat.set_accept_focus(self, True)
+        compat.set_skip_taskbar_hint(self, True)
+        compat.set_skip_pager_hint(self, True)
 
-        screen = Gdk.Screen.get_default()
-        if screen.get_rgba_visual():
-            self.set_visual(screen.get_rgba_visual())
-        self.set_app_paintable(True)
+        compat.apply_rgba_visual(self)
+        compat.set_app_paintable(self, True)
 
         GtkLayerShell.init_for_window(self)
         GtkLayerShell.set_layer(self, GtkLayerShell.Layer.TOP)
@@ -267,7 +262,7 @@ class MenuWindow(Gtk.Window):
         except Exception as exc:
             # A malformed pywal cache / imported theme must not prevent launch.
             print("hyprtk-menu: initial css build failed: %s" % exc, flush=True)
-        self.get_style_context().add_class("menu-root")
+        compat.add_class(self, "menu-root")
         self._apply_layout_class()
 
         self._wal_mtime = theme.wal_mtime()
@@ -285,7 +280,7 @@ class MenuWindow(Gtk.Window):
         self._build_ui()
         self._layout_name = self.config.get("layout", "whisker")
 
-        self.connect("key-press-event", self._on_window_key)
+        compat.on_key(self, self._on_window_key)
         # Destroying the menu must NOT quit the bar's main loop — it is now a
         # window inside the bar process, not a standalone app.
         self.connect("destroy", self._on_menu_destroy)
@@ -300,14 +295,7 @@ class MenuWindow(Gtk.Window):
 
     def _monitor_width(self):
         """Width in px of the monitor the menu surfaces on (primary)."""
-        display = Gdk.Display.get_default()
-        if display is None or display.get_n_monitors() < 1:
-            return 0
-        monitor = display.get_primary_monitor()
-        if monitor is None or not hasattr(monitor, "get_geometry"):
-            # This GTK build's Gdk.Screen.get_primary_monitor returns an int;
-            # Gdk.Display.get_primary_monitor is reliable but guard anyway.
-            monitor = display.get_monitor(0)
+        monitor = compat.primary_monitor()
         if monitor is None:
             return 0
         return monitor.get_geometry().width
@@ -344,16 +332,22 @@ class MenuWindow(Gtk.Window):
             gap_out = _gap_value(bar.get("gap_out"), 6)
         px = _bar_width_px(bar.get("width", "100%"), total)
         if px <= 0 or px >= total:
-            left, right = margin, total
+            surface_left, surface_right = 0, total
         else:
             align = bar.get("align", "center")
             if align == "left":
-                left, right = margin, margin + px
+                surface_left, surface_right = 0, px
             elif align == "right":
-                left, right = total - px, total
+                surface_left, surface_right = total - px, total
             else:
-                left = (total - px) // 2
-                right = left + px
+                surface_left = (total - px) // 2
+                surface_right = surface_left + px
+        # The .taskbar pill is inset from the bar surface by a fixed horizontal
+        # margin (theme.pill_margins). Align the menu to the pill's visible
+        # border, not the raw surface edge, or it overhangs the rounded end.
+        h_inset = pill_margins(bar)[3]
+        left = surface_left + h_inset
+        right = surface_right - h_inset
         height = int(bar.get("height", 40) or 40) + gap_in + gap_out
         return edge, left, right
 
@@ -443,19 +437,19 @@ class MenuWindow(Gtk.Window):
             builder = self._build_whisker
         root = builder()
         self._root = root
-        self.add(root)
+        compat.add(self, root)
 
     def _rebuild_ui(self):
         """Tear down and rebuild the widget tree for a new layout."""
         child = self.get_child()
         if child is not None:
-            self.remove(child)
-            child.destroy()  # release the old layout's whole widget tree
+            compat.clear_child(self, child)
+            compat.destroy(child)  # release the old layout's whole widget tree
         self._build_ui()
         self._refresh_favorites()
         self._refresh_apps()
         self._refresh_recents()
-        self.show_all()
+        compat.show_all(self)
         self.present()
         GLib.idle_add(self.search.grab_focus)
 
@@ -469,7 +463,7 @@ class MenuWindow(Gtk.Window):
         return False
 
     def _apply_pane_positions(self):
-        window_w = self.get_allocated_width() or int(self.config.get("width", 920))
+        window_w = compat.allocated_width(self) or int(self.config.get("width", 920))
         sidebar_w = int(self.config.get("sidebar_width", 180))
         recents_w = int(self.config.get("recents_width", 230))
         if self.config.get("layout") == "win7":
@@ -481,8 +475,8 @@ class MenuWindow(Gtk.Window):
             self.pane_right.set_position(max(window_w - sidebar_w - recents_w, 120))
 
     def _save_layout(self):
-        window_w = self.get_allocated_width()
-        window_h = self.get_allocated_height()
+        window_w = compat.allocated_width(self)
+        window_h = compat.allocated_height(self)
         if window_w and window_h:
             self.config["width"] = window_w
             self.config["height"] = window_h
@@ -504,197 +498,197 @@ class MenuWindow(Gtk.Window):
     def _make_search(self):
         self.search = Gtk.SearchEntry()
         self.search.set_placeholder_text("Search applications...")
-        self.search.get_style_context().add_class("search")
+        compat.add_class(self.search, "search")
         self.search.connect("search-changed", self._on_search_changed)
-        self.search.connect("key-press-event", self._on_search_key)
+        compat.on_key(self.search, self._on_search_key)
         return self.search
 
     def _build_sidebar(self, store=True):
         scroll = Gtk.ScrolledWindow()
-        scroll.get_style_context().add_class("sidebar-scroll")
+        compat.add_class(scroll, "sidebar-scroll")
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_vexpand(True)
 
         sidebar = Gtk.ListBox()
-        sidebar.get_style_context().add_class("sidebar")
+        compat.add_class(sidebar, "sidebar")
         sidebar.set_selection_mode(Gtk.SelectionMode.NONE)
         sidebar.set_activate_on_single_click(True)
         for category in apps.CATEGORY_ORDER:
             row = Gtk.ListBoxRow()
-            row.get_style_context().add_class("cat-row")
+            compat.add_class(row, "cat-row")
             label = Gtk.Label(label=category, xalign=0)
-            label.get_style_context().add_class("cat-label")
-            row.add(label)
+            compat.add_class(label, "cat-label")
+            compat.add(row, label)
             row.category = category
             if category == "All":
-                row.get_style_context().add_class("selected")
-            sidebar.add(row)
+                compat.add_class(row, "selected")
+            compat.add(sidebar, row)
         sidebar.connect("row-activated", self._on_category_activated)
-        scroll.add(sidebar)
+        compat.add(scroll, sidebar)
         if store:
             self.sidebar = sidebar
         return scroll
 
     def _make_app_list(self):
         scroll = Gtk.ScrolledWindow()
-        scroll.get_style_context().add_class("app-list-scroll")
+        compat.add_class(scroll, "app-list-scroll")
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.app_list = Gtk.ListBox()
-        self.app_list.get_style_context().add_class("app-list")
+        compat.add_class(self.app_list, "app-list")
         self.app_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.app_list.set_activate_on_single_click(True)
         self.app_list.connect("row-activated", self._on_app_activated)
-        self.app_list.connect("button-press-event", self._on_app_button)
+        compat.on_press(self.app_list, self._on_app_button)
         # A fresh listbox means the old rows (and any cached rows) are gone —
         # the previous app_list was destroyed when its parent was rebuilt on a
         # layout/theme switch. Drop the cache so _refresh_apps builds new rows.
         self._app_rows = {}
-        scroll.add(self.app_list)
+        compat.add(scroll, self.app_list)
         return scroll
 
     def _make_favorites(self, klass="favorites"):
         self.fav_row = Gtk.FlowBox()
-        self.fav_row.get_style_context().add_class(klass)
+        compat.add_class(self.fav_row, klass)
         self.fav_row.set_selection_mode(Gtk.SelectionMode.NONE)
         self.fav_row.set_max_children_per_line(100)
         return self.fav_row
 
     def _make_center(self, with_favorites=True):
         center = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        center.get_style_context().add_class("center-pane")
+        compat.add_class(center, "center-pane")
         if with_favorites:
-            center.pack_start(self._make_favorites(), False, False, 0)
-        center.pack_start(self._make_app_list(), True, True, 0)
+            compat.pack_start(center, self._make_favorites(), False, False, 0)
+        compat.pack_start(center, self._make_app_list(), True, True, 0)
         return center
 
     def _build_recents(self, title="Recently Used", klass="recents-pane"):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        box.get_style_context().add_class(klass)
+        compat.add_class(box, klass)
         box.set_size_request(int(self.config.get("recents_width", 230)), -1)
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         label = Gtk.Label(label=title, xalign=0)
-        label.get_style_context().add_class("pane-title")
-        header.pack_start(label, True, True, 0)
+        compat.add_class(label, "pane-title")
+        compat.pack_start(header, label, True, True, 0)
 
         clear_btn = Gtk.Button(label="Clear")
-        clear_btn.get_style_context().add_class("clear-btn")
+        compat.add_class(clear_btn, "clear-btn")
         clear_btn.set_tooltip_text("Clear recently used apps")
         clear_btn.connect("clicked", self._on_clear_recents)
-        header.pack_end(clear_btn, False, False, 0)
+        compat.pack_end(header, clear_btn, False, False, 0)
 
-        box.pack_start(header, False, False, 0)
+        compat.pack_start(box, header, False, False, 0)
 
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.recents_list = Gtk.ListBox()
-        self.recents_list.get_style_context().add_class("recents-list")
+        compat.add_class(self.recents_list, "recents-list")
         self.recents_list.set_selection_mode(Gtk.SelectionMode.NONE)
         self.recents_list.set_activate_on_single_click(True)
         self.recents_list.connect("row-activated", self._on_app_activated)
-        scroll.add(self.recents_list)
-        box.pack_start(scroll, True, True, 0)
+        compat.add(scroll, self.recents_list)
+        compat.pack_start(box, scroll, True, True, 0)
         return box
 
     # -- layout builders --------------------------------------------------
 
     def _build_whisker(self):
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        root.get_style_context().add_class("menu")
-        root.pack_start(self._make_search(), False, False, 0)
+        compat.add_class(root, "menu")
+        compat.pack_start(root, self._make_search(), False, False, 0)
 
         self.pane_right = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        self.pane_right.get_style_context().add_class("pane")
-        self.pane_right.pack1(self._make_center(), True, True)
+        compat.add_class(self.pane_right, "pane")
+        compat.paned_pack1(self.pane_right, self._make_center(), True, True)
         if self.config.get("show_recents", True):
-            self.pane_right.pack2(self._build_recents(), False, False)
+            compat.paned_pack2(self.pane_right, self._build_recents(), False, False)
 
         self.pane_main = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        self.pane_main.get_style_context().add_class("pane")
-        self.pane_main.pack1(self._build_sidebar(), False, False)
-        self.pane_main.pack2(self.pane_right, True, True)
+        compat.add_class(self.pane_main, "pane")
+        compat.paned_pack1(self.pane_main, self._build_sidebar(), False, False)
+        compat.paned_pack2(self.pane_main, self.pane_right, True, True)
 
         self.pane_main.connect("accept-position", self._on_paned_changed)
         self.pane_right.connect("accept-position", self._on_paned_changed)
 
-        root.pack_start(self.pane_main, True, True, 0)
-        root.pack_end(self._build_footer(), False, False, 0)
+        compat.pack_start(root, self.pane_main, True, True, 0)
+        compat.pack_end(root, self._build_footer(), False, False, 0)
         return root
 
     def _build_win7(self):
         """Windows 7 Start Menu — user+apps left, places+search right."""
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        root.get_style_context().add_class("menu")
+        compat.add_class(root, "menu")
 
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.get_style_context().add_class("pane")
+        compat.add_class(paned, "pane")
 
         # ── Left pane: favorites + app list ──
         left = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        left.get_style_context().add_class("win7-left")
+        compat.add_class(left, "win7-left")
 
         # Favorites
-        left.pack_start(self._make_favorites(), False, False, 0)
+        compat.pack_start(left, self._make_favorites(), False, False, 0)
 
         # App list (fills remaining space)
-        left.pack_start(self._make_app_list(), True, True, 0)
+        compat.pack_start(left, self._make_app_list(), True, True, 0)
 
         # All Programs row at bottom of left pane
-        allprog = Gtk.Button(label="All Programs  ▸", relief=Gtk.ReliefStyle.NONE, xalign=0)
-        allprog.get_style_context().add_class("win7-allprograms")
-        allprog.get_child().get_style_context().add_class("win7-allprograms-label")
+        allprog = Gtk.Button(label="All Programs  ▸", xalign=0)
+        compat.add_class(allprog, "win7-allprograms")
+        compat.add_class(allprog.get_child(), "win7-allprograms-label")
         allprog.connect("clicked", self._on_win7_allprograms)
-        left.pack_end(allprog, False, False, 0)
+        compat.pack_end(left, allprog, False, False, 0)
 
-        paned.pack1(left, True, True)
+        compat.paned_pack1(paned, left, True, True)
 
         # ── Right pane: places + search ──
         right = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        right.get_style_context().add_class("win7-right")
+        compat.add_class(right, "win7-right")
         right.set_size_request(220, -1)
 
         places_scroll = Gtk.ScrolledWindow()
         places_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         places_scroll.set_vexpand(True)
         places = Gtk.ListBox()
-        places.get_style_context().add_class("win7-places")
+        compat.add_class(places, "win7-places")
         places.set_selection_mode(Gtk.SelectionMode.NONE)
         places.set_activate_on_single_click(True)
         for label_text, icon_name, cmd in WIN7_PLACES:
             row = Gtk.ListBoxRow()
-            row.get_style_context().add_class("win7-place-row")
+            compat.add_class(row, "win7-place-row")
             hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
-            icon.get_style_context().add_class("win7-place-icon")
-            hbox.pack_start(icon, False, False, 0)
+            icon = compat.new_image_from_icon_name(icon_name)
+            compat.add_class(icon, "win7-place-icon")
+            compat.pack_start(hbox, icon, False, False, 0)
             lbl = Gtk.Label(label=label_text, xalign=0)
-            lbl.get_style_context().add_class("win7-place-label")
-            hbox.pack_start(lbl, True, True, 0)
-            row.add(hbox)
+            compat.add_class(lbl, "win7-place-label")
+            compat.pack_start(hbox, lbl, True, True, 0)
+            compat.add(row, hbox)
             row.place_cmd = cmd
             row.place_label = label_text
-            places.add(row)
+            compat.add(places, row)
         places.connect("row-activated", self._on_place_activated)
-        places_scroll.add(places)
-        right.pack_start(places_scroll, True, True, 0)
+        compat.add(places_scroll, places)
+        compat.pack_start(right, places_scroll, True, True, 0)
 
         # Search bar at bottom-right
         self._make_search()
-        self.search.get_style_context().add_class("win7-search")
-        right.pack_end(self.search, False, False, 0)
+        compat.add_class(self.search, "win7-search")
+        compat.pack_end(right, self.search, False, False, 0)
 
-        paned.pack2(right, False, False)
+        compat.paned_pack2(paned, right, False, False)
         self.pane_main = paned
         self.pane_main.connect("accept-position", self._on_paned_changed)
-        root.pack_start(self.pane_main, True, True, 0)
+        compat.pack_start(root, self.pane_main, True, True, 0)
 
         # Bottom bar: shared footer (user + settings + power + resize)
         bottom = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        bottom.get_style_context().add_class("win7-bottom")
+        compat.add_class(bottom, "win7-bottom")
         footer = self._build_footer()
-        footer.get_style_context().add_class("win7-footer")
-        bottom.pack_start(footer, True, True, 0)
-        root.pack_end(bottom, False, False, 0)
+        compat.add_class(footer, "win7-footer")
+        compat.pack_start(bottom, footer, True, True, 0)
+        compat.pack_end(root, bottom, False, False, 0)
         return root
 
     def _on_place_activated(self, _listbox, row):
@@ -718,91 +712,91 @@ class MenuWindow(Gtk.Window):
         """Switch Win7 to show all apps with category filter."""
         self.current_category = "All"
         if hasattr(self, "sidebar"):
-            for child in self.sidebar.get_children():
+            for child in compat.children(self.sidebar):
                 if getattr(child, "category", None) == "All":
-                    child.get_style_context().add_class("selected")
+                    compat.add_class(child, "selected")
                 else:
-                    child.get_style_context().remove_class("selected")
+                    compat.remove_class(child, "selected")
         self._refresh_apps()
 
     def _build_win11(self):
         """Windows 11 Start Menu — centered search, pinned grid, recommended, user footer."""
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        root.get_style_context().add_class("menu")
+        compat.add_class(root, "menu")
         root.set_size_request(
             int(self.config.get("width", 920)), int(self.config.get("height", 580))
         )
 
         # Search bar (pill-shaped, centered feel)
         self._make_search()
-        self.search.get_style_context().add_class("win11-search")
-        root.pack_start(self.search, False, False, 0)
+        compat.add_class(self.search, "win11-search")
+        compat.pack_start(root, self.search, False, False, 0)
 
         # Pinned section: header + "All apps >" + grid
         self._win11_pinned_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        self._win11_pinned_header.get_style_context().add_class("win11-section-header")
+        compat.add_class(self._win11_pinned_header, "win11-section-header")
         ptitle = Gtk.Label(label="Pinned", xalign=0)
-        ptitle.get_style_context().add_class("pane-title")
-        self._win11_pinned_header.pack_start(ptitle, True, True, 0)
+        compat.add_class(ptitle, "pane-title")
+        compat.pack_start(self._win11_pinned_header, ptitle, True, True, 0)
         allapps_btn = Gtk.Button(label="All apps  ▸")
-        allapps_btn.get_style_context().add_class("win11-allapps-btn")
+        compat.add_class(allapps_btn, "win11-allapps-btn")
         allapps_btn.connect("clicked", self._on_win11_allapps)
-        self._win11_pinned_header.pack_end(allapps_btn, False, False, 0)
-        root.pack_start(self._win11_pinned_header, False, False, 0)
+        compat.pack_end(self._win11_pinned_header, allapps_btn, False, False, 0)
+        compat.pack_start(root, self._win11_pinned_header, False, False, 0)
 
         # Pinned grid (6 columns, icon + label tiles)
         pinned_grid = Gtk.Grid()
-        pinned_grid.get_style_context().add_class("win11-pinned")
+        compat.add_class(pinned_grid, "win11-pinned")
         pinned_grid.set_column_spacing(4)
         pinned_grid.set_row_spacing(4)
         pinned_grid.set_column_homogeneous(True)
         self._win11_pinned_grid = pinned_grid
         self._win11_pinned_wrap = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self._win11_pinned_wrap.get_style_context().add_class("win11-pinned-wrap")
-        self._win11_pinned_wrap.pack_start(pinned_grid, False, False, 0)
-        root.pack_start(self._win11_pinned_wrap, False, False, 0)
+        compat.add_class(self._win11_pinned_wrap, "win11-pinned-wrap")
+        compat.pack_start(self._win11_pinned_wrap, pinned_grid, False, False, 0)
+        compat.pack_start(root, self._win11_pinned_wrap, False, False, 0)
 
         # Recommended section: header + "More >" + recents
         recents_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        recents_header.get_style_context().add_class("win11-section-header")
+        compat.add_class(recents_header, "win11-section-header")
         rtitle = Gtk.Label(label="Recommended", xalign=0)
-        rtitle.get_style_context().add_class("pane-title")
-        recents_header.pack_start(rtitle, True, True, 0)
+        compat.add_class(rtitle, "pane-title")
+        compat.pack_start(recents_header, rtitle, True, True, 0)
         more_btn = Gtk.Button(label="More  ▸")
-        more_btn.get_style_context().add_class("win11-more-btn")
-        recents_header.pack_end(more_btn, False, False, 0)
-        root.pack_start(recents_header, False, False, 0)
+        compat.add_class(more_btn, "win11-more-btn")
+        compat.pack_end(recents_header, more_btn, False, False, 0)
+        compat.pack_start(root, recents_header, False, False, 0)
 
         recents = self._build_recents(title="", klass="recents-pane win11-recommended")
         recents.set_size_request(-1, int(self.config.get("height", 580)) // 3)
-        root.pack_start(recents, False, False, 0)
+        compat.pack_start(root, recents, False, False, 0)
 
         # App list (shown by search / "All apps" in Win11)
         app_scroll = Gtk.ScrolledWindow()
         app_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        app_scroll.get_style_context().add_class("app-list-scroll")
+        compat.add_class(app_scroll, "app-list-scroll")
         app_scroll.set_vexpand(True)
         self._make_app_list()
-        self.app_list.get_style_context().add_class("win11-app-list")
-        app_scroll.add(self.app_list)
+        compat.add_class(self.app_list, "win11-app-list")
+        compat.add(app_scroll, self.app_list)
         self._win11_app_scroll = app_scroll
         self._win11_home = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self._win11_home.get_style_context().add_class("win11-home")
-        for child in list(root.get_children()):
+        compat.add_class(self._win11_home, "win11-home")
+        for child in list(compat.children(root)):
             # Keep the search bar and the app list at root level so they stay
             # visible in both the home and apps views.
             if child is not app_scroll and child is not self.search:
                 root.remove(child)
-                self._win11_home.pack_start(child, False, False, 0)
+                compat.pack_start(self._win11_home, child, False, False, 0)
         self._win11_home.set_vexpand(True)
-        root.pack_start(self._win11_home, True, True, 0)
-        root.pack_start(app_scroll, True, True, 0)
+        compat.pack_start(root, self._win11_home, True, True, 0)
+        compat.pack_start(root, app_scroll, True, True, 0)
         self._show_win11_home()
 
         # Footer: user avatar (left) + powerbar (right)
         footer = self._build_footer()
-        footer.get_style_context().add_class("win11-footer")
-        root.pack_end(footer, False, False, 0)
+        compat.add_class(footer, "win11-footer")
+        compat.pack_end(root, footer, False, False, 0)
 
         return root
 
@@ -837,9 +831,9 @@ class MenuWindow(Gtk.Window):
         if not hasattr(self, "_win11_pinned_grid"):
             return
         grid = self._win11_pinned_grid
-        for child in grid.get_children():
+        for child in compat.children(grid):
             grid.remove(child)
-            child.destroy()
+            compat.destroy(child)
         pinned = self.pinned if self.pinned else DEFAULT_PINNED
         cols = 6
         col = 0
@@ -848,20 +842,20 @@ class MenuWindow(Gtk.Window):
             if entry.id not in pinned:
                 continue
             tile = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            tile.get_style_context().add_class("win11-tile")
+            compat.add_class(tile, "win11-tile")
             image = self._make_icon_image(entry, 32)
-            image.get_style_context().add_class("win11-tile-icon")
-            tile.pack_start(image, False, False, 0)
+            compat.add_class(image, "win11-tile-icon")
+            compat.pack_start(tile, image, False, False, 0)
             label = Gtk.Label(
                 label=entry.name,
                 ellipsize=Pango.EllipsizeMode.END,
                 max_width_chars=8,
             )
-            label.get_style_context().add_class("win11-tile-label")
-            tile.pack_start(label, False, False, 0)
+            compat.add_class(label, "win11-tile-label")
+            compat.pack_start(tile, label, False, False, 0)
             btn = Gtk.Button()
-            btn.get_style_context().add_class("win11-tile-btn")
-            btn.add(tile)
+            compat.add_class(btn, "win11-tile-btn")
+            compat.add(btn, tile)
             btn.set_tooltip_text(entry.name)
             btn.connect("clicked", self._on_fav_clicked, entry)
             grid.attach(btn, col, row, 1, 1)
@@ -869,20 +863,20 @@ class MenuWindow(Gtk.Window):
             if col >= cols:
                 col = 0
                 row += 1
-        grid.show_all()
+        compat.show_all(grid)
 
     def _refresh_recents(self):
         if not hasattr(self, "recents_list"):
             return
-        for child in self.recents_list.get_children():
+        for child in compat.children(self.recents_list):
             self.recents_list.remove(child)
-            child.destroy()
+            compat.destroy(child)
         by_id = {entry.id: entry for entry in self.apps}
         shown = 0
         for item in self.recents:
             entry = by_id.get(item)
             if entry:
-                self.recents_list.add(self._make_row(entry, 26))
+                compat.add(self.recents_list, self._make_row(entry, 26))
                 shown += 1
         if shown == 0:
             # No real recents yet — show a sensible default set so the
@@ -890,21 +884,21 @@ class MenuWindow(Gtk.Window):
             for item in DEFAULT_RECOMMENDED:
                 entry = by_id.get(item)
                 if entry:
-                    self.recents_list.add(self._make_row(entry, 26))
-        self.recents_list.show_all()
+                    compat.add(self.recents_list, self._make_row(entry, 26))
+        compat.show_all(self.recents_list)
 
     def _build_plasma(self):
         """KDE Plasma-style menu — icon tabs, favorites grid, places, power footer."""
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        root.get_style_context().add_class("menu")
+        compat.add_class(root, "menu")
 
         # Search bar
         self._make_search()
-        root.pack_start(self.search, False, False, 0)
+        compat.pack_start(root, self.search, False, False, 0)
 
         # Tab row with icons
         tabs = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
-        tabs.get_style_context().add_class("plasma-tabs")
+        compat.add_class(tabs, "plasma-tabs")
         self._plasma_stack = Gtk.Stack()
         self._plasma_stack.set_transition_type(Gtk.StackTransitionType.NONE)
         self._plasma_buttons = {}
@@ -915,62 +909,62 @@ class MenuWindow(Gtk.Window):
         ]
         for name, icon_name in tab_defs:
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
-            icon.get_style_context().add_class("plasma-tab-icon")
-            box.pack_start(icon, False, False, 0)
+            icon = compat.new_image_from_icon_name(icon_name)
+            compat.add_class(icon, "plasma-tab-icon")
+            compat.pack_start(box, icon, False, False, 0)
             label = Gtk.Label(label=name)
-            box.pack_start(label, False, False, 0)
+            compat.pack_start(box, label, False, False, 0)
             button = Gtk.Button()
-            button.get_style_context().add_class("plasma-tab")
-            button.add(box)
+            compat.add_class(button, "plasma-tab")
+            compat.add(button, box)
             button.connect("clicked", self._on_plasma_tab, name)
-            tabs.pack_start(button, True, True, 0)
+            compat.pack_start(tabs, button, True, True, 0)
             self._plasma_buttons[name] = button
-        root.pack_start(tabs, False, False, 0)
+        compat.pack_start(root, tabs, False, False, 0)
 
         # ── Applications page: category sidebar + app list ──
         app_page = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        app_page.pack1(self._build_sidebar(), False, False)
-        app_page.pack2(self._make_center(with_favorites=False), True, True)
+        compat.paned_pack1(app_page, self._build_sidebar(), False, False)
+        compat.paned_pack2(app_page, self._make_center(with_favorites=False), True, True)
         self._plasma_stack.add_named(app_page, "Applications")
 
         # ── Computer page: in-menu file browser (places sidebar + content) ──
         comp_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        comp_page.get_style_context().add_class("plasma-page")
+        compat.add_class(comp_page, "plasma-page")
 
         # Navigation bar: back / up / current path (controls the content pane)
         nav = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        nav.get_style_context().add_class("plasma-nav")
-        back_btn = Gtk.Button.new_from_icon_name("go-previous-symbolic", Gtk.IconSize.MENU)
-        back_btn.get_style_context().add_class("plasma-nav-btn")
+        compat.add_class(nav, "plasma-nav")
+        back_btn = compat.new_button_from_icon_name("go-previous-symbolic")
+        compat.add_class(back_btn, "plasma-nav-btn")
         back_btn.connect("clicked", self._on_plasma_back)
         back_btn.set_sensitive(False)
-        nav.pack_start(back_btn, False, False, 0)
-        up_btn = Gtk.Button.new_from_icon_name("go-up-symbolic", Gtk.IconSize.MENU)
-        up_btn.get_style_context().add_class("plasma-nav-btn")
+        compat.pack_start(nav, back_btn, False, False, 0)
+        up_btn = compat.new_button_from_icon_name("go-up-symbolic")
+        compat.add_class(up_btn, "plasma-nav-btn")
         up_btn.connect("clicked", self._on_plasma_up)
         up_btn.set_sensitive(False)
-        nav.pack_start(up_btn, False, False, 0)
+        compat.pack_start(nav, up_btn, False, False, 0)
         path_label = Gtk.Label(label="Computer", xalign=0)
-        path_label.get_style_context().add_class("plasma-nav-path")
+        compat.add_class(path_label, "plasma-nav-path")
         path_label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-        nav.pack_start(path_label, True, True, 0)
+        compat.pack_start(nav, path_label, True, True, 0)
 
         # Trash actions — only shown while browsing the trash.
         restore_btn = Gtk.Button(label="Restore")
-        restore_btn.get_style_context().add_class("plasma-nav-btn")
-        restore_btn.get_style_context().add_class("plasma-trash-restore")
+        compat.add_class(restore_btn, "plasma-nav-btn")
+        compat.add_class(restore_btn, "plasma-trash-restore")
         restore_btn.connect("clicked", self._on_plasma_restore)
-        nav.pack_end(restore_btn, False, False, 0)
+        compat.pack_end(nav, restore_btn, False, False, 0)
         empty_btn = Gtk.Button(label="Empty Trash")
-        empty_btn.get_style_context().add_class("plasma-nav-btn")
-        empty_btn.get_style_context().add_class("plasma-trash-empty")
+        compat.add_class(empty_btn, "plasma-nav-btn")
+        compat.add_class(empty_btn, "plasma-trash-empty")
         empty_btn.connect("clicked", self._on_plasma_empty)
-        nav.pack_end(empty_btn, False, False, 0)
-        restore_btn.set_no_show_all(True)
-        empty_btn.set_no_show_all(True)
-        restore_btn.hide()
-        empty_btn.hide()
+        compat.pack_end(nav, empty_btn, False, False, 0)
+        compat.hide_from_show_all(restore_btn)
+        compat.hide_from_show_all(empty_btn)
+        compat.hide(restore_btn)
+        compat.hide(empty_btn)
         self._plasma_restore_btn = restore_btn
         self._plasma_empty_btn = empty_btn
 
@@ -978,18 +972,18 @@ class MenuWindow(Gtk.Window):
         self._plasma_back_btn = back_btn
         self._plasma_up_btn = up_btn
         self._plasma_path_label = path_label
-        comp_page.pack_start(nav, False, False, 0)
+        compat.pack_start(comp_page, nav, False, False, 0)
 
         # Two panes: sticky places sidebar + content browser
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.get_style_context().add_class("plasma-places-paned")
+        compat.add_class(paned, "plasma-places-paned")
 
         # Left: places list (stays visible so other locations stay reachable)
         places_scroll = Gtk.ScrolledWindow()
         places_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         places_scroll.set_size_request(150, -1)
         places_list = Gtk.ListBox()
-        places_list.get_style_context().add_class("plasma-places")
+        compat.add_class(places_list, "plasma-places")
         places_list.set_selection_mode(Gtk.SelectionMode.NONE)
         places_list.set_activate_on_single_click(True)
         self._plasma_places = places_list
@@ -1005,25 +999,25 @@ class MenuWindow(Gtk.Window):
             ("Network", "network-workgroup", "network:///"),
         ]
         for lbl, icon_name, path in self._plasma_root_places:
-            places_list.add(self._make_plasma_row(lbl, icon_name, path))
+            compat.add(places_list, self._make_plasma_row(lbl, icon_name, path))
         places_list.connect("row-activated", self._on_plasma_place_activated)
-        places_scroll.add(places_list)
-        paned.pack1(places_scroll, False, False)
+        compat.add(places_scroll, places_list)
+        compat.paned_pack1(paned, places_scroll, False, False)
 
         # Right: content browser (current directory contents)
         content_scroll = Gtk.ScrolledWindow()
         content_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         browse_list = Gtk.ListBox()
-        browse_list.get_style_context().add_class("plasma-places")
+        compat.add_class(browse_list, "plasma-places")
         browse_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
         browse_list.set_activate_on_single_click(True)
         browse_list.connect("selected-rows-changed", self._on_plasma_browse_selection)
         self._plasma_browse_list = browse_list
         browse_list.connect("row-activated", self._on_plasma_browse_activated)
-        content_scroll.add(browse_list)
-        paned.pack2(content_scroll, True, True)
+        compat.add(content_scroll, browse_list)
+        compat.paned_pack2(paned, content_scroll, True, True)
 
-        comp_page.pack_start(paned, True, True, 0)
+        compat.pack_start(comp_page, paned, True, True, 0)
         self._plasma_stack.add_named(comp_page, "Computer")
         self._plasma_browse_history: list[str] = []
         self._plasma_current_path: str | None = None
@@ -1031,27 +1025,27 @@ class MenuWindow(Gtk.Window):
 
         # ── Recently Used page ──
         rec_page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        rec_page.get_style_context().add_class("plasma-page")
+        compat.add_class(rec_page, "plasma-page")
         rec_scroll = Gtk.ScrolledWindow()
         rec_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.recents_list = Gtk.ListBox()
-        self.recents_list.get_style_context().add_class("recents-list")
+        compat.add_class(self.recents_list, "recents-list")
         self.recents_list.set_selection_mode(Gtk.SelectionMode.NONE)
         self.recents_list.set_activate_on_single_click(True)
         self.recents_list.connect("row-activated", self._on_app_activated)
-        rec_scroll.add(self.recents_list)
-        rec_page.pack_start(rec_scroll, True, True, 0)
+        compat.add(rec_scroll, self.recents_list)
+        compat.pack_start(rec_page, rec_scroll, True, True, 0)
         self._plasma_stack.add_named(rec_page, "Recently Used")
 
-        root.pack_start(self._plasma_stack, True, True, 0)
+        compat.pack_start(root, self._plasma_stack, True, True, 0)
 
         # Footer: user avatar (left) + powerbar (settings/power/resize)
         footer = self._build_footer()
-        footer.get_style_context().add_class("plasma-footer")
-        root.pack_end(footer, False, False, 0)
+        compat.add_class(footer, "plasma-footer")
+        compat.pack_end(root, footer, False, False, 0)
 
         self._plasma_stack.set_visible_child_name("Applications")
-        self._plasma_buttons["Applications"].get_style_context().add_class("active")
+        compat.add_class(self._plasma_buttons["Applications"], "active")
         return root
 
     def _on_plasma_place_activated(self, _listbox, row):
@@ -1091,16 +1085,16 @@ class MenuWindow(Gtk.Window):
 
     def _make_plasma_row(self, label_text: str, icon_name: str, path: str) -> Gtk.ListBoxRow:
         row = Gtk.ListBoxRow()
-        row.get_style_context().add_class("plasma-place-row")
+        compat.add_class(row, "plasma-place-row")
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
-        icon.get_style_context().add_class("plasma-place-icon")
-        hbox.pack_start(icon, False, False, 0)
+        icon = compat.new_image_from_icon_name(icon_name)
+        compat.add_class(icon, "plasma-place-icon")
+        compat.pack_start(hbox, icon, False, False, 0)
         label = Gtk.Label(label=label_text, xalign=0)
-        label.get_style_context().add_class("plasma-place-label")
+        compat.add_class(label, "plasma-place-label")
         label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-        hbox.pack_start(label, True, True, 0)
-        row.add(hbox)
+        compat.pack_start(hbox, label, True, True, 0)
+        compat.add(row, hbox)
         row.row_path = path
         return row
 
@@ -1165,8 +1159,8 @@ class MenuWindow(Gtk.Window):
         if not self._plasma_trash_mode:
             return
         self._plasma_trash_mode = False
-        self._plasma_restore_btn.hide()
-        self._plasma_empty_btn.hide()
+        compat.hide(self._plasma_restore_btn)
+        compat.hide(self._plasma_empty_btn)
         self._plasma_browse_list.set_activate_on_single_click(True)
 
     def _plasma_populate_places(self, path):
@@ -1174,9 +1168,9 @@ class MenuWindow(Gtk.Window):
         browse = getattr(self, "_plasma_browse_list", None)
         if browse is None:
             return
-        for child in browse.get_children():
+        for child in compat.children(browse):
             browse.remove(child)
-            child.destroy()
+            compat.destroy(child)
         try:
             entries = list(os.scandir(path))
         except OSError:
@@ -1187,21 +1181,21 @@ class MenuWindow(Gtk.Window):
         files.sort(key=lambda e: e.name.lower())
         for entry in dirs:
             row = self._make_plasma_row(entry.name, "folder", entry.path)
-            row.get_style_context().add_class("plasma-place-dir")
-            browse.add(row)
+            compat.add_class(row, "plasma-place-dir")
+            compat.add(browse, row)
         for entry in files:
             row = self._make_plasma_row(entry.name, self._plasma_file_icon(entry.name), entry.path)
-            row.get_style_context().add_class("plasma-place-file")
-            browse.add(row)
+            compat.add_class(row, "plasma-place-file")
+            compat.add(browse, row)
         if not entries:
             empty = Gtk.Label(label="(empty folder)", xalign=0)
-            empty.get_style_context().add_class("plasma-empty")
+            compat.add_class(empty, "plasma-empty")
             empty_row = Gtk.ListBoxRow()
-            empty_row.get_style_context().add_class("plasma-place-row")
+            compat.add_class(empty_row, "plasma-place-row")
             empty_row.set_sensitive(False)
-            empty_row.add(empty)
-            browse.add(empty_row)
-        browse.show_all()
+            compat.add(empty_row, empty)
+            compat.add(browse, empty_row)
+        compat.show_all(browse)
         self._plasma_update_nav()
 
     # -- trash view -------------------------------------------------------
@@ -1214,8 +1208,8 @@ class MenuWindow(Gtk.Window):
         # Single-click selects an item; restore happens via the Restore button
         # or a double-click. Activating on single click would restore instantly.
         self._plasma_browse_list.set_activate_on_single_click(False)
-        self._plasma_restore_btn.show()
-        self._plasma_empty_btn.show()
+        compat.show(self._plasma_restore_btn)
+        compat.show(self._plasma_empty_btn)
         self._plasma_restore_btn.set_sensitive(False)
         self._plasma_populate_trash()
 
@@ -1223,28 +1217,28 @@ class MenuWindow(Gtk.Window):
         browse = self._plasma_browse_list
         if browse is None:
             return
-        for child in browse.get_children():
+        for child in compat.children(browse):
             browse.remove(child)
-            child.destroy()
+            compat.destroy(child)
         items = _trash_items()
         for item in items:
             row = self._make_plasma_row(
                 item["name"], "user-trash", item["path"]
             )
-            row.get_style_context().add_class("plasma-place-file")
+            compat.add_class(row, "plasma-place-file")
             row.trash_item = item
             if item["orig"]:
                 row.set_tooltip_text(item["orig"])
-            browse.add(row)
+            compat.add(browse, row)
         if not items:
             empty = Gtk.Label(label="(trash is empty)", xalign=0)
-            empty.get_style_context().add_class("plasma-empty")
+            compat.add_class(empty, "plasma-empty")
             empty_row = Gtk.ListBoxRow()
-            empty_row.get_style_context().add_class("plasma-place-row")
+            compat.add_class(empty_row, "plasma-place-row")
             empty_row.set_sensitive(False)
-            empty_row.add(empty)
-            browse.add(empty_row)
-        browse.show_all()
+            compat.add(empty_row, empty)
+            compat.add(browse, empty_row)
+        compat.show_all(browse)
         self._plasma_update_nav()
         self._plasma_restore_btn.set_sensitive(False)
 
@@ -1322,17 +1316,18 @@ class MenuWindow(Gtk.Window):
             buttons=Gtk.ButtonsType.NONE,
             text="Empty Trash?",
         )
-        dialog.format_secondary_text(
-            "All items in the trash will be permanently deleted. This cannot be undone."
+        compat.set_secondary_text(
+            dialog,
+            "All items in the trash will be permanently deleted. This cannot be undone.",
         )
-        dialog.get_style_context().add_class("confirm-dialog")
+        compat.add_class(dialog, "confirm-dialog")
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         confirm = dialog.add_button("Empty Trash", Gtk.ResponseType.ACCEPT)
-        confirm.get_style_context().add_class("confirm-accept")
+        compat.add_class(confirm, "confirm-accept")
         dialog.set_default_response(Gtk.ResponseType.CANCEL)
         center_layer_dialog(dialog)
-        response = dialog.run()
-        dialog.destroy()
+        response = compat.dialog_run(dialog)
+        compat.destroy(dialog)
         return response == Gtk.ResponseType.ACCEPT
 
     def _plasma_file_icon(self, name: str) -> str:
@@ -1377,127 +1372,100 @@ class MenuWindow(Gtk.Window):
         # Plain buttons: drive the active state via a CSS class.
         for key, btn in self._plasma_buttons.items():
             if key == name:
-                btn.get_style_context().add_class("active")
+                compat.add_class(btn, "active")
             else:
-                btn.get_style_context().remove_class("active")
+                compat.remove_class(btn, "active")
 
     def _build_powerbar(self):
         bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        bar.get_style_context().add_class("powerbar")
+        compat.add_class(bar, "powerbar")
 
         left = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        left.get_style_context().add_class("power-left")
+        compat.add_class(left, "power-left")
 
         title = Gtk.Label(label="hyprtk-menu", xalign=0)
-        title.get_style_context().add_class("power-title")
-        left.pack_start(title, False, False, 0)
+        compat.add_class(title, "power-title")
+        compat.pack_start(left, title, False, False, 0)
 
         self.settings_button = Gtk.Button()
-        self.settings_button.get_style_context().add_class("menu-settings-btn")
+        compat.add_class(self.settings_button, "menu-settings-btn")
         self.settings_button.set_tooltip_text("Menu settings")
         cog = Glyph("\uf013", "menu-settings-icon")
         cog.set_pixel_size(POWER_ICON_SIZE)
-        self.settings_button.add(cog)
+        compat.add(self.settings_button, cog)
         self.settings_button.connect("clicked", self._open_settings)
-        left.pack_start(self.settings_button, False, False, 0)
+        compat.pack_start(left, self.settings_button, False, False, 0)
 
-        bar.pack_start(left, True, True, 0)
+        compat.pack_start(bar, left, True, True, 0)
 
         # Power buttons: always-visible fixed set (lock, logout, restart, shutdown).
         group = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        group.get_style_context().add_class("power-group")
-        group.get_style_context().add_class("power-group-box")
+        compat.add_class(group, "power-group")
+        compat.add_class(group, "power-group-box")
         power = self.config.get("power", {})
         for action in ("lock", "logout", "reboot", "shutdown"):
             command = power.get(action)
             if not command:
                 continue
             button = Gtk.Button()
-            button.get_style_context().add_class("power-btn")
+            compat.add_class(button, "power-btn")
             if action in POWER_DANGER:
-                button.get_style_context().add_class("power-danger")
+                compat.add_class(button, "power-danger")
             button.set_tooltip_text(action.capitalize())
             image = self._make_power_icon(action)
-            button.add(image)
+            compat.add(button, image)
             button.connect("clicked", self._on_power, action)
-            group.pack_start(button, False, False, 0)
-        bar.pack_end(group, False, False, 0)
+            compat.pack_start(group, button, False, False, 0)
+        compat.pack_end(bar, group, False, False, 0)
 
         # Corner resize grip
-        grip = Gtk.EventBox()
-        grip.get_style_context().add_class("resize-grip")
-        grip.add_events(
-            Gdk.EventMask.BUTTON_PRESS_MASK
-            | Gdk.EventMask.BUTTON_RELEASE_MASK
-            | Gdk.EventMask.POINTER_MOTION_MASK
-        )
+        grip = compat.event_surface()
+        compat.add_class(grip, "resize-grip")
         grip.set_tooltip_text("Drag to resize")
         grip_icon = Gtk.Label(label="\u2b0c")
-        grip_icon.get_style_context().add_class("resize-grip-icon")
-        grip.add(grip_icon)
-        grip.connect("button-press-event", self._on_grip_press)
-        grip.connect("button-release-event", self._on_grip_release)
-        grip.connect("motion-notify-event", self._on_grip_motion)
-        bar.pack_end(grip, False, False, 0)
+        compat.add_class(grip_icon, "resize-grip-icon")
+        compat.add(grip, grip_icon)
+        compat.on_drag(grip, self._on_grip_begin, self._on_grip_update, self._on_grip_end)
+        compat.pack_end(bar, grip, False, False, 0)
         self.grip = grip
         return bar
 
     def _build_footer(self):
         """Shared bottom bar: user avatar (left) + powerbar (settings/power/resize)."""
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        footer.get_style_context().add_class("menu-footer")
+        compat.add_class(footer, "menu-footer")
+        # Fill the menu width and let the user block take the slack so the
+        # powerbar sits flush right. GTK4's ``pack_end`` only appends, so
+        # without an expanding sibling the powerbar would stay left of centre.
+        footer.set_hexpand(True)
         avatar_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        avatar_box.get_style_context().add_class("menu-user")
-        avatar = Gtk.Image.new_from_icon_name("avatar-default", Gtk.IconSize.MENU)
-        avatar.get_style_context().add_class("menu-avatar")
-        avatar_box.pack_start(avatar, False, False, 0)
+        compat.add_class(avatar_box, "menu-user")
+        avatar = compat.new_image_from_icon_name("avatar-default")
+        compat.add_class(avatar, "menu-avatar")
+        compat.pack_start(avatar_box, avatar, False, False, 0)
         username = Gtk.Label(label=pwd.getpwuid(os.getuid()).pw_name, xalign=0)
-        username.get_style_context().add_class("menu-username")
-        avatar_box.pack_start(username, False, False, 0)
-        footer.pack_start(avatar_box, False, False, 0)
-        footer.pack_end(self._build_powerbar(), False, False, 0)
+        compat.add_class(username, "menu-username")
+        compat.pack_start(avatar_box, username, False, False, 0)
+        compat.pack_start(footer, avatar_box, True, False, 0)
+        compat.pack_end(footer, self._build_powerbar(), False, False, 0)
         return footer
 
-    def _on_grip_press(self, _widget, event):
-        if event.button == 1:
-            self._resizing = True
-            self._resize_start_w = self.get_allocated_width()
-            self._resize_start_h = self.get_allocated_height()
-            self._resize_start_x = event.x_root
-            self._resize_start_y = event.y_root
-            seat = Gdk.Display.get_default().get_default_seat()
-            if seat:
-                seat.grab(
-                    self.grip.get_window(),
-                    Gdk.SeatCapabilities.POINTER,
-                    False,
-                    None,
-                    None,
-                    None,
-                    None,
-                )
-            return True
-        return False
+    def _on_grip_begin(self):
+        self._resizing = True
+        self._resize_start_w = compat.allocated_width(self)
+        self._resize_start_h = compat.allocated_height(self)
 
-    def _on_grip_motion(self, _widget, event):
+    def _on_grip_update(self, dx, dy):
         if not self._resizing:
-            return False
-        dx = event.x_root - self._resize_start_x
-        dy = event.y_root - self._resize_start_y
+            return
         new_w = max(int(self._resize_start_w + dx), 600)
         new_h = max(int(self._resize_start_h + dy), 400)
         self.set_size_request(new_w, new_h)
-        return True
 
-    def _on_grip_release(self, _widget, event):
+    def _on_grip_end(self):
         if self._resizing:
             self._resizing = False
-            seat = Gdk.Display.get_default().get_default_seat()
-            if seat:
-                seat.ungrab()
             self._save_layout()
-            return True
-        return False
 
     def _on_clear_recents(self, _button):
         self.recents = []
@@ -1521,73 +1489,73 @@ class MenuWindow(Gtk.Window):
             win.present()
             return
 
-        win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+        win = compat.new_window()
         win.set_title("hyprtk-menu settings")
         win.set_decorated(False)
-        win.set_keep_above(True)
+        compat.set_keep_above(win, True)
         win.set_default_size(360, -1)
-        win.get_style_context().add_class("menu-root")
-        win.get_style_context().add_class("menu")
-        win.get_style_context().add_class("settings-dialog")
-        win.set_position(Gtk.WindowPosition.CENTER)
+        compat.add_class(win, "menu-root")
+        compat.add_class(win, "menu")
+        compat.add_class(win, "settings-dialog")
+        compat.set_window_position(win)
         win.connect("destroy", self._on_settings_closed)
-        win.connect("key-press-event", self._on_settings_key)
+        compat.on_key(win, self._on_settings_key)
         self._settings_window = win
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        vbox.get_style_context().add_class("settings-window")
+        compat.add_class(vbox, "settings-window")
 
         # Draggable header
-        header = Gtk.EventBox()
-        header.get_style_context().add_class("settings-header")
-        header.connect("button-press-event", self._on_settings_header_press)
+        header = compat.event_surface()
+        compat.add_class(header, "settings-header")
+        compat.make_window_draggable(win, header)
         title = Gtk.Label(label="Menu Settings")
-        title.get_style_context().add_class("settings-title")
-        header.add(title)
-        vbox.pack_start(header, False, False, 0)
+        compat.add_class(title, "settings-title")
+        compat.add(header, title)
+        compat.pack_start(vbox, header, False, False, 0)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        content.get_style_context().add_class("settings-content")
-        vbox.pack_start(content, True, True, 0)
+        compat.add_class(content, "settings-content")
+        compat.pack_start(vbox, content, True, True, 0)
 
         def _section_label(text):
             label = Gtk.Label(label=text, xalign=0)
-            label.get_style_context().add_class("settings-section")
+            compat.add_class(label, "settings-section")
             return label
 
         # ── Menu theme: radio list (one selectable per theme) ──
-        content.pack_start(_section_label("Menu Theme"), False, False, 0)
+        compat.pack_start(content, _section_label("Menu Theme"), False, False, 0)
         theme_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        theme_box.get_style_context().add_class("settings-theme-list")
+        compat.add_class(theme_box, "settings-theme-list")
         layout = self.config.get("layout", "whisker")
         theme_radios = {}
         theme_group = None
         for name in LAYOUT_ORDER:
-            radio = Gtk.RadioButton.new_with_label_from_widget(theme_group, name.capitalize())
-            radio.get_style_context().add_class("settings-radio")
+            radio = compat.radio_with_label_from_widget(theme_group, name.capitalize())
+            compat.add_class(radio, "settings-radio")
             if name == layout:
                 radio.set_active(True)
             theme_group = radio
             theme_radios[name] = radio
-            theme_box.pack_start(radio, False, False, 0)
-        content.pack_start(theme_box, False, False, 0)
+            compat.pack_start(theme_box, radio, False, False, 0)
+        compat.pack_start(content, theme_box, False, False, 0)
 
         # ── Alignment + position: visual display grid ──
-        content.pack_start(_section_label("Position"), False, False, 0)
+        compat.pack_start(content, _section_label("Position"), False, False, 0)
         position = self.config.get("position", "auto")
 
         # Auto option (follow hyprtk-bar edge)
-        auto_radio = Gtk.RadioButton.new_with_label(
+        auto_radio = compat.radio_with_label_from_widget(
             None, "Auto (follow hyprtk-bar)"
         )
-        auto_radio.get_style_context().add_class("settings-radio")
+        compat.add_class(auto_radio, "settings-radio")
         if position == "auto":
             auto_radio.set_active(True)
-        content.pack_start(auto_radio, False, False, 0)
+        compat.pack_start(content, auto_radio, False, False, 0)
 
         # Monitor grid: a display with a check point + name at each corner and center.
         grid = Gtk.Grid()
-        grid.get_style_context().add_class("settings-monitor")
+        compat.add_class(grid, "settings-monitor")
         grid.set_row_homogeneous(True)
         grid.set_column_homogeneous(True)
         grid.set_row_spacing(6)
@@ -1605,87 +1573,78 @@ class MenuWindow(Gtk.Window):
         }
         for (row, col), (name, label) in cells.items():
             cell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-            cell.get_style_context().add_class("settings-pos-cell")
-            radio = Gtk.RadioButton.new_with_label_from_widget(auto_radio, "")
-            radio.get_style_context().add_class("settings-pos-radio")
+            compat.add_class(cell, "settings-pos-cell")
+            radio = compat.radio_with_label_from_widget(auto_radio, "")
+            compat.add_class(radio, "settings-pos-radio")
             text = Gtk.Label(label=label, xalign=0.5)
-            text.get_style_context().add_class("settings-pos-label")
-            cell.pack_start(radio, False, False, 0)
-            cell.pack_start(text, False, False, 0)
+            compat.add_class(text, "settings-pos-label")
+            compat.pack_start(cell, radio, False, False, 0)
+            compat.pack_start(cell, text, False, False, 0)
             if position == name:
                 radio.set_active(True)
             position_radios[name] = radio
             grid.attach(cell, col, row, 1, 1)
         grid.set_size_request(220, 140)
-        content.pack_start(grid, False, False, 0)
+        compat.pack_start(content, grid, False, False, 0)
 
         # ── Spacing: menu-to-bar and menu-to-screen-edge gaps ──
-        content.pack_start(_section_label("Spacing"), False, False, 0)
+        compat.pack_start(content, _section_label("Spacing"), False, False, 0)
         spacing_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
 
         gap_in_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         gap_in_label = Gtk.Label(label="Gap in:", xalign=1)
         gap_in_label.set_size_request(70, -1)
-        gap_in_label.get_style_context().add_class("settings-radio")
+        compat.add_class(gap_in_label, "settings-radio")
         self._gap_in = Gtk.SpinButton.new_with_range(0, 60, 2)
         self._gap_in.set_value(_gap_value(self.config.get("gap_in"), 4))
         gap_in_hint = Gtk.Label(label="px — menu to bar", xalign=0)
         gap_in_hint.set_opacity(0.7)
-        gap_in_row.pack_start(gap_in_label, False, False, 0)
-        gap_in_row.pack_start(self._gap_in, True, True, 0)
-        gap_in_row.pack_start(gap_in_hint, False, False, 0)
+        compat.pack_start(gap_in_row, gap_in_label, False, False, 0)
+        compat.pack_start(gap_in_row, self._gap_in, True, True, 0)
+        compat.pack_start(gap_in_row, gap_in_hint, False, False, 0)
 
         gap_out_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         gap_out_label = Gtk.Label(label="Gap out:", xalign=1)
         gap_out_label.set_size_request(70, -1)
-        gap_out_label.get_style_context().add_class("settings-radio")
+        compat.add_class(gap_out_label, "settings-radio")
         self._gap_out = Gtk.SpinButton.new_with_range(0, 60, 2)
         self._gap_out.set_value(_gap_value(self.config.get("gap_out"), 5))
         gap_out_hint = Gtk.Label(label="px — menu to screen edge", xalign=0)
         gap_out_hint.set_opacity(0.7)
-        gap_out_row.pack_start(gap_out_label, False, False, 0)
-        gap_out_row.pack_start(self._gap_out, True, True, 0)
-        gap_out_row.pack_start(gap_out_hint, False, False, 0)
+        compat.pack_start(gap_out_row, gap_out_label, False, False, 0)
+        compat.pack_start(gap_out_row, self._gap_out, True, True, 0)
+        compat.pack_start(gap_out_row, gap_out_hint, False, False, 0)
 
-        spacing_box.pack_start(gap_in_row, False, False, 0)
-        spacing_box.pack_start(gap_out_row, False, False, 0)
-        content.pack_start(spacing_box, False, False, 0)
+        compat.pack_start(spacing_box, gap_in_row, False, False, 0)
+        compat.pack_start(spacing_box, gap_out_row, False, False, 0)
+        compat.pack_start(content, spacing_box, False, False, 0)
 
         # Buttons
         buttons = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        buttons.get_style_context().add_class("settings-buttons")
+        compat.add_class(buttons, "settings-buttons")
         cancel_btn = Gtk.Button(label="Cancel")
-        cancel_btn.get_style_context().add_class("settings-cancel")
-        cancel_btn.connect("clicked", lambda *_: win.destroy())
+        compat.add_class(cancel_btn, "settings-cancel")
+        cancel_btn.connect("clicked", lambda *_: compat.destroy(win))
         apply_btn = Gtk.Button(label="Apply")
-        apply_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(apply_btn, "settings-apply")
         apply_btn.connect(
             "clicked",
             lambda *_: self._apply_settings(
                 win, theme_radios, auto_radio, position_radios
             ),
         )
-        buttons.pack_end(apply_btn, False, False, 0)
-        buttons.pack_end(cancel_btn, False, False, 0)
-        vbox.pack_end(buttons, False, False, 0)
+        compat.pack_end(buttons, apply_btn, False, False, 0)
+        compat.pack_end(buttons, cancel_btn, False, False, 0)
+        compat.pack_end(vbox, buttons, False, False, 0)
 
-        win.add(vbox)
-        win.show_all()
+        compat.add(win, vbox)
+        compat.show_all(win)
         apply_btn.set_can_default(True)
         apply_btn.grab_default()
 
-    def _on_settings_header_press(self, _widget, event):
-        """Allow dragging the frameless settings window by its header."""
-        if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
-            self._settings_window.begin_move_drag(
-                event.button, int(event.x_root), int(event.y_root), event.time
-            )
-            return True
-        return False
-
     def _on_settings_key(self, _win, event):
         if event.keyval == Gdk.KEY_Escape:
-            self._settings_window.destroy()
+            compat.destroy(self._settings_window)
             return True
         return False
 
@@ -1746,8 +1705,8 @@ class MenuWindow(Gtk.Window):
         if layout not in LAYOUT_ORDER:
             layout = "whisker"
         for name in LAYOUT_ORDER:
-            self.get_style_context().remove_class("layout-%s" % name)
-        self.get_style_context().add_class("layout-%s" % layout)
+            compat.remove_class(self, "layout-%s" % name)
+        compat.add_class(self, "layout-%s" % layout)
 
     def _apply_layout_tweaks(self):
         """CSS-impossible per-layout tweaks. Called on open and layout change."""
@@ -1768,22 +1727,22 @@ class MenuWindow(Gtk.Window):
     def _make_icon_image(self, entry, pixel_size):
         icon = entry.icon
         if icon is None:
-            return Gtk.Image.new_from_icon_name(
-                "application-x-executable", Gtk.IconSize.DND
+            return compat.new_image_from_icon_name(
+                "application-x-executable"
             )
-        image = Gtk.Image.new_from_gicon(icon, Gtk.IconSize.DND)
+        image = compat.new_image_from_gicon(icon)
         image.set_pixel_size(pixel_size)
         return image
 
     def _make_row(self, entry, icon_size=32):
         row = Gtk.ListBoxRow()
-        row.get_style_context().add_class("app-row")
+        compat.add_class(row, "app-row")
         row.entry = entry
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         image = self._make_icon_image(entry, icon_size)
-        image.get_style_context().add_class("app-icon")
-        hbox.pack_start(image, False, False, 0)
+        compat.add_class(image, "app-icon")
+        compat.pack_start(hbox, image, False, False, 0)
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         name = Gtk.Label(
@@ -1791,18 +1750,18 @@ class MenuWindow(Gtk.Window):
             xalign=0,
             ellipsize=Pango.EllipsizeMode.END,
         )
-        name.get_style_context().add_class("app-name")
-        vbox.pack_start(name, False, False, 0)
+        compat.add_class(name, "app-name")
+        compat.pack_start(vbox, name, False, False, 0)
         if entry.comment:
             desc = Gtk.Label(
                 label=entry.comment,
                 xalign=0,
                 ellipsize=Pango.EllipsizeMode.END,
             )
-            desc.get_style_context().add_class("app-desc")
-            vbox.pack_start(desc, False, False, 0)
-        hbox.pack_start(vbox, True, True, 0)
-        row.add(hbox)
+            compat.add_class(desc, "app-desc")
+            compat.pack_start(vbox, desc, False, False, 0)
+        compat.pack_start(hbox, vbox, True, True, 0)
+        compat.add(row, hbox)
         return row
 
     def _visible_apps(self):
@@ -1829,21 +1788,21 @@ class MenuWindow(Gtk.Window):
             self._refresh_win11_pinned()
         if not hasattr(self, "fav_row"):
             return
-        for child in self.fav_row.get_children():
+        for child in compat.children(self.fav_row):
             self.fav_row.remove(child)
-            child.destroy()
+            compat.destroy(child)
         for entry in self.apps:
             if entry.id not in self.pinned:
                 continue
             button = Gtk.Button()
-            button.get_style_context().add_class("fav-btn")
+            compat.add_class(button, "fav-btn")
             image = self._make_icon_image(entry, 26)
-            button.add(image)
+            compat.add(button, image)
             button.set_tooltip_text(entry.name)
             button.connect("clicked", self._on_fav_clicked, entry)
-            self.fav_row.add(button)
+            compat.add(self.fav_row, button)
         self.fav_row.set_visible(bool(self.pinned))
-        self.fav_row.show_all()
+        compat.show_all(self.fav_row)
 
     def _refresh_apps(self):
         if not hasattr(self, "app_list"):
@@ -1851,16 +1810,16 @@ class MenuWindow(Gtk.Window):
         # Cache rows per entry so icons load once instead of once per keystroke.
         # Rows are reparented (remove + add), never destroyed, so search just
         # reshuffles existing widgets rather than reloading every app icon.
-        for child in list(self.app_list.get_children()):
+        for child in list(compat.children(self.app_list)):
             self.app_list.remove(child)
         for entry in self._visible_apps():
             row = self._app_rows.get(entry.id)
             if row is None:
                 row = self._make_row(entry)
                 self._app_rows[entry.id] = row
-            self.app_list.add(row)
-        self.app_list.show_all()
-        if self.app_list.get_children():
+            compat.add(self.app_list, row)
+        compat.show_all(self.app_list)
+        if compat.children(self.app_list):
             self.app_list.select_row(self.app_list.get_row_at_index(0))
 
     # -- actions ----------------------------------------------------------
@@ -1897,7 +1856,7 @@ class MenuWindow(Gtk.Window):
 
     def _on_search_key(self, _widget, event):
         if event.keyval in (Gdk.KEY_Up, Gdk.KEY_Down):
-            rows = self.app_list.get_children()
+            rows = compat.children(self.app_list)
             if not rows:
                 return True
             selected = self.app_list.get_selected_row()
@@ -1934,11 +1893,11 @@ class MenuWindow(Gtk.Window):
             return
         self.current_category = category
         if hasattr(self, "sidebar"):
-            for child in self.sidebar.get_children():
+            for child in compat.children(self.sidebar):
                 if child is row:
-                    child.get_style_context().add_class("selected")
+                    compat.add_class(child, "selected")
                 else:
-                    child.get_style_context().remove_class("selected")
+                    compat.remove_class(child, "selected")
         self._refresh_apps()
 
     def _on_app_activated(self, _listbox, row):
@@ -1980,18 +1939,19 @@ class MenuWindow(Gtk.Window):
             buttons=Gtk.ButtonsType.NONE,
             text="%s?" % title,
         )
-        dialog.format_secondary_text(
+        compat.set_secondary_text(
+            dialog,
             "Are you sure you want to %s? Any unsaved work will be lost."
-            % title.lower()
+            % title.lower(),
         )
-        dialog.get_style_context().add_class("confirm-dialog")
+        compat.add_class(dialog, "confirm-dialog")
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         confirm = dialog.add_button(title, Gtk.ResponseType.ACCEPT)
-        confirm.get_style_context().add_class("confirm-accept")
+        compat.add_class(confirm, "confirm-accept")
         dialog.set_default_response(Gtk.ResponseType.CANCEL)
         center_layer_dialog(dialog)
-        response = dialog.run()
-        dialog.destroy()
+        response = compat.dialog_run(dialog)
+        compat.destroy(dialog)
         return response == Gtk.ResponseType.ACCEPT
 
     # -- show / hide ------------------------------------------------------
@@ -2017,7 +1977,7 @@ class MenuWindow(Gtk.Window):
         was_visible = self.get_visible()
         if was_visible:
             # Hide first so re-anchoring happens on an unmapped surface.
-            self.hide()
+            compat.hide(self)
         try:
             apply_css(build_css())
         except Exception as exc:
@@ -2031,8 +1991,8 @@ class MenuWindow(Gtk.Window):
         return True
 
     def _remap_after_update(self):
-        self.hide()
-        self.show_all()
+        compat.hide(self)
+        compat.show_all(self)
         if hasattr(self, "_reapply_win11_view"):
             self._reapply_win11_view()
         self.present()
@@ -2093,7 +2053,7 @@ class MenuWindow(Gtk.Window):
         self._refresh_recents()
         if hasattr(self, "_plasma_places"):
             self._plasma_show_places()
-        self.show_all()
+        compat.show_all(self)
         if hasattr(self, "_reapply_win11_view"):
             self._reapply_win11_view()
         self.present()
@@ -2105,17 +2065,17 @@ class MenuWindow(Gtk.Window):
 
     def hide_menu(self):
         self._stop_border_animation()
-        self.hide()
+        compat.hide(self)
         self.search.set_text("")
         self.current_category = "All"
         if getattr(self, "_settings_window", None) is not None:
-            self._settings_window.destroy()
+            compat.destroy(self._settings_window)
         if hasattr(self, "sidebar"):
-            for child in self.sidebar.get_children():
+            for child in compat.children(self.sidebar):
                 if getattr(child, "category", None) == "All":
-                    child.get_style_context().add_class("selected")
+                    compat.add_class(child, "selected")
                 else:
-                    child.get_style_context().remove_class("selected")
+                    compat.remove_class(child, "selected")
 
     def toggle(self):
         if not self._enabled():

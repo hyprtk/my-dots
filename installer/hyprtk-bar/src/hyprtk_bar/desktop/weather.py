@@ -23,10 +23,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import GLib, Gtk  # noqa: E402
 
 from ..config import icon_size_for  # noqa: E402
 from ..widgets import Glyph  # noqa: E402
@@ -213,36 +211,36 @@ class WeatherWidget(DesktopWidgetWindow):
             self._icon = Glyph("\ue33d", "weather-icon")
             self._icon_base = int(round(icon_size * 2.4))
             self._icon.set_pixel_size(self._icon_base)
-            header.pack_start(self._icon, False, False, 0)
+            compat.pack_start(header, self._icon, False, False, 0)
         text_col = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         if block.get("show_temp", True):
             self._temp = Gtk.Label(label="--")
-            self._temp.get_style_context().add_class("weather-temp")
+            compat.add_class(self._temp, "weather-temp")
             self._temp.set_halign(Gtk.Align.START)
-            text_col.pack_start(self._temp, False, False, 0)
+            compat.pack_start(text_col, self._temp, False, False, 0)
         self._city = Gtk.Label(label=str(block.get("city") or ""))
-        self._city.get_style_context().add_class("weather-city")
+        compat.add_class(self._city, "weather-city")
         self._city.set_halign(Gtk.Align.START)
-        text_col.pack_start(self._city, False, False, 0)
-        header.pack_start(text_col, True, True, 0)
-        self.root.pack_start(header, False, False, 0)
+        compat.pack_start(text_col, self._city, False, False, 0)
+        compat.pack_start(header, text_col, True, True, 0)
+        compat.pack_start(self.root, header, False, False, 0)
 
         if block.get("show_condition", True):
             self._condition = Gtk.Label(label="Loading…")
-            self._condition.get_style_context().add_class("weather-condition")
+            compat.add_class(self._condition, "weather-condition")
             self._condition.set_halign(Gtk.Align.START)
-            self.root.pack_start(self._condition, False, False, 0)
+            compat.pack_start(self.root, self._condition, False, False, 0)
 
         if block.get("show_feels_like", True) or block.get("show_humidity", True) or block.get("show_wind", True):
             self._details = Gtk.Label(label="")
-            self._details.get_style_context().add_class("weather-detail")
+            compat.add_class(self._details, "weather-detail")
             self._details.set_halign(Gtk.Align.START)
-            self.root.pack_start(self._details, False, False, 0)
+            compat.pack_start(self.root, self._details, False, False, 0)
 
         if block.get("show_forecast", True) and int(block.get("forecast_days", 3) or 0) > 0:
             self._forecast_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             self._forecast_box.set_halign(Gtk.Align.START)
-            self.root.pack_start(self._forecast_box, False, False, 0)
+            compat.pack_start(self.root, self._forecast_box, False, False, 0)
             self._build_forecast_cells(int(block.get("forecast_days", 3) or 3))
 
         self._adopt_cache()
@@ -259,16 +257,16 @@ class WeatherWidget(DesktopWidgetWindow):
             cell = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
             cell.set_halign(Gtk.Align.CENTER)
             day = Gtk.Label(label="")
-            day.get_style_context().add_class("weather-forecast-day")
+            compat.add_class(day, "weather-forecast-day")
             icon = Glyph("\ue33d", "weather-icon")
             self._forecast_icon_base = max(10, int(round(icon_size * 1.2)))
             icon.set_pixel_size(self._forecast_icon_base)
             temps = Gtk.Label(label="")
-            temps.get_style_context().add_class("weather-forecast-hi")
-            cell.pack_start(day, False, False, 0)
-            cell.pack_start(icon, False, False, 0)
-            cell.pack_start(temps, False, False, 0)
-            self._forecast_box.pack_start(cell, False, False, 0)
+            compat.add_class(temps, "weather-forecast-hi")
+            compat.pack_start(cell, day, False, False, 0)
+            compat.pack_start(cell, icon, False, False, 0)
+            compat.pack_start(cell, temps, False, False, 0)
+            compat.pack_start(self._forecast_box, cell, False, False, 0)
             self._forecast_cells.append((icon, day, temps))
 
     # ── data ─────────────────────────────────────────────────────

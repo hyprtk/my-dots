@@ -1,10 +1,11 @@
-"""com.canonical.dbusmenu client: renders SNI tray items' menus as Gtk.Menu.
+"""com.canonical.dbusmenu client: renders SNI tray items' menus.
 
 Many StatusNotifier items export their context menu as a `com.canonical.dbusmenu`
 object (the `Menu` property). Instead of asking the applet to open its own menu
 (`ContextMenu`, which some applets position wrong under Wayland), we fetch the
-menu layout with `GetLayout` and render a native Gtk.Menu, firing `Event` back
-for activation.
+menu layout with `GetLayout` and turn it into the version-agnostic item model
+consumed by ``menus.MenuPopup`` (GTK4) / ``menus.build_gtk3_menu`` (GTK3),
+firing `Event` back for activation.
 """
 
 # ─────────────────────────────────────────────────────────────────
@@ -16,10 +17,7 @@ from __future__ import annotations
 
 import logging
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GdkPixbuf, GLib, Gtk  # noqa: E402
+from .compat import GdkPixbuf, GLib, Gtk  # noqa: E402
 
 from dbus_next import Message, Variant  # noqa: E402
 
@@ -80,10 +78,11 @@ class DbusMenu:
     # ── public ───────────────────────────────────────────────────
 
     def build(self, on_ready):
-        """Fetch the menu layout and call ``on_ready(Gtk.Menu | None)``.
+        """Fetch the menu layout and call ``on_ready(items | None)``.
 
         The fetch is async; ``on_ready`` runs on the GLib main loop (the glib
-        MessageBus dispatches there), so the returned menu can be popped up.
+        MessageBus dispatches there), so the returned item model can be popped
+        up immediately.
         """
         try:
             self.bus.call(
@@ -118,30 +117,28 @@ class DbusMenu:
             on_ready(None)
             return
         self._items_remaining = _MAX_ITEMS
-        menu = Gtk.Menu()
         try:
-            self._populate(menu, children, depth=0)
+            items = self._build_items(children, depth=0)
         except Exception as exc:
             # Never let a malformed item crash the GLib callback chain.
             log.warning("dbusmenu build failed: %s", exc)
-            menu = Gtk.Menu()
-        on_ready(menu)
+            items = []
+        on_ready(items)
 
-    def _populate(self, menu, children, depth: int = 0) -> None:
-        if depth > _MAX_DEPTH or self._items_remaining <= 0:
-            return
-        radios: list[Gtk.RadioMenuItem] = []
+    def _build_items(self, children, depth: int = 0) -> list:
+        items: list = []
+        if depth > _MAX_DEPTH:
+            return items
         for node in children:
             if self._items_remaining <= 0:
                 break
-            item = self._build_item(node, radios, depth)
+            item = self._build_item(node, depth)
             if item is not None:
-                menu.append(item)
+                items.append(item)
                 self._items_remaining -= 1
-        for radio in radios[1:]:
-            radio.join_group(radios[0])
+        return items
 
-    def _build_item(self, node, radios, depth: int):
+    def _build_item(self, node, depth: int):
         try:
             item_id, props, children = node
             props = _unpack(props or {}) or {}
@@ -153,7 +150,7 @@ class DbusMenu:
         if not props.get("visible", True):
             return None
         if props.get("type") == "separator":
-            return Gtk.SeparatorMenuItem()
+            return {"type": "separator"}
 
         label = props.get("label", "") or ""
         display = props.get("children-display", "")
@@ -162,29 +159,21 @@ class DbusMenu:
         enabled = props.get("enabled", True)
         image = self._icon_image(props)
 
+        item: dict = {
+            "label": label,
+            "enabled": bool(enabled),
+            "activate": (lambda iid=item_id: self._event(iid)),
+        }
+        if image is not None:
+            item["icon"] = image
         if display == "submenu":
-            item = Gtk.MenuItem(label=label)
-            submenu = Gtk.Menu()
-            self._populate(submenu, children, depth + 1)
-            item.set_submenu(submenu)
+            item["children"] = self._build_items(children, depth + 1)
         elif toggle_type == "radio":
-            item = Gtk.RadioMenuItem(label=label)
-            radios.append(item)
-            item.set_active(toggle_state == 1)
+            item["toggle"] = "radio"
+            item["active"] = toggle_state == 1
         elif toggle_type == "checkmark":
-            item = Gtk.CheckMenuItem(label=label)
-            item.set_active(toggle_state == 1)
-        else:
-            # ImageMenuItem supports icons on this GTK build (MenuItem.set_image
-            # is not exposed by the introspection here).
-            item = Gtk.ImageMenuItem.new_with_label(label) if image is not None else Gtk.MenuItem(label=label)
-
-        item.set_sensitive(bool(enabled))
-
-        if image is not None and hasattr(item, "set_image"):
-            item.set_image(image)
-
-        item.connect("activate", lambda *_a: self._event(item_id))
+            item["toggle"] = "check"
+            item["active"] = toggle_state == 1
         return item
 
     def _icon_image(self, props):
@@ -192,14 +181,14 @@ class DbusMenu:
         # reach GTK's icon loader (which opens it as a file).
         name = safe_icon_name(props.get("icon-name"))
         if name:
-            return Gtk.Image.new_from_icon_name(name, Gtk.IconSize.MENU)
+            return compat.new_image_from_icon_name(name)
         data = props.get("icon-data")
         if data:
             try:
                 width, height, _rowstride, _alpha, _bpp, _channels, pixels = data
                 pixbuf = _pixbuf_from_argb(int(width), int(height), pixels)
                 if pixbuf is not None:
-                    return Gtk.Image.new_from_pixbuf(pixbuf)
+                    return compat.new_raster_from_pixbuf(pixbuf)
             except Exception:
                 pass
         return None

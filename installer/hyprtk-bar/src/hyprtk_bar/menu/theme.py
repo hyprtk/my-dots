@@ -15,12 +15,8 @@ the menu's semantic tokens (panel_bg, text, accent, ...) that the base
 
 import os
 
-import gi
-
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-
-from gi.repository import Gdk, Gtk
+from .. import compat  # noqa: E402
+from ..compat import Gdk, Gtk  # noqa: E402
 
 from ..colors import blend, contrast_fg as _contrast_fg, hover_color, rgba
 from ..config import INSTALL_DIR
@@ -251,14 +247,13 @@ _anim_provider = None
 def apply_css(css):
     """Load CSS into a single persistent provider and refresh all widgets."""
     global _provider
-    screen = Gdk.Screen.get_default()
     if _provider is None:
         _provider = Gtk.CssProvider()
-        Gtk.StyleContext.add_provider_for_screen(
-            screen, _provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        compat.add_provider_for_display(
+            _provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
     _provider.load_from_data(css.encode("utf-8"))
-    Gtk.StyleContext.reset_widgets(screen)
+    compat.reset_widgets()
 
 
 def panel_border_base():
@@ -279,11 +274,10 @@ def apply_border_color(color: str):
     not rebuild the whole stylesheet.
     """
     global _anim_provider
-    screen = Gdk.Screen.get_default()
     if _anim_provider is None:
         _anim_provider = Gtk.CssProvider()
-        Gtk.StyleContext.add_provider_for_screen(
-            screen, _anim_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+        compat.add_provider_for_display(
+            _anim_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
         )
     _anim_provider.load_from_data(
         f".menu {{ border-color: {color}; }}".encode("utf-8")

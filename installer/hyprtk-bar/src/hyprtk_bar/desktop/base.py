@@ -16,12 +16,8 @@ from __future__ import annotations
 import logging
 import weakref
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 from .. import config as config_module  # noqa: E402
 from . import placement  # noqa: E402
@@ -73,7 +69,8 @@ class DesktopWidgetWindow(Gtk.Window):
     WIDGET_ID = "widget"
 
     def __init__(self, cfg: dict, block: dict):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        super().__init__() if compat.IS_GTK4 else super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self._cfg = cfg
         self._block = block or {}
         self._palette: dict | None = None
@@ -92,20 +89,20 @@ class DesktopWidgetWindow(Gtk.Window):
 
         self.set_title(f"hyprtk-bar-widget-{self.WIDGET_ID}")
         self.set_decorated(False)
-        self.set_skip_taskbar_hint(True)
-        self.set_skip_pager_hint(True)
-        self.set_app_paintable(True)
-        self.set_accept_focus(False)
-
-        visual = self.get_screen().get_rgba_visual()
-        if visual:
-            self.set_visual(visual)
+        if not compat.IS_GTK4:
+            compat.set_skip_taskbar_hint(self, True)
+            compat.set_skip_pager_hint(self, True)
+            compat.set_app_paintable(self, True)
+            compat.set_accept_focus(self, False)
+            visual = self.get_screen().get_rgba_visual()
+            if visual:
+                self.set_visual(visual)
 
         self._root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        ctx = self._root.get_style_context()
+        ctx = compat.style_context(self._root)
         ctx.add_class("desktop-widget")
         ctx.add_class(f"widget-{self.WIDGET_ID}")
-        self.add(self._root)
+        compat.set_single_child(self, self._root)
 
         GtkLayerShell.init_for_window(self)
         GtkLayerShell.set_namespace(self, f"hyprtk-bar-widget-{self.WIDGET_ID}")
@@ -113,10 +110,14 @@ class DesktopWidgetWindow(Gtk.Window):
         GtkLayerShell.set_exclusive_zone(self, -1)
         GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.NONE)
 
-        Gtk.StyleContext.add_provider_for_screen(
-            self.get_screen(), self._provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        compat.add_provider_for_display(
+            self._provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
-        self.connect("size-allocate", self._on_size_allocate)
+        if compat.IS_GTK4:
+            self.connect("notify::width", self._on_size_allocate)
+            self.connect("notify::height", self._on_size_allocate)
+        else:
+            self.connect("size-allocate", self._on_size_allocate)
         # Drop the per-window CSS provider when the surface goes away, or every
         # rebuild (a settings Apply, each drag) would leak one into the screen.
         self.connect("destroy", self._on_destroy)
@@ -209,16 +210,13 @@ class DesktopWidgetWindow(Gtk.Window):
 
     def _monitor_geometry(self) -> tuple[int, int, int, int]:
         """The primary monitor's ``(x, y, width, height)`` in logical pixels."""
-        display = Gdk.Display.get_default()
-        monitor = None
-        if display is not None:
-            monitor = display.get_primary_monitor() or display.get_monitor(0)
+        monitor = compat.primary_monitor()
         if monitor is not None:
             geo = monitor.get_geometry()
             return geo.x, geo.y, geo.width, geo.height
-        screen = Gdk.Screen.get_default()
-        if screen is not None:
-            return 0, 0, screen.get_width(), screen.get_height()
+        w, h = compat.screen_size()
+        if w and h:
+            return 0, 0, w, h
         return 0, 0, 1920, 1080
 
     def _monitor_size(self) -> tuple[int, int]:
@@ -236,6 +234,16 @@ class DesktopWidgetWindow(Gtk.Window):
         """
         minimum = self._root.get_preferred_size()[0]
         return (max(int(minimum.width), 1), max(int(minimum.height), 1))
+
+    def content_natural(self) -> tuple[int, int]:
+        """The content root's **natural** (unscaled) preferred size.
+
+        Used to size a snap cell: the group's widest widget sets the cell, so
+        every member ends up the same width (the minimum would undersize a cell
+        whose content is naturally wide, e.g. the system-info GPU line).
+        """
+        natural = self._root.get_preferred_size()[1]
+        return (max(int(natural.width), 1), max(int(natural.height), 1))
 
     def set_snap_layout(self, width: int, height: int, scale: float, x_root: int, y_root: int, *, theme: bool = True) -> None:
         """Apply a snap-group cell: uniform size, content scale and absolute pos."""
@@ -292,8 +300,8 @@ class DesktopWidgetWindow(Gtk.Window):
                 widget.set_spacing(
                     max(0, int(round(self._spacing_bases[widget] * scale)))
                 )
-            if isinstance(widget, Gtk.Container):
-                stack.extend(widget.get_children())
+            if compat.is_container(widget):
+                stack.extend(compat.children(widget))
 
     def _effective_scale(self) -> float | None:
         if self._snap:
@@ -320,10 +328,16 @@ class DesktopWidgetWindow(Gtk.Window):
             self._last_size = size
             self.set_size_request(*size)
 
-        alloc = self.get_allocation()
+        alloc = compat.allocation(self)
         natural = self.get_preferred_size()[1]
         cur_w = alloc.width or natural.width or width or 200
         cur_h = alloc.height or natural.height or height or 120
+        if snap:
+            # The snap cell is authoritative: clamp and anchor against it so
+            # every group member is exactly the same width, even when a member's
+            # content is naturally wider than the cell.
+            cur_w = width or cur_w
+            cur_h = height or cur_h
         mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
 
         # The usable area: the monitor inset by the bar thickness (the border
@@ -365,9 +379,13 @@ class DesktopWidgetWindow(Gtk.Window):
         anchors = {edge: False for edge in _EDGES}
         margins: dict = {}
         if snap:
+            # Anchor left+right (with margins) so the surface width is pinned to
+            # the cell — otherwise a member with wide content stretches past it.
             anchors[GtkLayerShell.Edge.LEFT] = True
+            anchors[GtkLayerShell.Edge.RIGHT] = True
             anchors[GtkLayerShell.Edge.TOP] = True
             margins[GtkLayerShell.Edge.LEFT] = ox - mon_x
+            margins[GtkLayerShell.Edge.RIGHT] = mon_x + mon_w - (ox + cur_w)
             margins[GtkLayerShell.Edge.TOP] = oy - mon_y
         else:
             x_mode, y_mode = _parse_position(position)
@@ -401,13 +419,10 @@ class DesktopWidgetWindow(Gtk.Window):
     # ── click-through ────────────────────────────────────────────
 
     def _on_realize(self, *_args) -> None:
-        window = self.get_window()
-        if window is None:
-            return
         try:
             import cairo
 
-            window.input_shape_combine_region(cairo.Region(), 0, 0)
+            compat.set_input_region(self, cairo.Region())
         except Exception:
             log.debug("could not clear input region for widget %s", self.WIDGET_ID)
 
@@ -415,7 +430,7 @@ class DesktopWidgetWindow(Gtk.Window):
         # The provider was added to the screen in __init__; leaving it there
         # would leak one per (re)build and slow every later style recalculation.
         try:
-            Gtk.StyleContext.remove_provider_for_screen(self.get_screen(), self._provider)
+            compat.remove_provider_for_display(self._provider)
         except Exception:
             log.debug("could not remove CSS provider for widget %s", self.WIDGET_ID)
 
@@ -428,7 +443,7 @@ class DesktopWidgetWindow(Gtk.Window):
     def move_to(self, x_root: int, y_root: int) -> None:
         """Move the widget so the grab point follows the pointer, clamped."""
         mon_x, mon_y, mon_w, mon_h = self._monitor_geometry()
-        alloc = self.get_allocation()
+        alloc = compat.allocation(self)
         cur_w = alloc.width or 1
         cur_h = alloc.height or 1
         nx = x_root - self._move_offset[0]

@@ -1,5 +1,5 @@
 {
-  description = "Hyprtk status bar for Hyprland (GTK3 + layer shell)";
+  description = "Hyprtk status bar for Hyprland (GTK4 + layer shell)";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -18,11 +18,11 @@
         let pkgs = pkgsFor.${system};
         in {
           default = pkgs.mkShell {
-            nativeBuildInputs = with pkgs; [ wrapGAppsHook gobject-introspection ];
+            nativeBuildInputs = with pkgs; [ wrapGAppsHook4 gobject-introspection ];
             buildInputs = with pkgs; [
               (python3.withPackages (ps: [ ps.pygobject3 ps.pycairo ps.dbus-next ]))
-              gtk3
-              gtk-layer-shell
+              gtk4
+              gtk4-layer-shell
               pango
               gdk-pixbuf
               cairo

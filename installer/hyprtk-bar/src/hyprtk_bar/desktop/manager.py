@@ -19,10 +19,8 @@ from __future__ import annotations
 
 import logging
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import GLib  # noqa: E402
 
 from ..config import WIDGET_IDS
 from . import placement
@@ -115,7 +113,7 @@ class DesktopWidgetManager:
                 continue
             try:
                 win = cls(cfg, block)
-                win.show_all()
+                compat.show_all(win)
                 self._wins[wid] = win
                 self._blocks[wid] = block
             except Exception:
@@ -182,7 +180,7 @@ class DesktopWidgetManager:
     def _widget_at(self, x: int, y: int):
         for win in self._wins.values():
             ox, oy = win._origin
-            alloc = win.get_allocation()
+            alloc = compat.allocation(win)
             if ox <= x < ox + (alloc.width or 0) and oy <= y < oy + (alloc.height or 0):
                 return win
         return None
@@ -190,7 +188,7 @@ class DesktopWidgetManager:
     # ── snapping ─────────────────────────────────────────────────
 
     def _rect(self, win) -> tuple[int, int, int, int]:
-        alloc = win.get_allocation()
+        alloc = compat.allocation(win)
         return win._origin[0], win._origin[1], alloc.width or 0, alloc.height or 0
 
     def _detach(self, win) -> None:
@@ -332,8 +330,10 @@ class DesktopWidgetManager:
             for wid, win in members:
                 w = int(win._block.get("width", 0) or 0)
                 h = int(win._block.get("height", 0) or 0)
-                pw, ph = win.natural_size()
-                nat.append((w or pw or 200, h or ph or 120))
+                cw, ch = win.content_natural()
+                # Each widget renders at max(configured width, content natural);
+                # the cell is the largest of those so every member lines up.
+                nat.append((max(w, cw) or 200, max(h, ch) or 120))
             cell_w = max(n[0] for n in nat)
             cell_h = max(n[1] for n in nat)
 
@@ -417,7 +417,7 @@ class DesktopWidgetManager:
         except Exception:
             log.exception("widget shutdown failed")
         try:
-            win.destroy()
+            compat.destroy(win)
         except Exception:
             pass
 

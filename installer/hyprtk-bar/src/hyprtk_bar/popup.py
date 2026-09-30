@@ -16,12 +16,8 @@ from __future__ import annotations
 
 import cairo
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 GAP = 6  # vertical gap between the bar and a popup
 
@@ -34,17 +30,12 @@ def center_on_screen(window, width: int, height: int) -> None:
     would be hidden behind it). Equal margins on all four anchored edges
     centre the fixed-size surface.
     """
-    display = Gdk.Display.get_default()
-    geo = None
-    if display is not None:
-        monitor = display.get_primary_monitor()
-        if monitor is not None:
-            geo = monitor.get_geometry()
+    monitor = compat.primary_monitor()
+    geo = monitor.get_geometry() if monitor is not None else None
     if geo is not None:
         monitor_w, monitor_h = geo.width, geo.height
     else:
-        screen = Gdk.Screen.get_default()
-        monitor_w, monitor_h = screen.get_width(), screen.get_height()
+        monitor_w, monitor_h = 0, 0
 
     GtkLayerShell.set_layer(window, GtkLayerShell.Layer.OVERLAY)
     GtkLayerShell.set_exclusive_zone(window, -1)
@@ -86,7 +77,11 @@ class Popup(Gtk.Window):
     """A borderless, transparent layer-shell window that floats above the bar."""
 
     def __init__(self, cfg: dict, bar_edge: str = "bottom"):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        if compat.IS_GTK4:
+            super().__init__()
+        else:
+            super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self._cfg = cfg
         self._bar_edge = bar_edge
         self._close_cb = None
@@ -97,18 +92,18 @@ class Popup(Gtk.Window):
 
         self.set_title("hyprtk-bar-popup")
         self.set_decorated(False)
-        self.set_skip_taskbar_hint(True)
-        self.set_skip_pager_hint(True)
-        self.set_app_paintable(True)
-        self.set_accept_focus(False)
-
-        visual = self.get_screen().get_rgba_visual()
-        if visual:
-            self.set_visual(visual)
+        if not compat.IS_GTK4:
+            self.set_skip_taskbar_hint(True)
+            self.set_skip_pager_hint(True)
+            self.set_app_paintable(True)
+            self.set_accept_focus(False)
+            visual = self.get_screen().get_rgba_visual()
+            if visual:
+                self.set_visual(visual)
 
         self.content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        self.content.get_style_context().add_class("popup-box")
-        self.add(self.content)
+        compat.add_class(self.content, "popup-box")
+        compat.set_single_child(self, self.content)
 
         GtkLayerShell.init_for_window(self)
         GtkLayerShell.set_layer(self, GtkLayerShell.Layer.TOP)
@@ -123,10 +118,13 @@ class Popup(Gtk.Window):
         )
         GtkLayerShell.set_anchor(self, edge, True)
 
-        self.connect("size-allocate", self._on_size_allocate)
-        self.connect("enter-notify-event", self._on_enter)
-        self.connect("leave-notify-event", self._on_leave)
-        self.connect("motion-notify-event", self._on_motion)
+        if compat.IS_GTK4:
+            self.connect("notify::width", self._on_size_allocate)
+            self.connect("notify::height", self._on_size_allocate)
+        else:
+            self.connect("size-allocate", self._on_size_allocate)
+        compat.on_hover(self, self._on_enter, self._on_leave)
+        compat.on_motion(self, self._on_motion)
 
     # ── callbacks ─────────────────────────────────────────────────
 
@@ -151,9 +149,11 @@ class Popup(Gtk.Window):
         if monitor is not None:
             geo = monitor.get_geometry()
             return geo.x, geo.y, geo.width, geo.height
-        alloc = bar_win.get_allocation()
-        screen = Gdk.Screen.get_default()
-        return alloc.x, alloc.y, screen.get_width(), screen.get_height()
+        mon = compat.primary_monitor()
+        if mon is not None:
+            geo = mon.get_geometry()
+            return geo.x, geo.y, geo.width, geo.height
+        return 0, 0, compat.allocated_width(bar_win), compat.allocated_height(bar_win)
 
     def _pill_bounds(self, bar_win, screen_w):
         """Monitor-local (left, right) horizontal bounds of the visible pill.
@@ -166,22 +166,24 @@ class Popup(Gtk.Window):
         """
         pill = getattr(getattr(bar_win, "_bar", None), "pill", None)
         if pill is not None:
-            alloc = pill.get_allocation()
-            if alloc.width > 0:
-                return self._monitor_x(bar_win, pill), \
-                    self._monitor_x(bar_win, pill) + alloc.width
+            width = compat.allocated_width(pill)
+            if width > 0:
+                left = self._monitor_x(bar_win, pill)
+                return left, left + width
         return 0, screen_w
 
     @staticmethod
     def _monitor_x(bar_win, widget) -> int:
         """Monitor-local x of ``widget`` inside ``bar_win``'s surface."""
-        wx = widget.get_allocation().x
+        wx = 0
         try:
             ok, tx, _ty = widget.translate_coordinates(bar_win, 0, 0)
             if ok:
                 wx = tx
         except Exception:
-            pass
+            bounds = compat.compute_bounds(widget, bar_win)
+            if bounds is not None:
+                wx = bounds[0]
         return int(getattr(bar_win, "_surface_x", 0)) + wx
 
     def set_bar_edge(self, edge: str) -> None:
@@ -238,21 +240,21 @@ class Popup(Gtk.Window):
         if fixed:
             width, height = int(fixed[0]), int(fixed[1])
         else:
-            nat = self.content.get_preferred_size().natural_size
+            nat_w, nat_h = compat.preferred_size(self.content)
             min_w, min_h = self.get_size_request()
-            width = max(nat.width, min_w if min_w > 0 else 1)
-            height = max(nat.height, min_h if min_h > 0 else 1)
+            width = max(nat_w, min_w if min_w > 0 else 1)
+            height = max(nat_h, min_h if min_h > 0 else 1)
         self.set_size_request(width, height)
 
         # Follow the bar's current edge (position may have changed since build).
         self.set_bar_edge(self._cfg.get("position", "bottom"))
 
-        bar_win = widget.get_toplevel()
-        w_alloc = widget.get_allocation()
+        bar_win = compat.toplevel(widget)
+        w_alloc_w = compat.allocated_width(widget)
         _bx, _by, screen_w, _screen_h = self._monitor_geometry(bar_win)
         # Widget position in monitor coordinates (the bar surface may be inset
         # from the monitor edge when the width is constrained).
-        cx = self._monitor_x(bar_win, widget) + w_alloc.width // 2
+        cx = self._monitor_x(bar_win, widget) + w_alloc_w // 2
         margin = 6
         pill_left, pill_right = self._pill_bounds(bar_win, screen_w)
         left_bound = max(margin, pill_left + margin)
@@ -272,7 +274,7 @@ class Popup(Gtk.Window):
         GtkLayerShell.set_margin(self, edge, offset)
         GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, x)
 
-        self.show_all()
+        compat.show_all(self)
 
     def show_centered(self, width: int, height: int) -> None:
         """Show as a fixed-size surface centred on the primary monitor.
@@ -282,12 +284,12 @@ class Popup(Gtk.Window):
         a normal Gtk.Window would render behind it.
         """
         center_on_screen(self, width, height)
-        self.show_all()
+        compat.show_all(self)
 
     def hide_popup(self) -> None:
         self._cancel_hide()
         if self.get_visible():
-            self.hide()
+            compat.hide(self)
         if self._close_cb:
             cb, self._close_cb = self._close_cb, None
             cb()
@@ -331,15 +333,11 @@ class Popup(Gtk.Window):
     # ── input shape: only the content box is interactive ──────────
 
     def _on_size_allocate(self, *_args) -> None:
-        wnd = self.get_window()
-        if wnd is None:
-            return
         region = cairo.Region()
-        alloc = self.content.get_allocation()
-        region.union(
-            cairo.RectangleInt(alloc.x, alloc.y, alloc.width, alloc.height)
-        )
-        wnd.input_shape_combine_region(region, 0, 0)
+        bounds = compat.compute_bounds(self.content, self)
+        if bounds is not None:
+            region.union(cairo.RectangleInt(*bounds))
+        compat.set_input_region(self, region)
 
 
 TOOLTIP_GRACE_MS = 180
@@ -356,10 +354,13 @@ class Tooltip(Popup):
         super().__init__(cfg, position)
         self._label = Gtk.Label(label="")
         self._label.set_xalign(0)
-        self._label.set_line_wrap(True)
-        self._label.get_style_context().add_class("tooltip-label")
-        self.content.pack_start(self._label, False, False, 0)
-        self.content.show_all()
+        if compat.IS_GTK4:
+            self._label.set_wrap(True)
+        else:
+            self._label.set_line_wrap(True)
+        compat.add_class(self._label, "tooltip-label")
+        compat.pack_start(self.content, self._label, False, False, 0)
+        compat.show_all(self.content)
 
     def set_text(self, text: str) -> None:
         self._label.set_text(text or "")
@@ -410,7 +411,17 @@ def bind_hover_tooltip(button, cfg: dict, get_text):
         cancel()
         tooltip.destroy()
 
-    button.connect_after("enter-notify-event", on_enter)
-    button.connect_after("leave-notify-event", on_leave)
-    button.connect("destroy", on_destroy)
+    if compat.IS_GTK4:
+        # GTK4 has no "destroy" signal on widgets; tear the tooltip down when the
+        # button leaves the tree (parent -> None).
+        compat.on_hover(button, lambda: on_enter(button), lambda: on_leave(button))
+
+        def _on_unparent(_obj, _pspec):
+            if button.get_parent() is None:
+                on_destroy(button)
+        button.connect("notify::parent", _on_unparent)
+    else:
+        button.connect_after("enter-notify-event", on_enter)
+        button.connect_after("leave-notify-event", on_leave)
+        button.connect("destroy", on_destroy)
     return tooltip

@@ -17,10 +17,7 @@ from __future__ import annotations
 import os
 import subprocess
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gio, GLib  # noqa: E402
+from .compat import Gio, GLib  # noqa: E402
 
 from . import proc  # noqa: E402
 

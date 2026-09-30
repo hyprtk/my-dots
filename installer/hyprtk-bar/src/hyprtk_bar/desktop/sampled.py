@@ -14,10 +14,8 @@ from __future__ import annotations
 
 import logging
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import GLib, Gtk  # noqa: E402
 
 from .base import DesktopWidgetWindow  # noqa: E402
 
@@ -96,7 +94,7 @@ class SampledWidget(DesktopWidgetWindow):
 
 def label(text: str, css_class: str) -> Gtk.Label:
     widget = Gtk.Label(label=text)
-    widget.get_style_context().add_class(css_class)
+    compat.add_class(widget, css_class)
     widget.set_halign(Gtk.Align.START)
     widget.set_xalign(0)
     return widget
@@ -109,5 +107,5 @@ def row(spacing: int = 8) -> Gtk.Box:
 
 
 def clear(box: Gtk.Box) -> None:
-    for child in box.get_children():
+    for child in compat.children(box):
         box.remove(child)

@@ -1,8 +1,7 @@
-# hyprtk-bar Nix derivation (Python 3 + GTK3 + gtk-layer-shell).
+# hyprtk-bar Nix derivation (Python 3 + GTK4 + gtk4-layer-shell).
 #
-# Follows the nwg-displays pattern (the same PyGObject3/GTK3/gtk-layer-shell
-# stack): buildPythonApplication + wrapGAppsHook + gobject-introspection, with
-# the GI typelib libs in propagatedBuildInputs so their typelibs reach
+# buildPythonApplication + wrapGAppsHook4 + gobject-introspection, with the
+# GI typelib libs in propagatedBuildInputs so their typelibs reach
 # GI_TYPELIB_PATH.
 #
 # Data files (assets/, scripts/, themes/) are installed to
@@ -10,8 +9,8 @@
 # config.py reads instead of deriving the location from __file__ (which breaks
 # once the package is unpacked into site-packages).
 #
-# NOTE: `wrapGAppsHook` (classic) is used for maximum nixpkgs compatibility;
-# `wrapGAppsHook3` is the newer GTK3-specific replacement on recent nixpkgs.
+# NOTE: wrapGAppsHook4 is the GTK4 wrapper; it also sets LD_PRELOAD-friendly
+# GI paths for gtk4-layer-shell.
 { pkgs, lib, src }:
 
 pkgs.python3Packages.buildPythonApplication rec {
@@ -21,19 +20,19 @@ pkgs.python3Packages.buildPythonApplication rec {
   inherit src;
 
   nativeBuildInputs = [
-    pkgs.wrapGAppsHook
+    pkgs.wrapGAppsHook4
     pkgs.gobject-introspection
     pkgs.makeWrapper
   ];
 
   buildInputs = [
-    pkgs.gtk3
+    pkgs.gtk4
     pkgs.cairo
   ];
 
   propagatedBuildInputs = with pkgs; [
     pango
-    gtk-layer-shell
+    gtk4-layer-shell
     gdk-pixbuf
     python3Packages.pygobject3
     python3Packages.pycairo
@@ -72,7 +71,7 @@ pkgs.python3Packages.buildPythonApplication rec {
   ];
 
   meta = with lib; {
-    description = "Hyprtk status bar for Hyprland (GTK3 + layer shell)";
+    description = "Hyprtk status bar for Hyprland (GTK4 + layer shell)";
     license = licenses.gpl2Only;
     platforms = platforms.linux;
     mainProgram = "hyprtk-bar";

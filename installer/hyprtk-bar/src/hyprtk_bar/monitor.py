@@ -19,10 +19,8 @@ import os
 import subprocess
 import threading
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import GLib, Gtk  # noqa: E402
 
 from . import monitor_data  # noqa: E402
 from .config import PYWAL_PATH, load_pywal_colors  # noqa: E402
@@ -69,12 +67,12 @@ class GraphCard(Gtk.Box):
         self.color_key = color_key
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         label = Gtk.Label(label=title, xalign=0)
-        label.get_style_context().add_class("mc-graph-title")
-        head.pack_start(label, True, True, 0)
+        compat.add_class(label, "mc-graph-title")
+        compat.pack_start(head, label, True, True, 0)
         self.value = Gtk.Label(label="--", xalign=1)
-        self.value.get_style_context().add_class("mc-graph-value")
-        head.pack_start(self.value, False, False, 0)
-        self.pack_start(head, False, False, 0)
+        compat.add_class(self.value, "mc-graph-value")
+        compat.pack_start(head, self.value, False, False, 0)
+        compat.pack_start(self, head, False, False, 0)
         data_points = (cfg.get("sysmon") or {}).get("data_points", 60)
         self.graph = HistoryGraph(
             color="#7aa2f7",
@@ -83,7 +81,7 @@ class GraphCard(Gtk.Box):
             scale=scale,
             multi=multi,
         )
-        self.pack_start(self.graph, False, False, 0)
+        compat.pack_start(self, self.graph, False, False, 0)
 
     def set_graph_color(self, color: str) -> None:
         self.graph.set_color(color)
@@ -104,19 +102,19 @@ class CoreList(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         label = Gtk.Label(label="Cores / Threads", xalign=0)
-        label.get_style_context().add_class("mc-graph-title")
-        head.pack_start(label, True, True, 0)
+        compat.add_class(label, "mc-graph-title")
+        compat.pack_start(head, label, True, True, 0)
         self._count = Gtk.Label(label="", xalign=1)
-        self._count.get_style_context().add_class("mc-stat-value")
-        head.pack_start(self._count, False, False, 0)
-        self.pack_start(head, False, False, 0)
+        compat.add_class(self._count, "mc-stat-value")
+        compat.pack_start(head, self._count, False, False, 0)
+        compat.pack_start(self, head, False, False, 0)
 
         self._rows: list[tuple[Gtk.Label, Gtk.ProgressBar, Gtk.Label]] = []
         self._grid = Gtk.Grid(row_spacing=2, column_spacing=20)
         self._scroller = Gtk.ScrolledWindow()
         self._scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self._scroller.add(self._grid)
-        self.pack_start(self._scroller, True, True, 0)
+        compat.add(self._scroller, self._grid)
+        compat.pack_start(self, self._scroller, True, True, 0)
 
     def update(self, pcts: list[float]) -> None:
         n = len(pcts)
@@ -130,28 +128,28 @@ class CoreList(Gtk.Box):
         for i in range(n, len(self._rows)):
             row = self._rows[i][0].get_parent()
             if row is not None:
-                row.hide()
+                compat.hide(row)
         self._count.set_text(f"{n} threads")
         rows_needed = (n + 1) // 2
         height = min(self.MAX_HEIGHT, 14 + rows_needed * self.ROW_HEIGHT)
         self._scroller.set_size_request(-1, max(60, height))
-        self._grid.show_all()
+        compat.show_all(self._grid)
 
     def _make_row(self, index: int) -> tuple[Gtk.Label, Gtk.ProgressBar, Gtk.Label]:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         lbl = Gtk.Label(label=f"Core {index}", xalign=0)
         lbl.set_width_chars(6)
-        lbl.get_style_context().add_class("mc-stat-label")
-        row.pack_start(lbl, False, False, 0)
+        compat.add_class(lbl, "mc-stat-label")
+        compat.pack_start(row, lbl, False, False, 0)
         bar = Gtk.ProgressBar()
-        bar.get_style_context().add_class("mc-core-bar")
+        compat.add_class(bar, "mc-core-bar")
         bar.set_hexpand(True)
         bar.set_show_text(False)
-        row.pack_start(bar, True, True, 0)
+        compat.pack_start(row, bar, True, True, 0)
         val = Gtk.Label(label="--%", xalign=1)
         val.set_width_chars(4)
-        val.get_style_context().add_class("mc-stat-value")
-        row.pack_start(val, False, False, 0)
+        compat.add_class(val, "mc-stat-value")
+        compat.pack_start(row, val, False, False, 0)
         self._grid.attach(row, index % 2, index // 2, 1, 1)
         return lbl, bar, val
 
@@ -172,29 +170,29 @@ class DimmSection(Gtk.Box):
 
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         title = Gtk.Label(label="Memory Slots", xalign=0)
-        title.get_style_context().add_class("mc-graph-title")
-        head.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-graph-title")
+        compat.pack_start(head, title, True, True, 0)
         self._summary = Gtk.Label(label="", xalign=1)
-        self._summary.get_style_context().add_class("mc-stat-value")
-        head.pack_start(self._summary, False, False, 0)
+        compat.add_class(self._summary, "mc-stat-value")
+        compat.pack_start(head, self._summary, False, False, 0)
         refresh = Gtk.Button()
-        refresh.get_style_context().add_class("mc-close")
-        refresh.set_relief(Gtk.ReliefStyle.NONE)
+        compat.add_class(refresh, "mc-close")
+        compat.set_relief(refresh)
         refresh.set_tooltip_text("Re-read DIMM slots")
         glyph = Glyph("\uf021", "mc-icon")  # fa-refresh
         glyph.set_pixel_size(12)
-        refresh.add(glyph)
+        compat.add(refresh, glyph)
         refresh.connect("clicked", lambda *_: self.ensure_loaded(force=True))
-        head.pack_start(refresh, False, False, 0)
-        self.pack_start(head, False, False, 0)
+        compat.pack_start(head, refresh, False, False, 0)
+        compat.pack_start(self, head, False, False, 0)
 
         self._status = Gtk.Label(label="", xalign=0)
-        self._status.get_style_context().add_class("mc-unavailable")
-        self.pack_start(self._status, False, False, 0)
+        compat.add_class(self._status, "mc-unavailable")
+        compat.pack_start(self, self._status, False, False, 0)
 
         self._slot_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         self._slot_box.set_hexpand(True)
-        self.pack_start(self._slot_box, False, False, 0)
+        compat.pack_start(self, self._slot_box, False, False, 0)
 
     def ensure_loaded(self, force: bool = False) -> None:
         """Fetch + render the slot graphic if not already shown (idempotent)."""
@@ -226,20 +224,20 @@ class DimmSection(Gtk.Box):
     def _render(self, slots: list[dict]) -> None:
         self._rendered = True
         self._status.set_text("")
-        for child in list(self._slot_box.get_children()):
+        for child in list(compat.children(self._slot_box)):
             self._slot_box.remove(child)
         populated = sum(1 for s in slots if s["populated"])
         total = sum(s["size_gb"] or 0 for s in slots)
         self._summary.set_text(f"{populated} populated \u00b7 {total:.0f} GB")
         for slot in slots:
-            self._slot_box.pack_start(self._make_card(slot), True, True, 0)
-        self._slot_box.show_all()
+            compat.pack_start(self._slot_box, self._make_card(slot), True, True, 0)
+        compat.show_all(self._slot_box)
 
     @staticmethod
     def _make_card(slot: dict) -> Gtk.Widget:
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         card.set_size_request(-1, 58)
-        ctx = card.get_style_context()
+        ctx = compat.style_context(card)
         ctx.add_class("dimm-slot")
         ctx.add_class("populated" if slot["populated"] else "empty")
 
@@ -248,16 +246,16 @@ class DimmSection(Gtk.Box):
         glyph = Glyph("\uefc5", "mc-icon")  # fa-memory (RAM)
         glyph.set_pixel_size(13)
         if not slot["populated"]:
-            glyph.get_style_context().add_class("dimmed")
-        line.pack_start(glyph, False, False, 0)
+            compat.add_class(glyph, "dimmed")
+        compat.pack_start(line, glyph, False, False, 0)
         size_label = Gtk.Label(label="", xalign=0.5)
-        size_label.get_style_context().add_class("dimm-size")
-        line.pack_start(size_label, False, False, 0)
-        card.pack_start(line, True, True, 0)
+        compat.add_class(size_label, "dimm-size")
+        compat.pack_start(line, size_label, False, False, 0)
+        compat.pack_start(card, line, True, True, 0)
 
         loc_label = Gtk.Label(label="", xalign=0.5)
-        loc_label.get_style_context().add_class("dimm-loc")
-        card.pack_start(loc_label, False, False, 0)
+        compat.add_class(loc_label, "dimm-loc")
+        compat.pack_start(card, loc_label, False, False, 0)
 
         if slot["populated"]:
             size_label.set_text(f"{slot['size_gb']:.0f} GB")
@@ -285,25 +283,25 @@ class DriveGrid(Gtk.Box):
         self._on_select = on_select
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         title = Gtk.Label(label="Drives", xalign=0)
-        title.get_style_context().add_class("mc-graph-title")
-        head.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-graph-title")
+        compat.pack_start(head, title, True, True, 0)
         self._count = Gtk.Label(label="", xalign=1)
-        self._count.get_style_context().add_class("mc-stat-value")
-        head.pack_start(self._count, False, False, 0)
-        self.pack_start(head, False, False, 0)
+        compat.add_class(self._count, "mc-stat-value")
+        compat.pack_start(head, self._count, False, False, 0)
+        compat.pack_start(self, head, False, False, 0)
 
         self._cards: dict[str, dict] = {}
         self._order: list[str] = []
         self._grid = Gtk.Grid(row_spacing=6, column_spacing=10)
         self._scroller = Gtk.ScrolledWindow()
         self._scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self._scroller.add(self._grid)
-        self.pack_start(self._scroller, True, True, 0)
+        compat.add(self._scroller, self._grid)
+        compat.pack_start(self, self._scroller, True, True, 0)
 
     def update(self, drives: list[dict]) -> None:
         names = [d["name"] for d in drives]
         if names != self._order:
-            for child in list(self._grid.get_children()):
+            for child in list(compat.children(self._grid)):
                 self._grid.remove(child)
             self._cards.clear()
             self._order = names
@@ -313,7 +311,7 @@ class DriveGrid(Gtk.Box):
                     self._cards[d["name"]]["ev"],
                     i % self.COLUMNS, i // self.COLUMNS, 1, 1,
                 )
-            self._grid.show_all()
+            compat.show_all(self._grid)
 
         for d in drives:
             self._set_card(self._cards.get(d["name"]), d)
@@ -325,7 +323,7 @@ class DriveGrid(Gtk.Box):
 
     def set_selected(self, name: str | None) -> None:
         for n, card in self._cards.items():
-            ctx = card["box"].get_style_context()
+            ctx = compat.style_context(card["box"])
             if n == name:
                 ctx.add_class("selected")
             else:
@@ -338,7 +336,7 @@ class DriveGrid(Gtk.Box):
 
     @staticmethod
     def _set_hover(box: Gtk.Box, on: bool) -> None:
-        ctx = box.get_style_context()
+        ctx = compat.style_context(box)
         if on:
             ctx.add_class("hover")
         else:
@@ -347,43 +345,43 @@ class DriveGrid(Gtk.Box):
     def _make_card(self, drive: dict) -> dict:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         box.set_size_request(-1, DriveGrid.ROW_HEIGHT - 10)
-        ctx = box.get_style_context()
+        ctx = compat.style_context(box)
         ctx.add_class("drive-card")
         ctx.add_class(drive["type_key"])
 
-        ev = Gtk.EventBox()
-        ev.set_visible_window(False)
-        ev.add(box)
+        ev = compat.event_surface()
+        compat.set_visible_window(ev, False)
+        compat.add(ev, box)
         ev.set_tooltip_text(f"{drive['name']} \u2014 {drive['model']}")
-        ev.connect("button-press-event",
-                   lambda _w, _e, n=drive["name"]: self._on_click(n))
-        ev.connect("enter-notify-event",
-                   lambda _w, _e, b=box: DriveGrid._set_hover(b, True) or False)
-        ev.connect("leave-notify-event",
-                   lambda _w, _e, b=box: DriveGrid._set_hover(b, False) or False)
+        compat.on_press(ev, lambda _w, _e, n=drive["name"]: self._on_click(n))
+        compat.on_hover(
+            ev,
+            lambda b=box: DriveGrid._set_hover(b, True),
+            lambda b=box: DriveGrid._set_hover(b, False),
+        )
 
         top = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         glyph = Glyph(drive["glyph"], "mc-icon")
         glyph.set_pixel_size(12)
-        top.pack_start(glyph, False, False, 0)
+        compat.pack_start(top, glyph, False, False, 0)
         type_lbl = Gtk.Label(label=drive["type_label"], xalign=0)
-        type_lbl.get_style_context().add_class("drive-type")
-        top.pack_start(type_lbl, True, True, 0)
+        compat.add_class(type_lbl, "drive-type")
+        compat.pack_start(top, type_lbl, True, True, 0)
         size_lbl = Gtk.Label(label="", xalign=1)
-        size_lbl.get_style_context().add_class("drive-size")
-        top.pack_start(size_lbl, False, False, 0)
-        box.pack_start(top, True, True, 0)
+        compat.add_class(size_lbl, "drive-size")
+        compat.pack_start(top, size_lbl, False, False, 0)
+        compat.pack_start(box, top, True, True, 0)
 
         bottom = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         bar = Gtk.ProgressBar()
-        bar.get_style_context().add_class("mc-core-bar")
+        compat.add_class(bar, "mc-core-bar")
         bar.set_hexpand(True)
         bar.set_show_text(False)
-        bottom.pack_start(bar, True, True, 0)
+        compat.pack_start(bottom, bar, True, True, 0)
         free_lbl = Gtk.Label(label="", xalign=1)
-        free_lbl.get_style_context().add_class("drive-free")
-        bottom.pack_start(free_lbl, False, False, 0)
-        box.pack_start(bottom, False, False, 0)
+        compat.add_class(free_lbl, "drive-free")
+        compat.pack_start(bottom, free_lbl, False, False, 0)
+        compat.pack_start(box, bottom, False, False, 0)
 
         return {
             "box": box,
@@ -421,65 +419,65 @@ class InterfaceList(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         head = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         title = Gtk.Label(label="Interfaces", xalign=0)
-        title.get_style_context().add_class("mc-graph-title")
-        head.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-graph-title")
+        compat.pack_start(head, title, True, True, 0)
         self._count = Gtk.Label(label="", xalign=1)
-        self._count.get_style_context().add_class("mc-stat-value")
-        head.pack_start(self._count, False, False, 0)
-        self.pack_start(head, False, False, 0)
+        compat.add_class(self._count, "mc-stat-value")
+        compat.pack_start(head, self._count, False, False, 0)
+        compat.pack_start(self, head, False, False, 0)
 
         self._rows: dict[str, dict] = {}
         self._order: list[str] = []
         self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        self.pack_start(self._box, False, False, 0)
+        compat.pack_start(self, self._box, False, False, 0)
 
     def update(self, ifaces: list[dict]) -> None:
         names = [i["name"] for i in ifaces]
         if names != self._order:
-            for child in list(self._box.get_children()):
+            for child in list(compat.children(self._box)):
                 self._box.remove(child)
             self._rows.clear()
             self._order = names
             for iface in ifaces:
                 row = self._make_row(iface)
                 self._rows[iface["name"]] = row
-                self._box.pack_start(row["box"], False, False, 0)
-            self._box.show_all()
+                compat.pack_start(self._box, row["box"], False, False, 0)
+            compat.show_all(self._box)
         for iface in ifaces:
             self._set_row(self._rows.get(iface["name"]), iface)
         self._count.set_text(f"{len(ifaces)} interfaces")
 
     def _make_row(self, iface: dict) -> dict:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        row.get_style_context().add_class("iface-row")
+        compat.add_class(row, "iface-row")
         glyph = Glyph(iface["glyph"], f"iface-{iface['type_key']}")
         glyph.set_pixel_size(13)
-        row.pack_start(glyph, False, False, 0)
+        compat.pack_start(row, glyph, False, False, 0)
         name_lbl = Gtk.Label(label=iface["name"], xalign=0)
-        name_lbl.get_style_context().add_class("iface-name")
+        compat.add_class(name_lbl, "iface-name")
         name_lbl.set_width_chars(9)
-        row.pack_start(name_lbl, False, False, 0)
+        compat.pack_start(row, name_lbl, False, False, 0)
         type_lbl = Gtk.Label(label=iface["type"], xalign=0)
-        type_lbl.get_style_context().add_class("iface-type")
+        compat.add_class(type_lbl, "iface-type")
         type_lbl.set_width_chars(9)
-        row.pack_start(type_lbl, False, False, 0)
+        compat.pack_start(row, type_lbl, False, False, 0)
         ip_lbl = Gtk.Label(label="", xalign=0)
-        ip_lbl.get_style_context().add_class("iface-ip")
+        compat.add_class(ip_lbl, "iface-ip")
         ip_lbl.set_width_chars(15)
-        row.pack_start(ip_lbl, True, True, 0)
+        compat.pack_start(row, ip_lbl, True, True, 0)
 
         down = Glyph("\uf063", "iface-down")  # fa-arrow-down
         down.set_pixel_size(10)
         down_lbl = Gtk.Label(label="", xalign=1)
-        down_lbl.get_style_context().add_class("iface-rate")
-        row.pack_start(down, False, False, 0)
-        row.pack_start(down_lbl, False, False, 0)
+        compat.add_class(down_lbl, "iface-rate")
+        compat.pack_start(row, down, False, False, 0)
+        compat.pack_start(row, down_lbl, False, False, 0)
         up = Glyph("\uf062", "iface-up")  # fa-arrow-up
         up.set_pixel_size(10)
         up_lbl = Gtk.Label(label="", xalign=1)
-        up_lbl.get_style_context().add_class("iface-rate")
-        row.pack_start(up, False, False, 0)
-        row.pack_start(up_lbl, False, False, 0)
+        compat.add_class(up_lbl, "iface-rate")
+        compat.pack_start(row, up, False, False, 0)
+        compat.pack_start(row, up_lbl, False, False, 0)
         return {"box": row, "ip": ip_lbl, "down": down_lbl, "up": up_lbl}
 
     @staticmethod
@@ -504,13 +502,13 @@ class Readouts(Gtk.Grid):
         cell = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         icon = Glyph(glyph, "mc-icon")
         icon.set_pixel_size(14)
-        cell.pack_start(icon, False, False, 0)
+        compat.pack_start(cell, icon, False, False, 0)
         lbl = Gtk.Label(label=label, xalign=0)
-        lbl.get_style_context().add_class("mc-stat-label")
-        cell.pack_start(lbl, True, True, 0)
+        compat.add_class(lbl, "mc-stat-label")
+        compat.pack_start(cell, lbl, True, True, 0)
         val = Gtk.Label(label="--", xalign=1)
-        val.get_style_context().add_class("mc-stat-value")
-        cell.pack_start(val, False, False, 0)
+        compat.add_class(val, "mc-stat-value")
+        compat.pack_start(cell, val, False, False, 0)
         self.attach(cell, self._index % 2, self._index // 2, 1, 1)
         self._index += 1
         self.vals[key] = val
@@ -561,19 +559,19 @@ class SysMonitorDialog(Popup):
         # ── header ────────────────────────────────────────────────
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title = Gtk.Label(label="System Monitor", xalign=0)
-        title.get_style_context().add_class("mc-title")
-        header.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-title")
+        compat.pack_start(header, title, True, True, 0)
         close = Gtk.Button(label="\u00d7")
-        close.get_style_context().add_class("mc-close")
-        close.set_relief(Gtk.ReliefStyle.NONE)
+        compat.add_class(close, "mc-close")
+        compat.set_relief(close)
         close.connect("clicked", lambda *_: self.hide_popup())
-        header.pack_start(close, False, False, 0)
-        self.content.pack_start(header, False, False, 0)
+        compat.pack_start(header, close, False, False, 0)
+        compat.pack_start(self.content, header, False, False, 0)
 
         # ── body: sidebar + stack ─────────────────────────────────
         body = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        sidebar.get_style_context().add_class("mc-sidebar")
+        compat.add_class(sidebar, "mc-sidebar")
         sidebar.set_size_request(132, -1)
         self._sidebar = sidebar
 
@@ -584,16 +582,16 @@ class SysMonitorDialog(Popup):
         for key, glyph, label in PAGES:
             if key not in self._pages_enabled():
                 continue
-            sidebar.pack_start(self._build_side_button(key, glyph, label),
+            compat.pack_start(sidebar, self._build_side_button(key, glyph, label),
                                False, False, 0)
             self._stack.add_named(self._build_page(key), key)
 
-        body.pack_start(sidebar, False, False, 0)
-        body.pack_start(self._stack, True, True, 0)
-        self.content.pack_start(body, True, True, 0)
+        compat.pack_start(body, sidebar, False, False, 0)
+        compat.pack_start(body, self._stack, True, True, 0)
+        compat.pack_start(self.content, body, True, True, 0)
 
         self._set_active(self._pages_enabled()[0])
-        self.content.show_all()
+        compat.show_all(self.content)
 
     # ── config ────────────────────────────────────────────────────
 
@@ -613,12 +611,11 @@ class SysMonitorDialog(Popup):
         btn.set_size_request(-1, 30)
         icon = Glyph(glyph, "mc-icon")
         icon.set_pixel_size(14)
-        btn.box.pack_start(icon, False, False, 0)
+        compat.pack_start(btn.box, icon, False, False, 0)
         lbl = Gtk.Label(label=label, xalign=0)
-        lbl.get_style_context().add_class("mc-sidebar-label")
-        btn.box.pack_start(lbl, True, True, 0)
-        btn.connect("button-press-event",
-                    lambda _w, _e, k=key: self._on_side(k) or False)
+        compat.add_class(lbl, "mc-sidebar-label")
+        compat.pack_start(btn.box, lbl, True, True, 0)
+        compat.on_press(btn, lambda _w, _e, k=key: self._on_side(k) or False)
         self._side_buttons[key] = btn
         return btn
 
@@ -632,9 +629,9 @@ class SysMonitorDialog(Popup):
         for k, btn in self._side_buttons.items():
             box = btn.box
             if k == key:
-                box.get_style_context().add_class("active")
+                compat.add_class(box, "active")
             else:
-                box.get_style_context().remove_class("active")
+                compat.remove_class(box, "active")
         self._stack.set_visible_child_name(key)
 
     # ── pages ─────────────────────────────────────────────────────
@@ -643,8 +640,8 @@ class SysMonitorDialog(Popup):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         page.set_hexpand(True)
         page_title = Gtk.Label(label=_PAGE_TITLES[key], xalign=0)
-        page_title.get_style_context().add_class("mc-page-title")
-        page.pack_start(page_title, False, False, 0)
+        compat.add_class(page_title, "mc-page-title")
+        compat.pack_start(page, page_title, False, False, 0)
 
         if key == "cpu":
             self._build_cpu_page(page)
@@ -664,11 +661,11 @@ class SysMonitorDialog(Popup):
         self._cards["cpu"] = GraphCard(
             self._cfg, "CPU usage (all threads)", "cpu", scale=100.0, multi=True
         )
-        page.pack_start(self._cards["cpu"], False, False, 0)
+        compat.pack_start(page, self._cards["cpu"], False, False, 0)
         self._cards["cpu_temp"] = GraphCard(
             self._cfg, "Temperature", "cpu", height=40, scale=None
         )
-        page.pack_start(self._cards["cpu_temp"], False, False, 0)
+        compat.pack_start(page, self._cards["cpu_temp"], False, False, 0)
 
         stats = Readouts()
         stats.add("load", "\uf0e4", "Load average")
@@ -679,19 +676,19 @@ class SysMonitorDialog(Popup):
         stats.add("freq_max", "\uf2db", "Max frequency")
         stats.add("temp", "\uf2c9", "CPU temperature")
         stats.add("model", "\uf2db", "Model")
-        page.pack_start(stats, False, False, 0)
+        compat.pack_start(page, stats, False, False, 0)
         self._stat_vals.update(stats.vals)
 
         self._core_list = CoreList()
-        page.pack_start(self._core_list, False, False, 0)
+        compat.pack_start(page, self._core_list, False, False, 0)
 
     def _build_memory_page(self, page: Gtk.Box) -> None:
         self._cards["mem"] = GraphCard(self._cfg, "Memory usage", "memory", scale=100.0)
-        page.pack_start(self._cards["mem"], False, False, 0)
+        compat.pack_start(page, self._cards["mem"], False, False, 0)
         self._cards["swap"] = GraphCard(
             self._cfg, "Swap", "memory", height=40, scale=100.0
         )
-        page.pack_start(self._cards["swap"], False, False, 0)
+        compat.pack_start(page, self._cards["swap"], False, False, 0)
 
         stats = Readouts()
         stats.add("used", "\uefc5", "Used")
@@ -701,44 +698,44 @@ class SysMonitorDialog(Popup):
         stats.add("cached", "\uf07c", "Cached")
         stats.add("swap_used", "\uf0ec", "Swap used")
         stats.add("swap_total", "\uf0ec", "Swap total")
-        page.pack_start(stats, False, False, 0)
+        compat.pack_start(page, stats, False, False, 0)
         self._stat_vals.update(stats.vals)
 
         self._dimm = DimmSection(self._cfg)
-        page.pack_start(self._dimm, False, False, 0)
+        compat.pack_start(page, self._dimm, False, False, 0)
 
     def _build_disks_page(self, page: Gtk.Box) -> None:
         self._cards["disk_usage"] = GraphCard(
             self._cfg, "Disk usage", "disks", height=40, scale=100.0
         )
-        page.pack_start(self._cards["disk_usage"], False, False, 0)
+        compat.pack_start(page, self._cards["disk_usage"], False, False, 0)
         self._cards["disk_read"] = GraphCard(
             self._cfg, "Read rate", "disks", height=28, scale=None
         )
-        page.pack_start(self._cards["disk_read"], False, False, 0)
+        compat.pack_start(page, self._cards["disk_read"], False, False, 0)
         self._cards["disk_write"] = GraphCard(
             self._cfg, "Write rate", "disks", height=28, scale=None
         )
-        page.pack_start(self._cards["disk_write"], False, False, 0)
+        compat.pack_start(page, self._cards["disk_write"], False, False, 0)
 
         stats = Readouts()
         stats.add("disk_used", "\U000f02ca", "Used")
         stats.add("disk_rate", "\uf0ec", "Total I/O")
-        page.pack_start(stats, False, False, 0)
+        compat.pack_start(page, stats, False, False, 0)
         self._stat_vals.update(stats.vals)
 
         self._drive_grid = DriveGrid(on_select=self._on_drive_selected)
-        page.pack_start(self._drive_grid, False, False, 0)
+        compat.pack_start(page, self._drive_grid, False, False, 0)
 
     def _build_network_page(self, page: Gtk.Box) -> None:
         self._cards["net_down"] = GraphCard(
             self._cfg, "Download", "network", height=40, scale=None
         )
-        page.pack_start(self._cards["net_down"], False, False, 0)
+        compat.pack_start(page, self._cards["net_down"], False, False, 0)
         self._cards["net_up"] = GraphCard(
             self._cfg, "Upload", "network", height=32, scale=None
         )
-        page.pack_start(self._cards["net_up"], False, False, 0)
+        compat.pack_start(page, self._cards["net_up"], False, False, 0)
 
         stats = Readouts()
         stats.add("iface", "\uf1eb", "Interface")
@@ -746,7 +743,7 @@ class SysMonitorDialog(Popup):
         stats.add("ip", "\uf1eb", "IP address")
         stats.add("down", "\uf0ab", "Download")
         stats.add("up", "\uf0aa", "Upload")
-        page.pack_start(stats, False, False, 0)
+        compat.pack_start(page, stats, False, False, 0)
         self._stat_vals.update(stats.vals)
         # Interface/Type/IP icons follow the active interface's kind glyph.
         self._iface_stat_icons = [
@@ -754,35 +751,35 @@ class SysMonitorDialog(Popup):
         ]
 
         self._iface_list = InterfaceList()
-        page.pack_start(self._iface_list, False, False, 0)
+        compat.pack_start(page, self._iface_list, False, False, 0)
 
     def _build_gpu_page(self, page: Gtk.Box) -> None:
         self._cards["gpu_util"] = GraphCard(
             self._cfg, "GPU usage", "gpu", height=48, scale=100.0
         )
-        page.pack_start(self._cards["gpu_util"], False, False, 0)
+        compat.pack_start(page, self._cards["gpu_util"], False, False, 0)
         self._cards["gpu_vram"] = GraphCard(
             self._cfg, "VRAM", "gpu", height=32, scale=100.0
         )
-        page.pack_start(self._cards["gpu_vram"], False, False, 0)
+        compat.pack_start(page, self._cards["gpu_vram"], False, False, 0)
 
         info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         self._gpu_model = Gtk.Label(label="", xalign=0)
-        self._gpu_model.get_style_context().add_class("gpu-model")
-        info_box.pack_start(self._gpu_model, False, False, 0)
+        compat.add_class(self._gpu_model, "gpu-model")
+        compat.pack_start(info_box, self._gpu_model, False, False, 0)
         self._gpu_detail = Gtk.Label(label="", xalign=0)
-        self._gpu_detail.get_style_context().add_class("mc-stat-label")
-        info_box.pack_start(self._gpu_detail, False, False, 0)
+        compat.add_class(self._gpu_detail, "mc-stat-label")
+        compat.pack_start(info_box, self._gpu_detail, False, False, 0)
         self._gpu_clocks = Gtk.Label(label="", xalign=0)
-        self._gpu_clocks.get_style_context().add_class("mc-stat-label")
-        info_box.pack_start(self._gpu_clocks, False, False, 0)
-        page.pack_start(info_box, False, False, 0)
+        compat.add_class(self._gpu_clocks, "mc-stat-label")
+        compat.pack_start(info_box, self._gpu_clocks, False, False, 0)
+        compat.pack_start(page, info_box, False, False, 0)
 
         unavailable = Gtk.Label(label="GPU monitoring unavailable", xalign=0)
-        unavailable.get_style_context().add_class("mc-unavailable")
+        compat.add_class(unavailable, "mc-unavailable")
         unavailable.set_visible(False)
         self._gpu_unavailable = unavailable
-        page.pack_start(unavailable, False, False, 0)
+        compat.pack_start(page, unavailable, False, False, 0)
 
         stats = Readouts()
         stats.add("gpu_util", "\uf03d", "Utilization")
@@ -790,7 +787,7 @@ class SysMonitorDialog(Popup):
         stats.add("gpu_temp", "\uf2c9", "Temperature")
         stats.add("power", "\uf0e7", "Power")
         stats.add("fan", "\uf021", "Fan")
-        page.pack_start(stats, False, False, 0)
+        compat.pack_start(page, stats, False, False, 0)
         self._stat_vals.update(stats.vals)
 
     def _build_apps_page(self, page: Gtk.Box) -> None:
@@ -803,7 +800,7 @@ class SysMonitorDialog(Popup):
         self._uid = os.getuid()
 
         notebook = Gtk.Notebook()
-        notebook.get_style_context().add_class("settings-notebook")
+        compat.add_class(notebook, "settings-notebook")
         for key, label in (
             ("user-apps", "User apps"),
             ("system-apps", "System apps"),
@@ -812,7 +809,7 @@ class SysMonitorDialog(Popup):
         ):
             store = Gtk.ListStore(int, str, str, str)
             tree = Gtk.TreeView(model=store)
-            tree.get_style_context().add_class("mc-tree")
+            compat.add_class(tree, "mc-tree")
             for i, title in enumerate(("Process", "CPU", "Memory")):
                 renderer = Gtk.CellRendererText()
                 if i:
@@ -826,33 +823,33 @@ class SysMonitorDialog(Popup):
             scroll = Gtk.ScrolledWindow()
             scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
             scroll.set_vexpand(True)
-            scroll.add(tree)
+            compat.add(scroll, tree)
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-            box.pack_start(scroll, True, True, 0)
+            compat.pack_start(box, scroll, True, True, 0)
             notebook.append_page(box, Gtk.Label(label=label))
             self._apps_views[key] = tree
             self._apps_stores[key] = store
         notebook.set_vexpand(True)
-        page.pack_start(notebook, True, True, 0)
+        compat.pack_start(page, notebook, True, True, 0)
 
         # ── actions: kill / force-kill / launch the selected process ──
         bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        bar.get_style_context().add_class("mc-actions")
+        compat.add_class(bar, "mc-actions")
         self._apps_selection = Gtk.Label(label="Select a process", xalign=0)
         self._apps_selection.set_opacity(0.7)
         self._apps_selection.set_ellipsize(3)
-        bar.pack_start(self._apps_selection, True, True, 0)
+        compat.pack_start(bar, self._apps_selection, True, True, 0)
         launch_btn = Gtk.Button(label="Launch")
         launch_btn.connect("clicked", lambda *_: self._apps_launch())
         kill_btn = Gtk.Button(label="Kill")
-        kill_btn.get_style_context().add_class("settings-btn")
+        compat.add_class(kill_btn, "settings-btn")
         kill_btn.connect("clicked", lambda *_: self._apps_kill(force=False))
         force_btn = Gtk.Button(label="Force kill")
-        force_btn.get_style_context().add_class("settings-btn")
+        compat.add_class(force_btn, "settings-btn")
         force_btn.connect("clicked", lambda *_: self._apps_kill(force=True))
         for b in (launch_btn, kill_btn, force_btn):
-            bar.pack_start(b, False, False, 0)
-        page.pack_start(bar, False, False, 0)
+            compat.pack_start(bar, b, False, False, 0)
+        compat.pack_start(page, bar, False, False, 0)
 
         self._apps_notebook = notebook
         notebook.connect("switch-page", lambda *_: self._update_apps())
@@ -913,16 +910,17 @@ class SysMonitorDialog(Popup):
             buttons=Gtk.ButtonsType.NONE,
             text=text,
         )
-        dialog.format_secondary_text(
-            "This will terminate the process. Unsaved work in it will be lost."
+        compat.set_secondary_text(
+            dialog,
+            "This will terminate the process. Unsaved work in it will be lost.",
         )
         dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
         ok = dialog.add_button("OK", Gtk.ResponseType.ACCEPT)
-        ok.get_style_context().add_class("confirm-accept")
+        compat.add_class(ok, "confirm-accept")
         dialog.set_default_response(Gtk.ResponseType.CANCEL)
         center_layer_dialog(dialog)
-        response = dialog.run()
-        dialog.destroy()
+        response = compat.dialog_run(dialog)
+        compat.destroy(dialog)
         return response == Gtk.ResponseType.ACCEPT
 
     # ── theming ───────────────────────────────────────────────────
@@ -953,7 +951,7 @@ class SysMonitorDialog(Popup):
 
     @staticmethod
     def _level_label(label: Gtk.Label, pct: float) -> None:
-        ctx = label.get_style_context()
+        ctx = compat.style_context(label)
         if pct >= 90:
             ctx.add_class("high")
             ctx.remove_class("warn")
@@ -1113,10 +1111,10 @@ class SysMonitorDialog(Popup):
     def _update_gpu(self, data: dict | None) -> None:
         if data is None:
             if self._gpu_unavailable is not None:
-                self._gpu_unavailable.show()
+                compat.show(self._gpu_unavailable)
             return
         if self._gpu_unavailable is not None:
-            self._gpu_unavailable.hide()
+            compat.hide(self._gpu_unavailable)
 
         util = data.get("util_pct")
         if util is not None:

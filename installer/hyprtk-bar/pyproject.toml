@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hyprtk-bar"
-version = "0.3.2"
-description = "Hyprtk taskbar for Hyprland (GTK3 + layer shell)"
+version = "0.4.0"
+description = "Hyprtk taskbar for Hyprland (GTK4 + layer shell)"
 requires-python = ">=3.10"
 dependencies = [
     "pygobject>=3.48",
     "dbus-next>=0.2.3,<0.3",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.scripts]

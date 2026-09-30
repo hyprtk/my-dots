@@ -1,4 +1,4 @@
-"""hyprtk-bar: HYPRTK taskbar for Hyprland (GTK3 + layer shell)."""
+"""hyprtk-bar: HYPRTK taskbar for Hyprland (GTK4 + layer shell)."""
 
 # ─────────────────────────────────────────────────────────────────
 #   HYPRTK · hyprtk-bar · __init__
@@ -6,4 +6,4 @@
 # ─────────────────────────────────────────────────────────────────
 
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"

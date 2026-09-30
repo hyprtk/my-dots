@@ -967,6 +967,48 @@ def _rocminfo_gpu() -> dict | None:
     return None
 
 
+def _short_vendor(name: str) -> str:
+    """Normalise an lspci vendor string to its short form (AMD/ATI, NVIDIA, ...)."""
+    n = (name or "").strip()
+    low = n.lower()
+    if "amd/ati" in low:
+        return "AMD/ATI"
+    if "advanced micro devices" in low:
+        return "AMD"
+    if "nvidia" in low:
+        return "NVIDIA"
+    if "intel" in low:
+        return "Intel"
+    return n
+
+
+def _parse_gpu_desc(desc: str) -> tuple[str, str]:
+    """Split an lspci GPU description into ``(manufacturer, marketing model)``.
+
+    Handles the bracket conventions of the big three::
+
+        AMD   Advanced Micro Devices, Inc. [AMD/ATI] Navi 21 [Radeon RX 6800/6800 XT / 6900 XT]
+              -> ("AMD/ATI", "Radeon RX 6800/6800 XT / 6900 XT")
+        NVIDIA NVIDIA Corporation GA102 [GeForce RTX 3090]
+              -> ("NVIDIA", "GeForce RTX 3090")
+        Intel  Intel Corporation Rocket Lake-S GT1 [UHD Graphics 750]
+              -> ("Intel", "UHD Graphics 750")
+
+    The codename that AMD puts between the vendor tag and the marketing name
+    (``Navi 21``) is dropped in favour of the bracketed model.
+    """
+    desc = re.sub(r"\s*\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\].*$", "", desc).strip()
+    desc = re.sub(r"\s*\(rev\s+[0-9A-Fa-f]+\)\s*$", "", desc).strip()
+    brackets = re.findall(r"\[([^\]]+)\]", desc)
+    if len(brackets) >= 2:
+        # Vendor tag first, marketing name last (AMD's "Navi 21" in between).
+        return _short_vendor(brackets[0]), brackets[-1].strip()
+    if len(brackets) == 1:
+        before = desc[: desc.index("[")].strip()
+        return _short_vendor(before), brackets[0].strip()
+    return _short_vendor(desc), desc
+
+
 def _lspci_gpu(dev: Path | None = None) -> dict | None:
     """Fallback: manufacturer + model from ``lspci -nn`` (no rocminfo needed).
 
@@ -992,13 +1034,11 @@ def _lspci_gpu(dev: Path | None = None) -> dict | None:
         if vid_want and (vid != vid_want or (did_want and did != did_want)):
             continue
         desc = line.split(": ", 1)[1] if ": " in line else line
-        desc = re.sub(r"\s*\[[0-9A-Fa-f]{4}:[0-9A-Fa-f]{4}\].*$", "", desc).strip()
-        vendor = re.match(r"([^\[\]]+)\[", desc)
-        brand = vendor.group(1).strip() if vendor else ""
-        model = desc[vendor.end():].strip() if vendor else desc
+        manufacturer, model = _parse_gpu_desc(desc)
+        manufacturer = manufacturer or _GPU_VENDORS.get(vid, "") or "GPU"
         return {
-            "manufacturer": _GPU_VENDORS.get(vid, brand or "GPU"),
-            "model": model or brand or line.strip(),
+            "manufacturer": manufacturer,
+            "model": model or desc,
         }
     return None
 
@@ -1008,9 +1048,24 @@ def _gpu_fetch_static() -> dict | None:
     target = _GPU_SAMPLER.target
     dev = target[1] if target else None
     driver = target[0] if target else ""
-    info = _rocminfo_gpu() or _lspci_gpu(dev)
+    info = _lspci_gpu(dev)
+    rocm = _rocminfo_gpu()
+    # Prefer lspci's identity: it carries the marketing model (e.g. "Radeon RX
+    # 6800/6800 XT / 6900 XT"), while rocminfo reports AMD's codename ("Navi
+    # 21"). rocminfo still supplies compute units / max clock as a supplement.
+    if info is None:
+        info = rocm
     if info is None:
         return None
+    info = dict(info)
+    if rocm is not None:
+        if not info.get("model"):
+            info["model"] = rocm.get("model")
+        if not info.get("manufacturer") or info.get("manufacturer") == "GPU":
+            info["manufacturer"] = rocm.get("manufacturer")
+        for key in ("units", "max_clock"):
+            if not info.get(key) and rocm.get(key) is not None:
+                info[key] = rocm[key]
     if dev is not None:
         vendor_id = _read_text(dev / "vendor").lower()
         if vendor_id.startswith("0x") and vendor_id[2:] in _GPU_VENDORS:

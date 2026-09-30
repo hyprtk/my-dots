@@ -11,11 +11,7 @@ import re
 import shlex
 import subprocess
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-
-from gi.repository import Gio
+from ..compat import Gio  # noqa: E402
 
 # Map raw XDG categories to our display-sidebar categories.
 CATEGORY_MAP = {

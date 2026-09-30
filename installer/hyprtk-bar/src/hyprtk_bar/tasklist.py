@@ -15,11 +15,8 @@ from __future__ import annotations
 import logging
 import re
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Pango", "1.0")
-
-from gi.repository import Gio, GLib, Gtk, Pango  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from . import config as config_module  # noqa: E402
 from .config import icon_size_for  # noqa: E402
@@ -83,7 +80,7 @@ def resolve_icon(app_class: str, explicit: str | None = None) -> str:
     ships one, so tasklist icons match the bar's monochrome modules; otherwise
     the original colour icon is kept.
     """
-    theme = Gtk.IconTheme.get_default()
+    theme = compat.icon_theme()
     if explicit and theme.has_icon(explicit):
         return _prefer_symbolic(theme, explicit)
     app_id = _desktop_id(app_class)
@@ -150,54 +147,54 @@ def build_preview_content(
     on_launch,
 ) -> None:
     """Fill ``box`` (a popup's content) with the app's window list."""
-    for child in box.get_children():
+    for child in compat.children(box):
         box.remove(child)
 
     title = Gtk.Label(label=app_class, xalign=0)
-    title.get_style_context().add_class("popup-title")
+    compat.add_class(title, "popup-title")
     title.set_margin_bottom(2)
-    box.pack_start(title, False, False, 0)
+    compat.pack_start(box, title, False, False, 0)
 
     for win in windows:
-        box.pack_start(_make_row(win, on_focus, on_close), False, False, 0)
+        compat.pack_start(box, _make_row(win, on_focus, on_close), False, False, 0)
 
     if on_launch:
         sep = Gtk.Separator()
         sep.set_margin_top(3)
         sep.set_margin_bottom(3)
-        box.pack_start(sep, False, False, 0)
+        compat.pack_start(box, sep, False, False, 0)
         new_row = HoverButton("popup-row", vertical=False, spacing=8)
-        new_row.box.pack_start(
-            Gtk.Image.new_from_icon_name("list-add-symbolic", Gtk.IconSize.MENU),
+        compat.pack_start(new_row.box, 
+            compat.new_image_from_icon_name("list-add-symbolic"),
             False, False, 0,
         )
-        new_row.box.pack_start(
+        compat.pack_start(new_row.box, 
             Gtk.Label(label="Open new window", xalign=0), True, True, 0
         )
-        new_row.connect("button-press-event", lambda *_a: on_launch())
-        box.pack_start(new_row, False, False, 0)
+        compat.on_press(new_row, lambda *_a: on_launch())
+        compat.pack_start(box, new_row, False, False, 0)
 
-    box.show_all()
+    compat.show_all(box)
 
 
 def _make_row(win: dict, on_focus, on_close):
     row = HoverButton("popup-row", vertical=False, spacing=8)
     icon_name = resolve_icon(win.get("class") or "unknown")
-    icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+    icon = compat.new_image_from_icon_name(icon_name)
     icon.set_pixel_size(16)
-    row.box.pack_start(icon, False, False, 0)
+    compat.pack_start(row.box, icon, False, False, 0)
     label = Gtk.Label(
         label=(win.get("title") or win.get("class") or "Untitled"),
         xalign=0,
     )
     label.set_ellipsize(Pango.EllipsizeMode.END)
     label.set_max_width_chars(28)
-    row.box.pack_start(label, True, True, 0)
-    close = Gtk.Button.new_from_icon_name("window-close-symbolic", Gtk.IconSize.MENU)
-    close.set_relief(Gtk.ReliefStyle.NONE)
+    compat.pack_start(row.box, label, True, True, 0)
+    close = compat.new_button_from_icon_name("window-close-symbolic")
+    compat.set_relief(close)
     close.connect("clicked", lambda *_a: on_close(win))
-    row.box.pack_start(close, False, False, 0)
-    row.connect("button-press-event", lambda *_a: on_focus(win))
+    compat.pack_start(row.box, close, False, False, 0)
+    compat.on_press(row, lambda *_a: on_focus(win))
     return row
 
 
@@ -214,42 +211,41 @@ class TaskButton(HoverButton):
         self._show_timer = None
         self._hide_timer = None
 
-        self._icon = Gtk.Image.new_from_icon_name(
-            resolve_icon(app_class, pinned.get("icon")), Gtk.IconSize.INVALID
+        self._icon = compat.new_image_from_icon_name(
+            resolve_icon(app_class, pinned.get("icon"))
         )
         self._icon.set_pixel_size(self._icon_size)
-        self._icon.get_style_context().add_class("task-icon")
+        compat.add_class(self._icon, "task-icon")
         self._icon.set_halign(Gtk.Align.CENTER)
         self._icon.set_valign(Gtk.Align.CENTER)
 
         # Running/active indicator: a small dot overlaid on the icon's
         # bottom-right corner.
         self._overlay = Gtk.Overlay()
-        self._overlay.add(self._icon)
+        compat.add(self._overlay, self._icon)
         self._dot = Gtk.Box()
-        self._dot.get_style_context().add_class("task-dot")
-        self._dot.set_no_show_all(True)
+        compat.add_class(self._dot, "task-dot")
+        compat.hide_from_show_all(self._dot)
         self._dot.set_halign(Gtk.Align.END)
         self._dot.set_valign(Gtk.Align.END)
         self._dot.set_margin_end(2)
         self._dot.set_margin_bottom(2)
-        self._dot.hide()
+        compat.hide(self._dot)
         self._overlay.add_overlay(self._dot)
-        self.box.pack_start(self._overlay, True, True, 0)
+        compat.pack_start(self.box, self._overlay, True, True, 0)
 
-        self.connect("enter-notify-event", self._on_enter_preview)
-        self.connect("leave-notify-event", self._on_leave_preview)
+        compat.on_hover(self, self._on_enter_preview, self._on_leave_preview)
 
     # ── state ─────────────────────────────────────────────────────
 
     def update(self, windows: list, active: bool) -> None:
         self._windows = windows
-        ctx = self.box.get_style_context()
+        ctx = compat.style_context(self.box)
         if windows:
-            self._dot.show()
+            compat.show(self._dot)
             ctx.remove_class("dimmed")
         else:
-            self._dot.hide()
+            compat.hide(self._dot)
             ctx.add_class("dimmed")
         if active:
             ctx.add_class("active")
@@ -267,24 +263,33 @@ class TaskButton(HoverButton):
             self._cb["middle"]()
         elif event.button == 3:
             self._cb["hide_preview"]()
-            self._show_context_menu(event)
+            self._show_context_menu()
         return True
 
-    def _show_context_menu(self, event) -> None:
-        menu = Gtk.Menu()
+    def _show_context_menu(self) -> None:
+        items = []
         if self.pinned:
-            item = Gtk.MenuItem(label="Unpin from taskbar")
-            item.connect("activate", lambda *_a: self._cb["unpin"]())
+            items.append({"label": "Unpin from taskbar", "activate": self._cb["unpin"]})
         else:
-            item = Gtk.MenuItem(label="Pin to taskbar")
-            item.connect("activate", lambda *_a: self._cb["pin"]())
-        menu.append(item)
+            items.append({"label": "Pin to taskbar", "activate": self._cb["pin"]})
         if self._windows:
-            close = Gtk.MenuItem(label="Close window")
-            close.connect("activate", lambda *_a: self._cb["middle"]())
-            menu.append(close)
-        menu.show_all()
-        menu.popup_at_pointer(event)
+            items.append({"label": "Close window", "activate": self._cb["middle"]})
+
+        if compat.IS_GTK4:
+            from .menus import MenuPopup
+            self._menu_popup = MenuPopup(items)
+            self._menu_popup.show_at(self)
+            return
+
+        menu = Gtk.Menu()
+        for entry in items:
+            item = Gtk.MenuItem(label=entry["label"])
+            item.connect("activate", lambda *_a, cb=entry["activate"]: cb())
+            menu.append(item)
+        compat.show_all(menu)
+        menu.popup_at_widget(
+            self, Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST, None
+        )
 
     # ── hover preview ─────────────────────────────────────────────
 
@@ -383,7 +388,7 @@ class TaskList(Gtk.Box):
 
         for cls in list(self._buttons):
             if cls not in order:
-                self._buttons.pop(cls).destroy()
+                compat.destroy(self._buttons.pop(cls))
 
         for cls in order:
             if cls not in self._buttons:
@@ -392,16 +397,16 @@ class TaskList(Gtk.Box):
                     cls, self._pinned.get(cls, {}), self._callbacks(cls),
                     icon_size_for(font_cfg.get("size", 16), font_cfg.get("icon_size", 0)),
                 )
-                self.pack_start(self._buttons[cls], False, False, 0)
+                compat.pack_start(self, self._buttons[cls], False, False, 0)
 
         for cls, btn in self._buttons.items():
             wins = grouped.get(cls, [])
             btn.update(wins, self._focus_address in {w.get("address") for w in wins})
-        self.show_all()
+        compat.show_all(self)
 
     def shutdown(self) -> None:
         self._preview.hide_popup()
-        self._preview.destroy()
+        compat.destroy(self._preview)
 
     def apply_font(self, font_size, icon_size=0) -> None:
         size = icon_size_for(font_size, icon_size)
@@ -493,17 +498,15 @@ class TaskList(Gtk.Box):
             buttons=Gtk.ButtonsType.NONE,
             text=f"Pin “{cls}” to the taskbar",
         )
-        dialog.format_secondary_text(
-            "Choose which icon the pinned app should use."
-        )
-        dialog.set_keep_above(True)
+        compat.set_secondary_text(dialog, "Choose which icon the pinned app should use.")
+        compat.set_keep_above(dialog, True)
         resp_generic = 1
         resp_actual = 2
         dialog.add_button(f"Generic symbolic icon ({generic})", resp_generic)
         dialog.add_button(f"Application icon ({actual})", resp_actual)
         dialog.set_default_response(resp_generic)
-        response = dialog.run()
-        dialog.destroy()
+        response = compat.dialog_run(dialog)
+        compat.destroy(dialog)
         return generic if response == resp_generic else actual
 
     def _unpin(self, cls: str) -> None:

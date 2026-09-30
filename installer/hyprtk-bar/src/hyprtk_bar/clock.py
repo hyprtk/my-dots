@@ -9,10 +9,8 @@ from __future__ import annotations
 
 import datetime
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import GLib, Gtk  # noqa: E402
 
 from .popup import Popup  # noqa: E402
 from .widgets import HoverButton  # noqa: E402
@@ -31,9 +29,9 @@ class Clock(HoverButton):
         self._date_hide_timer = None
 
         self._time = Gtk.Label(label="--:--")
-        self._time.get_style_context().add_class("clock-label")
+        compat.add_class(self._time, "clock-label")
         self._time.set_justify(Gtk.Justification.CENTER)
-        self.box.pack_start(self._time, False, False, 0)
+        compat.pack_start(self.box, self._time, False, False, 0)
 
         if self._clock.get("date_format"):
             self._build_date_popup()
@@ -52,7 +50,7 @@ class Clock(HoverButton):
             if popup is not None:
                 try:
                     popup.hide_popup()
-                    popup.destroy()
+                    compat.destroy(popup)
                 except Exception:
                     pass
         self._date_popup = None
@@ -62,23 +60,27 @@ class Clock(HoverButton):
         """The date is a popup (above a bottom bar, below a top bar), never
         packed under the time where it would squeeze the clock's height."""
         self._date = Gtk.Label(label="")
-        self._date.get_style_context().add_class("clock-date")
+        compat.add_class(self._date, "clock-date")
         self._date.set_justify(Gtk.Justification.CENTER)
         self._date_popup = Popup(self._cfg, self._cfg.get("position", "bottom"))
-        self._date_popup.content.pack_start(self._date, False, False, 0)
-        self._date_popup.content.show_all()
+        compat.pack_start(self._date_popup.content, self._date, False, False, 0)
+        compat.show_all(self._date_popup.content)
         self._date_popup.set_on_enter(self._cancel_date_hide)
         self._date_popup.set_on_leave(self._schedule_date_hide)
 
     def _build_calendar_popup(self) -> None:
         self._popup = Popup(self._cfg, self._cfg.get("position", "bottom"))
         cal = Gtk.Calendar()
-        cal.set_display_options(
-            Gtk.CalendarDisplayOptions.SHOW_HEADING
-            | Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES
-        )
-        self._popup.content.pack_start(cal, False, False, 0)
-        self._popup.content.show_all()
+        if compat.IS_GTK4:
+            cal.set_show_heading(True)
+            cal.set_show_day_names(True)
+        else:
+            cal.set_display_options(
+                Gtk.CalendarDisplayOptions.SHOW_HEADING
+                | Gtk.CalendarDisplayOptions.SHOW_DAY_NAMES
+            )
+        compat.pack_start(self._popup.content, cal, False, False, 0)
+        compat.show_all(self._popup.content)
         self._popup.set_on_leave(self._popup_hide)
 
     def _tick(self) -> bool:

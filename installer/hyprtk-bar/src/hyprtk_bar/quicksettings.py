@@ -19,10 +19,8 @@ import re
 import subprocess
 import threading
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import GLib, Gtk  # noqa: E402
 
 from .config import icon_size_for  # noqa: E402
 from .popup import Popup, bind_hover_tooltip  # noqa: E402
@@ -193,17 +191,17 @@ class ToggleRow(HoverButton):
         super().__init__("qs-row", vertical=False, spacing=10)
         self._on_apply = on_apply
 
-        icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.INVALID)
+        icon = compat.new_image_from_icon_name(icon_name)
         icon.set_pixel_size(18)
-        self.box.pack_start(icon, False, False, 0)
+        compat.pack_start(self.box, icon, False, False, 0)
 
         lbl = Gtk.Label(label=label, xalign=0)
-        self.box.pack_start(lbl, True, True, 0)
+        compat.pack_start(self.box, lbl, True, True, 0)
 
         self._switch = Gtk.Switch()
-        self._switch.get_style_context().add_class("qs-switch")
+        compat.add_class(self._switch, "qs-switch")
         self._switch.set_valign(Gtk.Align.CENTER)
-        self.box.pack_start(self._switch, False, False, 0)
+        compat.pack_start(self.box, self._switch, False, False, 0)
         self._switch.connect("state-set", self._on_state_set)
 
     def set_state(self, on: bool) -> None:
@@ -247,33 +245,33 @@ class SliderRow(Gtk.Box):
         self._icon_on = icon_on_name         # the "off" (muted) icon
         self._pending = None
 
-        self._icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.INVALID)
+        self._icon = compat.new_image_from_icon_name(icon_name)
         self._icon.set_pixel_size(18)
         if mute_toggle is not None:
-            holder = Gtk.EventBox()
-            holder.set_visible_window(False)
-            holder.add(self._icon)
-            holder.connect("button-press-event", self._on_icon_press)
+            holder = compat.event_surface()
+            compat.set_visible_window(holder, False)
+            compat.add(holder, self._icon)
+            compat.on_press(holder, self._on_icon_press)
             holder.set_tooltip_text("Toggle mute")
-            self.pack_start(holder, False, False, 0)
+            compat.pack_start(self, holder, False, False, 0)
         else:
-            self.pack_start(self._icon, False, False, 0)
+            compat.pack_start(self, self._icon, False, False, 0)
 
         lbl = Gtk.Label(label=label, xalign=0)
         lbl.set_size_request(52, -1)
-        self.pack_start(lbl, False, False, 0)
+        compat.pack_start(self, lbl, False, False, 0)
 
         self._scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, range_min, 100, 1)
         self._scale.set_size_request(160, -1)
         self._scale.set_hexpand(True)
         self._scale.set_draw_value(False)
-        self._scale.get_style_context().add_class("qs-scale")
-        self.pack_start(self._scale, True, True, 0)
+        compat.add_class(self._scale, "qs-scale")
+        compat.pack_start(self, self._scale, True, True, 0)
         self._scale.connect("value-changed", self._on_value_changed)
 
         self._pct = Gtk.Label(label="100%", xalign=1)
         self._pct.set_width_chars(4)
-        self.pack_start(self._pct, False, False, 0)
+        compat.pack_start(self, self._pct, False, False, 0)
 
     def refresh(self) -> None:
         muted = False
@@ -302,7 +300,7 @@ class SliderRow(Gtk.Box):
     def _update_icon(self, muted: bool) -> None:
         if self._icon_on:
             name = self._icon_on if muted else self._icon_name
-            self._icon.set_from_icon_name(name, Gtk.IconSize.INVALID)
+            compat.image_set_from_icon_name(self._icon, name)
             self._icon.set_pixel_size(18)
 
     def _on_icon_press(self, *_args) -> bool:
@@ -344,7 +342,7 @@ class QuickSettingsButton(HoverButton):
         self._icon.set_pixel_size(
             icon_size_for(font_cfg.get("size", 16), font_cfg.get("icon_size", 0))
         )
-        self.box.pack_start(self._icon, True, True, 0)
+        compat.pack_start(self.box, self._icon, True, True, 0)
         self._popup = QuickSettings(cfg)
         self._popup.set_on_leave(self._hide)
         bind_hover_tooltip(self, cfg, lambda: "Quick settings")
@@ -380,14 +378,14 @@ class QuickSettings(Popup):
         self._brightness_row = None
 
         title = Gtk.Label(label="Quick Settings", xalign=0)
-        title.get_style_context().add_class("qs-title")
-        self.content.pack_start(title, False, False, 0)
+        compat.add_class(title, "qs-title")
+        compat.pack_start(self.content, title, False, False, 0)
 
         self._wifi = ToggleRow("network-wireless-symbolic", "Wi-Fi", set_wifi)
-        self.content.pack_start(self._wifi, False, False, 0)
+        compat.pack_start(self.content, self._wifi, False, False, 0)
 
         self._bt = ToggleRow("bluetooth-symbolic", "Bluetooth", set_bt)
-        self.content.pack_start(self._bt, False, False, 0)
+        compat.pack_start(self.content, self._bt, False, False, 0)
 
         self._volume = SliderRow(
             "audio-volume-high-symbolic",
@@ -398,7 +396,7 @@ class QuickSettings(Popup):
             mute_toggle=toggle_mute,
             get_state=get_volume_state,
         )
-        self.content.pack_start(self._volume, False, False, 0)
+        compat.pack_start(self.content, self._volume, False, False, 0)
 
         self._mic = SliderRow(
             "audio-input-microphone-symbolic",
@@ -409,9 +407,9 @@ class QuickSettings(Popup):
             mute_toggle=toggle_mic_mute,
             get_state=get_mic_state,
         )
-        self.content.pack_start(self._mic, False, False, 0)
+        compat.pack_start(self.content, self._mic, False, False, 0)
 
-        self.content.show_all()
+        compat.show_all(self.content)
 
     # ── lifecycle ─────────────────────────────────────────────────
 
@@ -493,8 +491,8 @@ class QuickSettings(Popup):
             )
         else:
             return
-        self.content.pack_start(self._brightness_row, False, False, 0)
-        self.content.show_all()
+        compat.pack_start(self.content, self._brightness_row, False, False, 0)
+        compat.show_all(self.content)
 
     def _start_poll(self) -> None:
         if self._timer is None:

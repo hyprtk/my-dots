@@ -15,10 +15,8 @@ from __future__ import annotations
 import glob
 import logging
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import GLib  # noqa: E402
 
 from .config import icon_size_for  # noqa: E402
 from .popup import bind_hover_tooltip  # noqa: E402
@@ -77,8 +75,8 @@ class KbState(HoverButton):
         for key, glyph in _ICONS:
             img = Glyph(glyph, "kbstate-icon")
             img.set_pixel_size(icon_size)
-            img.get_style_context().add_class(key)
-            self.box.pack_start(img, False, False, 0)
+            compat.add_class(img, key)
+            compat.pack_start(self.box, img, False, False, 0)
             self._icons[key] = img
         self._tip = ""
         self._last = None  # last (caps, num) state — skip no-op style churn
@@ -109,7 +107,7 @@ class KbState(HoverButton):
             return
         self._last = dict(states)
         for key, on in states.items():
-            ctx = self._icons[key].get_style_context()
+            ctx = compat.style_context(self._icons[key])
             if on:
                 ctx.add_class("on")
                 ctx.remove_class("off")

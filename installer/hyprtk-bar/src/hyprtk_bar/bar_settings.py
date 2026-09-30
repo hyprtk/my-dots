@@ -16,11 +16,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-
-from gi.repository import Gdk, Gtk, Pango  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, Gtk, Pango  # noqa: E402
 
 from .config import (  # noqa: E402
     CLOCK_STYLES,
@@ -144,9 +141,9 @@ def _radio_group(labels: list[tuple[str, str]]) -> dict[str, Gtk.RadioButton]:
     buttons: dict[str, Gtk.RadioButton] = {}
     first: Gtk.RadioButton | None = None
     for key, label in labels:
-        btn = Gtk.RadioButton(group=None, label=label)
+        btn = compat.new_radio(label=label)
         if first is not None:
-            btn.join_group(first)
+            compat.join_radio_group(btn, first)
         else:
             first = btn
         buttons[key] = btn
@@ -174,13 +171,11 @@ def _theme_dialog(win: Gtk.Window) -> None:
     ``dialog-vbox`` picks up GTK-theme chrome that draws a second frame. Each
     dialog adds ``popup-box`` to its own root box.
     """
-    win.get_style_context().add_class("settings-window")
+    compat.add_class(win, "settings-window")
     win.set_decorated(False)
-    win.set_keep_above(True)
-    win.set_app_paintable(True)
-    visual = win.get_screen().get_rgba_visual()
-    if visual:
-        win.set_visual(visual)
+    compat.set_keep_above(win, True)
+    compat.set_app_paintable(win, True)
+    compat.apply_rgba_visual(win)
 
 
 class BarSettings(Gtk.Window):
@@ -212,21 +207,20 @@ class BarSettings(Gtk.Window):
                         break
 
         self.set_decorated(False)
-        self.set_keep_above(True)
+        compat.transparent_surface(self)
+        compat.set_keep_above(self, True)
         self.set_default_size(620, 580)
-        self.set_position(Gtk.WindowPosition.CENTER)
+        compat.set_window_position(self)
         # Strip any GTK window frame/outline so the only border is the
         # popup-box's 2px animated one (the popup-box now fills the window).
-        self.get_style_context().add_class("settings-window")
+        compat.add_class(self, "settings-window")
         # Transparent toplevel so the theme's opacity (via .popup-box alpha)
         # shows through to the desktop, like the bar's popups.
-        self.set_app_paintable(True)
-        visual = self.get_screen().get_rgba_visual()
-        if visual:
-            self.set_visual(visual)
-        self.connect("key-press-event", self._on_key)
+        compat.set_app_paintable(self, True)
+        compat.apply_rgba_visual(self)
+        compat.on_key(self, self._on_key)
         self._build()
-        self.show_all()
+        compat.show_all(self)
         # _build already called _set_active_page, but a Gtk.Stack with a
         # crossfade transition drops a visible-child change made before the
         # window is realized and falls back to its first page. Re-apply after
@@ -249,18 +243,9 @@ class BarSettings(Gtk.Window):
                    padding: 8px 10px; }
 """
         )
-        style = header.get_style_context()
+        style = compat.style_context(header)
         style.add_class("settings-header")
         style.add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-
-    def _on_header_press(self, _widget, event) -> bool:
-        """Drag the frameless window by its header."""
-        if event.button == 1 and event.type == Gdk.EventType.BUTTON_PRESS:
-            self.begin_move_drag(
-                event.button, int(event.x_root), int(event.y_root), event.time
-            )
-            return True
-        return False
 
     def _on_key(self, _window, event) -> bool:
         if event.keyval == Gdk.KEY_Escape:
@@ -270,29 +255,29 @@ class BarSettings(Gtk.Window):
 
     def _build(self) -> None:
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        root.get_style_context().add_class("popup-box")
-        self.add(root)
+        compat.add_class(root, "popup-box")
+        compat.add(self, root)
 
         # Draggable header (frameless window) — matches the monitor's header.
-        header = Gtk.EventBox()
+        header = compat.event_surface()
         header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title = Gtk.Label(label="Bar Settings", xalign=0)
-        title.get_style_context().add_class("mc-title")
-        header_box.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-title")
+        compat.pack_start(header_box, title, True, True, 0)
         close = Gtk.Button(label="\u00d7")
-        close.get_style_context().add_class("mc-close")
-        close.set_relief(Gtk.ReliefStyle.NONE)
+        compat.add_class(close, "mc-close")
+        compat.set_relief(close)
         close.connect("clicked", lambda *_a: self.close())
-        header_box.pack_start(close, False, False, 0)
-        header.add(header_box)
-        header.connect("button-press-event", self._on_header_press)
+        compat.pack_start(header_box, close, False, False, 0)
+        compat.add(header, header_box)
+        compat.make_window_draggable(self, header)
         self._style_header(header)
-        root.pack_start(header, False, False, 0)
+        compat.pack_start(root, header, False, False, 0)
 
         # Body: sidebar navigation + stack (same pattern as the system monitor).
         body = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        sidebar.get_style_context().add_class("mc-sidebar")
+        compat.add_class(sidebar, "mc-sidebar")
         sidebar.set_size_request(132, -1)
         self._sidebar = sidebar
 
@@ -312,15 +297,15 @@ class BarSettings(Gtk.Window):
             ("modules", "\uf009", "Modules"),
             ("widgets", "\uf00b", "Widgets"),
         ):
-            sidebar.pack_start(self._build_page_button(key, glyph, label),
+            compat.pack_start(sidebar, self._build_page_button(key, glyph, label),
                                False, False, 0)
             page = self._build_page(key)
             self._stack.add_named(page, key)
             self._page_buttons[key].page = page
 
-        body.pack_start(sidebar, False, False, 0)
-        body.pack_start(self._stack, True, True, 0)
-        root.pack_start(body, True, True, 0)
+        compat.pack_start(body, sidebar, False, False, 0)
+        compat.pack_start(body, self._stack, True, True, 0)
+        compat.pack_start(root, body, True, True, 0)
 
         # Populate the imported-theme list (the Themes page needs the buttons to
         # exist before the user can select one).
@@ -335,12 +320,12 @@ class BarSettings(Gtk.Window):
         close_btn = Gtk.Button(label="Close")
         close_btn.connect("clicked", lambda *_a: self.close())
         apply_btn = Gtk.Button(label="Apply")
-        apply_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(apply_btn, "settings-apply")
         apply_btn.connect("clicked", self._on_apply)
-        buttons.pack_start(reset_btn, False, False, 0)
-        buttons.pack_start(close_btn, False, False, 0)
-        buttons.pack_start(apply_btn, False, False, 0)
-        root.pack_start(buttons, False, False, 0)
+        compat.pack_start(buttons, reset_btn, False, False, 0)
+        compat.pack_start(buttons, close_btn, False, False, 0)
+        compat.pack_start(buttons, apply_btn, False, False, 0)
+        compat.pack_start(root, buttons, False, False, 0)
 
         # Apply the theme's fg/bg colours to standard widgets so the dialogue
         # stays readable on light imported themes.
@@ -352,12 +337,11 @@ class BarSettings(Gtk.Window):
         btn.set_size_request(-1, 30)
         icon = Glyph(glyph, "mc-icon")
         icon.set_pixel_size(14)
-        btn.box.pack_start(icon, False, False, 0)
+        compat.pack_start(btn.box, icon, False, False, 0)
         lbl = Gtk.Label(label=label, xalign=0)
-        lbl.get_style_context().add_class("mc-sidebar-label")
-        btn.box.pack_start(lbl, True, True, 0)
-        btn.connect("button-press-event",
-                    lambda _w, _e, k=key: self._set_active_page(k) or False)
+        compat.add_class(lbl, "mc-sidebar-label")
+        compat.pack_start(btn.box, lbl, True, True, 0)
+        compat.on_press(btn, lambda _w, _e, k=key: self._set_active_page(k) or False)
         self._page_buttons[key] = btn
         return btn
 
@@ -366,17 +350,17 @@ class BarSettings(Gtk.Window):
         for k, btn in self._page_buttons.items():
             box = btn.box
             if k == key:
-                box.get_style_context().add_class("active")
+                compat.add_class(box, "active")
             else:
-                box.get_style_context().remove_class("active")
+                compat.remove_class(box, "active")
         self._stack.set_visible_child_name(key)
 
     def _build_page(self, key: str) -> Gtk.Box:
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         page.set_hexpand(True)
         title = Gtk.Label(label=self._page_title(key), xalign=0)
-        title.get_style_context().add_class("mc-page-title")
-        page.pack_start(title, False, False, 0)
+        compat.add_class(title, "mc-page-title")
+        compat.pack_start(page, title, False, False, 0)
         if key == "bar":
             self._build_bar_tab(page)
         elif key == "fonts":
@@ -456,7 +440,7 @@ class BarSettings(Gtk.Window):
         )
 
         def _apply(w):
-            ctx = w.get_style_context()
+            ctx = compat.style_context(w)
             # Arc Menu widgets — notebook tab strip, colour buttons and lists get
             # theme classes so they follow the palette like the rest of the
             # dialogue (ColorButton must precede Button — it subclasses it).
@@ -467,16 +451,16 @@ class BarSettings(Gtk.Window):
             elif isinstance(w, Gtk.ListBox):
                 ctx.add_class("settings-list")
             elif isinstance(w, Gtk.Button):
-                if w.get_relief() != Gtk.ReliefStyle.NONE:
-                    w.set_relief(Gtk.ReliefStyle.NONE)
+                if not compat.is_flat(w):
+                    compat.set_relief(w)
                 # The accent Apply button keeps its .settings-apply styling.
-                if not w.get_style_context().has_class("settings-apply"):
+                if not compat.style_context(w).has_class("settings-apply"):
                     ctx.add_class("settings-btn")
             elif isinstance(w, Gtk.Label):
                 ctx.add_class("settings-label")
             elif isinstance(w, Gtk.CheckButton):
                 ctx.add_class("settings-check")
-            elif isinstance(w, Gtk.RadioButton):
+            elif compat.is_radio(w):
                 ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.Switch):
                 ctx.add_class("settings-switch")
@@ -493,8 +477,8 @@ class BarSettings(Gtk.Window):
                         w.override_color(state, fg_rgba)
                     except Exception:
                         pass
-            if isinstance(w, Gtk.Container):
-                for child in w.get_children():
+            if compat.is_container(w):
+                for child in compat.children(w):
                     _apply(child)
 
         _apply(widget)
@@ -514,8 +498,8 @@ class BarSettings(Gtk.Window):
         self._height = Gtk.SpinButton.new_with_range(20, 120, 2)
         self._height.set_value(int(self._cfg.get("height", 42)))
         self._height.set_hexpand(True)
-        height_row.pack_start(height_label, False, False, 0)
-        height_row.pack_start(self._height, True, True, 0)
+        compat.pack_start(height_row, height_label, False, False, 0)
+        compat.pack_start(height_row, self._height, True, True, 0)
 
         # Width is a percentage only.
         width_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -526,9 +510,9 @@ class BarSettings(Gtk.Window):
         self._width.set_hexpand(True)
         width_hint = Gtk.Label(label="% of the monitor", xalign=0)
         width_hint.set_opacity(0.7)
-        width_row.pack_start(width_label, False, False, 0)
-        width_row.pack_start(self._width, True, True, 0)
-        width_row.pack_start(width_hint, False, False, 0)
+        compat.pack_start(width_row, width_label, False, False, 0)
+        compat.pack_start(width_row, self._width, True, True, 0)
+        compat.pack_start(width_row, width_hint, False, False, 0)
 
         align_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         align_label = Gtk.Label(label="Align:", xalign=1)
@@ -538,11 +522,11 @@ class BarSettings(Gtk.Window):
         )
         align_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in self._align_buttons.values():
-            align_box.pack_start(btn, False, False, 0)
+            compat.pack_start(align_box, btn, False, False, 0)
         self._align_buttons[self._cfg.get("align", "center")].set_active(True)
         align_box.set_hexpand(True)
-        align_row.pack_start(align_label, False, False, 0)
-        align_row.pack_start(align_box, True, True, 0)
+        compat.pack_start(align_row, align_label, False, False, 0)
+        compat.pack_start(align_row, align_box, True, True, 0)
 
         position_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         position_label = Gtk.Label(label="Position:", xalign=1)
@@ -552,11 +536,11 @@ class BarSettings(Gtk.Window):
         )
         position_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in self._position_buttons.values():
-            position_box.pack_start(btn, False, False, 0)
+            compat.pack_start(position_box, btn, False, False, 0)
         self._position_buttons[self._cfg.get("position", "bottom")].set_active(True)
         position_box.set_hexpand(True)
-        position_row.pack_start(position_label, False, False, 0)
-        position_row.pack_start(position_box, True, True, 0)
+        compat.pack_start(position_row, position_label, False, False, 0)
+        compat.pack_start(position_row, position_box, True, True, 0)
 
         gap_in_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         gap_in_label = Gtk.Label(label="Gap in:", xalign=1)
@@ -566,9 +550,9 @@ class BarSettings(Gtk.Window):
         self._gap_in.set_hexpand(True)
         gap_in_hint = Gtk.Label(label="px — bar to windows", xalign=0)
         gap_in_hint.set_opacity(0.7)
-        gap_in_row.pack_start(gap_in_label, False, False, 0)
-        gap_in_row.pack_start(self._gap_in, True, True, 0)
-        gap_in_row.pack_start(gap_in_hint, False, False, 0)
+        compat.pack_start(gap_in_row, gap_in_label, False, False, 0)
+        compat.pack_start(gap_in_row, self._gap_in, True, True, 0)
+        compat.pack_start(gap_in_row, gap_in_hint, False, False, 0)
 
         gap_out_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         gap_out_label = Gtk.Label(label="Gap out:", xalign=1)
@@ -578,9 +562,9 @@ class BarSettings(Gtk.Window):
         self._gap_out.set_hexpand(True)
         gap_out_hint = Gtk.Label(label="px — bar to screen edge", xalign=0)
         gap_out_hint.set_opacity(0.7)
-        gap_out_row.pack_start(gap_out_label, False, False, 0)
-        gap_out_row.pack_start(self._gap_out, True, True, 0)
-        gap_out_row.pack_start(gap_out_hint, False, False, 0)
+        compat.pack_start(gap_out_row, gap_out_label, False, False, 0)
+        compat.pack_start(gap_out_row, self._gap_out, True, True, 0)
+        compat.pack_start(gap_out_row, gap_out_hint, False, False, 0)
 
         opacity_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         opacity_label = Gtk.Label(label="Opacity:", xalign=1)
@@ -590,17 +574,17 @@ class BarSettings(Gtk.Window):
         self._opacity.set_hexpand(True)
         opacity_hint = Gtk.Label(label="%", xalign=0)
         opacity_hint.set_opacity(0.7)
-        opacity_row.pack_start(opacity_label, False, False, 0)
-        opacity_row.pack_start(self._opacity, True, True, 0)
-        opacity_row.pack_start(opacity_hint, False, False, 0)
+        compat.pack_start(opacity_row, opacity_label, False, False, 0)
+        compat.pack_start(opacity_row, self._opacity, True, True, 0)
+        compat.pack_start(opacity_row, opacity_hint, False, False, 0)
 
-        tab.pack_start(height_row, False, False, 0)
-        tab.pack_start(width_row, False, False, 0)
-        tab.pack_start(align_row, False, False, 0)
-        tab.pack_start(position_row, False, False, 0)
-        tab.pack_start(gap_in_row, False, False, 0)
-        tab.pack_start(gap_out_row, False, False, 0)
-        tab.pack_start(opacity_row, False, False, 0)
+        compat.pack_start(tab, height_row, False, False, 0)
+        compat.pack_start(tab, width_row, False, False, 0)
+        compat.pack_start(tab, align_row, False, False, 0)
+        compat.pack_start(tab, position_row, False, False, 0)
+        compat.pack_start(tab, gap_in_row, False, False, 0)
+        compat.pack_start(tab, gap_out_row, False, False, 0)
+        compat.pack_start(tab, opacity_row, False, False, 0)
 
     def _build_font_tab(self, page: Gtk.Box) -> None:
         tab = page
@@ -616,14 +600,14 @@ class BarSettings(Gtk.Window):
         self._font_button = Gtk.FontButton()
         self._font_button.set_use_font(True)
         base = self._font_family if self._font_family else "Sans"
-        self._font_button.set_font_name(f"{base} {font_size}")
+        compat.font_button_set_font_name(self._font_button, f"{base} {font_size}")
         self._font_button.connect("font-set", self._on_font_set)
         self._font_button.set_hexpand(True)
         family_hint = Gtk.Label(label="blank = system font", xalign=0)
         family_hint.set_opacity(0.7)
-        family_row.pack_start(family_label, False, False, 0)
-        family_row.pack_start(self._font_button, True, True, 0)
-        family_row.pack_start(family_hint, False, False, 0)
+        compat.pack_start(family_row, family_label, False, False, 0)
+        compat.pack_start(family_row, self._font_button, True, True, 0)
+        compat.pack_start(family_row, family_hint, False, False, 0)
 
         size_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         size_label = Gtk.Label(label="Size:", xalign=1)
@@ -633,9 +617,9 @@ class BarSettings(Gtk.Window):
         self._font_size.connect("value-changed", self._on_size_changed)
         size_hint = Gtk.Label(label="px", xalign=0)
         size_hint.set_opacity(0.7)
-        size_row.pack_start(size_label, False, False, 0)
-        size_row.pack_start(self._font_size, True, True, 0)
-        size_row.pack_start(size_hint, False, False, 0)
+        compat.pack_start(size_row, size_label, False, False, 0)
+        compat.pack_start(size_row, self._font_size, True, True, 0)
+        compat.pack_start(size_row, size_hint, False, False, 0)
 
         icon_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         icon_label = Gtk.Label(label="Icon size:", xalign=1)
@@ -644,9 +628,9 @@ class BarSettings(Gtk.Window):
         self._icon_size.set_value(icon_size)
         icon_hint = Gtk.Label(label="px (0 = auto; module icons + start)", xalign=0)
         icon_hint.set_opacity(0.7)
-        icon_row.pack_start(icon_label, False, False, 0)
-        icon_row.pack_start(self._icon_size, True, True, 0)
-        icon_row.pack_start(icon_hint, False, False, 0)
+        compat.pack_start(icon_row, icon_label, False, False, 0)
+        compat.pack_start(icon_row, self._icon_size, True, True, 0)
+        compat.pack_start(icon_row, icon_hint, False, False, 0)
 
         ql_icon_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         ql_icon_label = Gtk.Label(label="Quicklink icons:", xalign=1)
@@ -655,14 +639,14 @@ class BarSettings(Gtk.Window):
         self._ql_icon_size.set_value(int((self._cfg.get("quicklinks") or {}).get("icon_size", 0) or 0))
         ql_icon_hint = Gtk.Label(label="px (0 = follow icon size)", xalign=0)
         ql_icon_hint.set_opacity(0.7)
-        ql_icon_row.pack_start(ql_icon_label, False, False, 0)
-        ql_icon_row.pack_start(self._ql_icon_size, True, True, 0)
-        ql_icon_row.pack_start(ql_icon_hint, False, False, 0)
+        compat.pack_start(ql_icon_row, ql_icon_label, False, False, 0)
+        compat.pack_start(ql_icon_row, self._ql_icon_size, True, True, 0)
+        compat.pack_start(ql_icon_row, ql_icon_hint, False, False, 0)
 
-        tab.pack_start(family_row, False, False, 0)
-        tab.pack_start(size_row, False, False, 0)
-        tab.pack_start(icon_row, False, False, 0)
-        tab.pack_start(ql_icon_row, False, False, 0)
+        compat.pack_start(tab, family_row, False, False, 0)
+        compat.pack_start(tab, size_row, False, False, 0)
+        compat.pack_start(tab, icon_row, False, False, 0)
+        compat.pack_start(tab, ql_icon_row, False, False, 0)
         self._font_ready = True
 
     def _on_font_set(self, *_args) -> None:
@@ -687,7 +671,7 @@ class BarSettings(Gtk.Window):
             family = fd.get_family() or "Sans"
         except Exception:
             return
-        self._font_button.set_font_name(f"{family} {int(self._font_size.get_value())}")
+        compat.font_button_set_font_name(self._font_button, f"{family} {int(self._font_size.get_value())}")
 
     def _active_font_family(self) -> str:
         return self._font_family
@@ -703,12 +687,12 @@ class BarSettings(Gtk.Window):
         source_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in self._source_buttons.values():
             btn.connect("toggled", self._on_source_toggled)
-            source_box.pack_start(btn, False, False, 0)
+            compat.pack_start(source_box, btn, False, False, 0)
         source_key = theme.get("source", "pywal")
         self._source_buttons[source_key if source_key in self._source_buttons else "pywal"].set_active(True)
         source_box.set_hexpand(True)
-        source_row.pack_start(source_label, False, False, 0)
-        source_row.pack_start(source_box, True, True, 0)
+        compat.pack_start(source_row, source_label, False, False, 0)
+        compat.pack_start(source_row, source_box, True, True, 0)
 
         theme_row = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         theme_label = Gtk.Label(label="Imported theme:", xalign=0)
@@ -724,14 +708,14 @@ class BarSettings(Gtk.Window):
         themes_scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         themes_scroller.set_min_content_height(120)
         themes_scroller.set_max_content_height(180)
-        themes_scroller.add(self._themes_box)
+        compat.add(themes_scroller, self._themes_box)
         import_btn = Gtk.Button(label="Import theme…")
         import_btn.set_size_request(120, 26)
         import_btn.connect("clicked", self._on_import)
-        theme_row.pack_start(theme_label, False, False, 0)
-        theme_row.pack_start(themes_scroller, False, False, 0)
+        compat.pack_start(theme_row, theme_label, False, False, 0)
+        compat.pack_start(theme_row, themes_scroller, False, False, 0)
         themes_scroller.set_hexpand(True)
-        theme_row.pack_start(import_btn, False, False, 0)
+        compat.pack_start(theme_row, import_btn, False, False, 0)
 
         # Manual colours — shown/editable only when source == "manual".
         manual_label = Gtk.Label(label="Manual colours:", xalign=0)
@@ -752,16 +736,16 @@ class BarSettings(Gtk.Window):
             btn.set_hexpand(True)
             if key == "hover":
                 btn.set_use_alpha(True)
-            row.pack_start(lbl, False, False, 0)
-            row.pack_start(btn, True, True, 0)
-            self._manual_box.pack_start(row, False, False, 0)
+            compat.pack_start(row, lbl, False, False, 0)
+            compat.pack_start(row, btn, True, True, 0)
+            compat.pack_start(self._manual_box, row, False, False, 0)
             self._manual_colors[key] = btn
         self._sync_manual_colors()
 
-        tab.pack_start(source_row, False, False, 0)
-        tab.pack_start(theme_row, False, False, 0)
-        tab.pack_start(manual_label, False, False, 0)
-        tab.pack_start(self._manual_box, False, False, 0)
+        compat.pack_start(tab, source_row, False, False, 0)
+        compat.pack_start(tab, theme_row, False, False, 0)
+        compat.pack_start(tab, manual_label, False, False, 0)
+        compat.pack_start(tab, self._manual_box, False, False, 0)
 
     def _sync_manual_colors(self) -> None:
         """Load the config's manual theme colours into the colour buttons."""
@@ -800,7 +784,7 @@ class BarSettings(Gtk.Window):
             wrap=True,
         )
         hint.set_opacity(0.8)
-        tab.pack_start(hint, False, False, 0)
+        compat.pack_start(tab, hint, False, False, 0)
 
         enable_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         enable_label = Gtk.Label(label="Animated border:", xalign=1)
@@ -808,9 +792,9 @@ class BarSettings(Gtk.Window):
         self._border_anim_enabled = Gtk.CheckButton()
         self._border_anim_enabled.set_active(bool(theme.get("border_animation", True)))
         self._border_anim_enabled.set_hexpand(True)
-        enable_row.pack_start(enable_label, False, False, 0)
-        enable_row.pack_start(self._border_anim_enabled, True, True, 0)
-        tab.pack_start(enable_row, False, False, 0)
+        compat.pack_start(enable_row, enable_label, False, False, 0)
+        compat.pack_start(enable_row, self._border_anim_enabled, True, True, 0)
+        compat.pack_start(tab, enable_row, False, False, 0)
 
         mode_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         mode_label = Gtk.Label(label="Mode:", xalign=1)
@@ -821,13 +805,13 @@ class BarSettings(Gtk.Window):
         mode_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for key, btn in self._anim_mode_buttons.items():
             btn.connect("toggled", self._on_anim_mode_toggled, key)
-            mode_box.pack_start(btn, False, False, 0)
+            compat.pack_start(mode_box, btn, False, False, 0)
         mode = str(anim_cfg.get("mode") or "high").lower()
         self._anim_mode_buttons[mode if mode in self._anim_mode_buttons else "high"].set_active(True)
         mode_box.set_hexpand(True)
-        mode_row.pack_start(mode_label, False, False, 0)
-        mode_row.pack_start(mode_box, True, True, 0)
-        tab.pack_start(mode_row, False, False, 0)
+        compat.pack_start(mode_row, mode_label, False, False, 0)
+        compat.pack_start(mode_row, mode_box, True, True, 0)
+        compat.pack_start(tab, mode_row, False, False, 0)
 
         speed_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         speed_label = Gtk.Label(label="Custom speed:", xalign=1)
@@ -837,10 +821,10 @@ class BarSettings(Gtk.Window):
         self._anim_speed.set_hexpand(True)
         speed_hint = Gtk.Label(label="Hyprland-style speed (mode=custom)", xalign=0)
         speed_hint.set_opacity(0.7)
-        speed_row.pack_start(speed_label, False, False, 0)
-        speed_row.pack_start(self._anim_speed, True, True, 0)
-        speed_row.pack_start(speed_hint, False, False, 0)
-        tab.pack_start(speed_row, False, False, 0)
+        compat.pack_start(speed_row, speed_label, False, False, 0)
+        compat.pack_start(speed_row, self._anim_speed, True, True, 0)
+        compat.pack_start(speed_row, speed_hint, False, False, 0)
+        compat.pack_start(tab, speed_row, False, False, 0)
 
         self._update_anim_speed_state()
 
@@ -880,7 +864,7 @@ class BarSettings(Gtk.Window):
 
         notebook = Gtk.Notebook()
         notebook.set_vexpand(True)
-        page.pack_start(notebook, True, True, 0)
+        compat.pack_start(page, notebook, True, True, 0)
 
         general = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self._build_arc_general(general, arc)
@@ -903,7 +887,7 @@ class BarSettings(Gtk.Window):
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_vexpand(True)
-        scroller.add(box)
+        compat.add(scroller, box)
         return scroller
 
     def _build_arc_general(self, tab: Gtk.Box, arc: dict) -> None:
@@ -913,7 +897,7 @@ class BarSettings(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
-        tab.pack_start(hint, False, False, 0)
+        compat.pack_start(tab, hint, False, False, 0)
 
         self._arc_enabled = self._radio_bool_row(tab, "Enabled", bool(arc.get("enabled", True)))
 
@@ -931,9 +915,9 @@ class BarSettings(Gtk.Window):
             current = "bottom-right"
         self._arc_position[current].set_active(True)
         grid.set_hexpand(True)
-        pos_row.pack_start(pos_label, False, False, 0)
-        pos_row.pack_start(grid, True, True, 0)
-        tab.pack_start(pos_row, False, False, 0)
+        compat.pack_start(pos_row, pos_label, False, False, 0)
+        compat.pack_start(pos_row, grid, True, True, 0)
+        compat.pack_start(tab, pos_row, False, False, 0)
 
         shape_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         shape_label = Gtk.Label(label="Shape:", xalign=1)
@@ -941,12 +925,12 @@ class BarSettings(Gtk.Window):
         self._arc_shape = _radio_group([("circle", "Circle"), ("square", "Square")])
         shape_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in self._arc_shape.values():
-            shape_box.pack_start(btn, False, False, 0)
+            compat.pack_start(shape_box, btn, False, False, 0)
         self._arc_shape[arc.get("shape", "circle")].set_active(True)
         shape_box.set_hexpand(True)
-        shape_row.pack_start(shape_label, False, False, 0)
-        shape_row.pack_start(shape_box, True, True, 0)
-        tab.pack_start(shape_row, False, False, 0)
+        compat.pack_start(shape_row, shape_label, False, False, 0)
+        compat.pack_start(shape_row, shape_box, True, True, 0)
+        compat.pack_start(tab, shape_row, False, False, 0)
 
         self._arc_radius = self._spin_row(tab, "Radius (px)", arc.get("radius", 140), 40, 600, 10)
         self._arc_margin = self._spin_row(tab, "Edge padding", arc.get("margin", 24), 0, 200, 2)
@@ -963,10 +947,10 @@ class BarSettings(Gtk.Window):
         self._arc_fab_glyph.set_hexpand(True)
         icon_hint = Gtk.Label(label="Nerd Font codepoint (blank = icon)", xalign=0)
         icon_hint.set_opacity(0.7)
-        icon_row.pack_start(icon_label, False, False, 0)
-        icon_row.pack_start(self._arc_fab_glyph, True, True, 0)
-        icon_row.pack_start(icon_hint, False, False, 0)
-        tab.pack_start(icon_row, False, False, 0)
+        compat.pack_start(icon_row, icon_label, False, False, 0)
+        compat.pack_start(icon_row, self._arc_fab_glyph, True, True, 0)
+        compat.pack_start(icon_row, icon_hint, False, False, 0)
+        compat.pack_start(tab, icon_row, False, False, 0)
 
         self._arc_unfocus = self._radio_bool_row(tab, "Close on unfocus", bool(arc.get("close_on_unfocus", False)))
         self._arc_click = self._radio_bool_row(tab, "Close on item click", bool(arc.get("close_on_click", True)))
@@ -978,7 +962,7 @@ class BarSettings(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
-        tab.pack_start(hint, False, False, 0)
+        compat.pack_start(tab, hint, False, False, 0)
         self._arc_pywal = self._radio_bool_row(tab, "Use pywal colors", bool(arc.get("use_pywal", True)))
         self._arc_follow = self._radio_bool_row(tab, "Follow bar theme", bool(arc.get("follow_bar", True)))
         self._arc_transparent = self._radio_bool_row(tab, "Transparent (icons only)", bool(arc.get("transparent", False)))
@@ -989,7 +973,7 @@ class BarSettings(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
-        tab.pack_start(hint, False, False, 0)
+        compat.pack_start(tab, hint, False, False, 0)
         self._arc_fab_color = Gtk.ColorButton()
         self._arc_fab_color.set_rgba(_hex_to_rgba(arc.get("fab_color", "#c084fc")))
         self._arc_item_color = Gtk.ColorButton()
@@ -998,16 +982,16 @@ class BarSettings(Gtk.Window):
         fab_color_label = Gtk.Label(label="Menu color:", xalign=1)
         fab_color_label.set_size_request(70, -1)
         self._arc_fab_color.set_hexpand(True)
-        fab_color_row.pack_start(fab_color_label, False, False, 0)
-        fab_color_row.pack_start(self._arc_fab_color, True, True, 0)
-        tab.pack_start(fab_color_row, False, False, 0)
+        compat.pack_start(fab_color_row, fab_color_label, False, False, 0)
+        compat.pack_start(fab_color_row, self._arc_fab_color, True, True, 0)
+        compat.pack_start(tab, fab_color_row, False, False, 0)
         item_color_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         item_color_label = Gtk.Label(label="Item color:", xalign=1)
         item_color_label.set_size_request(70, -1)
         self._arc_item_color.set_hexpand(True)
-        item_color_row.pack_start(item_color_label, False, False, 0)
-        item_color_row.pack_start(self._arc_item_color, True, True, 0)
-        tab.pack_start(item_color_row, False, False, 0)
+        compat.pack_start(item_color_row, item_color_label, False, False, 0)
+        compat.pack_start(item_color_row, self._arc_item_color, True, True, 0)
+        compat.pack_start(tab, item_color_row, False, False, 0)
 
     def _build_arc_items_tab(self, tab: Gtk.Box) -> None:
         hint = Gtk.Label(
@@ -1016,7 +1000,7 @@ class BarSettings(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
-        tab.pack_start(hint, False, False, 0)
+        compat.pack_start(tab, hint, False, False, 0)
         self._arc_list = Gtk.ListBox()
         self._arc_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self._populate_arc_items()
@@ -1024,11 +1008,11 @@ class BarSettings(Gtk.Window):
         items_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         items_scroll.set_min_content_height(160)
         items_scroll.set_vexpand(True)
-        items_scroll.add(self._arc_list)
-        tab.pack_start(items_scroll, True, True, 0)
+        compat.add(items_scroll, self._arc_list)
+        compat.pack_start(tab, items_scroll, True, True, 0)
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        up_btn = Gtk.Button.new_from_icon_name("go-up-symbolic", Gtk.IconSize.BUTTON)
-        down_btn = Gtk.Button.new_from_icon_name("go-down-symbolic", Gtk.IconSize.BUTTON)
+        up_btn = compat.new_button_from_icon_name("go-up-symbolic")
+        down_btn = compat.new_button_from_icon_name("go-down-symbolic")
         add_btn = Gtk.Button(label="Add")
         edit_btn = Gtk.Button(label="Edit")
         remove_btn = Gtk.Button(label="Remove")
@@ -1040,8 +1024,8 @@ class BarSettings(Gtk.Window):
         edit_btn.connect("clicked", self._on_arc_edit)
         remove_btn.connect("clicked", self._on_arc_remove)
         for b in (up_btn, down_btn, add_btn, edit_btn, remove_btn):
-            btn_row.pack_start(b, False, False, 0)
-        tab.pack_start(btn_row, False, False, 0)
+            compat.pack_start(btn_row, b, False, False, 0)
+        compat.pack_start(tab, btn_row, False, False, 0)
 
     def _radio_bool_row(self, tab: Gtk.Box, label: str, active: bool) -> Gtk.RadioButton:
         """A label + an Enable/Disable radio-button pair.
@@ -1056,11 +1040,11 @@ class BarSettings(Gtk.Window):
         buttons["enable" if active else "disable"].set_active(True)
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in buttons.values():
-            box.pack_start(btn, False, False, 0)
+            compat.pack_start(box, btn, False, False, 0)
         box.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(box, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, box, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return buttons["enable"]
 
     def _spin_row(self, tab: Gtk.Box, label: str, value: int, lo: int, hi: int, step: int) -> Gtk.SpinButton:
@@ -1070,9 +1054,9 @@ class BarSettings(Gtk.Window):
         spin = Gtk.SpinButton.new_with_range(lo, hi, step)
         spin.set_value(int(value))
         spin.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(spin, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, spin, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return spin
 
     # ── arc menu items ───────────────────────────────────────────
@@ -1080,7 +1064,7 @@ class BarSettings(Gtk.Window):
     def _populate_arc_items(self) -> None:
         from .arcmenu import _face_widget
 
-        for child in self._arc_list.get_children():
+        for child in compat.children(self._arc_list):
             self._arc_list.remove(child)
         for item in self._arc_items:
             row = Gtk.ListBoxRow()
@@ -1092,7 +1076,7 @@ class BarSettings(Gtk.Window):
             icon = _face_widget(
                 24, item.get("glyph", ""), item.get("icon", "application-x-executable"), self._theme_fg()
             )
-            hbox.pack_start(icon, False, False, 0)
+            compat.pack_start(hbox, icon, False, False, 0)
             labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             title = Gtk.Label(
                 label=item.get("tooltip") or item.get("command") or item.get("action", ""),
@@ -1103,12 +1087,12 @@ class BarSettings(Gtk.Window):
                 xalign=0, width_chars=46, ellipsize=True,
             )
             sub.set_opacity(0.7)
-            labels.pack_start(title, False, False, 0)
-            labels.pack_start(sub, False, False, 0)
-            hbox.pack_start(labels, True, True, 0)
-            row.add(hbox)
-            self._arc_list.add(row)
-        self._arc_list.show_all()
+            compat.pack_start(labels, title, False, False, 0)
+            compat.pack_start(labels, sub, False, False, 0)
+            compat.pack_start(hbox, labels, True, True, 0)
+            compat.add(row, hbox)
+            compat.add(self._arc_list, row)
+        compat.show_all(self._arc_list)
 
     def _arc_selected_index(self) -> int | None:
         row = self._arc_list.get_selected_row()
@@ -1207,7 +1191,7 @@ class BarSettings(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
-        page.pack_start(hint, False, False, 0)
+        compat.pack_start(page, hint, False, False, 0)
 
         self._menu_enabled = self._radio_bool_row(
             page, "Enabled", bool(menu.get("enabled", True))
@@ -1225,15 +1209,15 @@ class BarSettings(Gtk.Window):
         )
         layout_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in self._menu_layout.values():
-            layout_box.pack_start(btn, False, False, 0)
+            compat.pack_start(layout_box, btn, False, False, 0)
         current = menu.get("layout", "whisker")
         if current not in self._menu_layout:
             current = "whisker"
         self._menu_layout[current].set_active(True)
         layout_box.set_hexpand(True)
-        layout_row.pack_start(layout_label, False, False, 0)
-        layout_row.pack_start(layout_box, True, True, 0)
-        page.pack_start(layout_row, False, False, 0)
+        compat.pack_start(layout_row, layout_label, False, False, 0)
+        compat.pack_start(layout_row, layout_box, True, True, 0)
+        compat.pack_start(page, layout_row, False, False, 0)
 
         pos_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         pos_label = Gtk.Label(label="Position:", xalign=1)
@@ -1245,19 +1229,19 @@ class BarSettings(Gtk.Window):
             [(key, label.replace(" ", "\n")) for key, label in self._MENU_POSITIONS]
         )
         auto_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        auto_box.pack_start(self._menu_position["auto"], False, False, 0)
-        pos_box.pack_start(auto_box, False, False, 0)
+        compat.pack_start(auto_box, self._menu_position["auto"], False, False, 0)
+        compat.pack_start(pos_box, auto_box, False, False, 0)
         grid = Gtk.Grid(row_spacing=2, column_spacing=4)
         for i, (key, _label) in enumerate(self._MENU_POSITIONS):
             grid.attach(self._menu_position[key], i % 3, i // 3, 1, 1)
-        pos_box.pack_start(grid, False, False, 0)
+        compat.pack_start(pos_box, grid, False, False, 0)
         current = menu.get("position", "auto")
         if current not in self._menu_position:
             current = "auto"
         self._menu_position[current].set_active(True)
-        pos_row.pack_start(pos_label, False, False, 0)
-        pos_row.pack_start(pos_box, True, True, 0)
-        page.pack_start(pos_row, False, False, 0)
+        compat.pack_start(pos_row, pos_label, False, False, 0)
+        compat.pack_start(pos_row, pos_box, True, True, 0)
+        compat.pack_start(page, pos_row, False, False, 0)
 
         align_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         align_label = Gtk.Label(label="Align:", xalign=1)
@@ -1267,15 +1251,15 @@ class BarSettings(Gtk.Window):
         )
         align_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         for btn in self._menu_align.values():
-            align_box.pack_start(btn, False, False, 0)
+            compat.pack_start(align_box, btn, False, False, 0)
         align = menu.get("align", "left")
         if align not in self._menu_align:
             align = "left"
         self._menu_align[align].set_active(True)
         align_box.set_hexpand(True)
-        align_row.pack_start(align_label, False, False, 0)
-        align_row.pack_start(align_box, True, True, 0)
-        page.pack_start(align_row, False, False, 0)
+        compat.pack_start(align_row, align_label, False, False, 0)
+        compat.pack_start(align_row, align_box, True, True, 0)
+        compat.pack_start(page, align_row, False, False, 0)
 
         self._menu_gap_in = self._spin_row(page, "Gap in (px)", menu.get("gap_in", 4), 0, 60, 2)
         self._menu_gap_out = self._spin_row(page, "Gap out (px)", menu.get("gap_out", 5), 0, 60, 2)
@@ -1334,7 +1318,7 @@ class BarSettings(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
-        page.pack_start(hint, False, False, 0)
+        compat.pack_start(page, hint, False, False, 0)
 
         self._quicklink_value_labels: dict[str, Gtk.Label] = {}
         for link_id, label, _resolver in self._QUICKLINK_APPS:
@@ -1346,10 +1330,10 @@ class BarSettings(Gtk.Window):
             value.set_hexpand(True)
             edit = Gtk.Button(label="Choose\u2026")
             edit.connect("clicked", self._on_quicklink_edit, link_id)
-            row.pack_start(lbl, False, False, 0)
-            row.pack_start(value, True, True, 0)
-            row.pack_start(edit, False, False, 0)
-            page.pack_start(row, False, False, 0)
+            compat.pack_start(row, lbl, False, False, 0)
+            compat.pack_start(row, value, True, True, 0)
+            compat.pack_start(row, edit, False, False, 0)
+            compat.pack_start(page, row, False, False, 0)
             self._quicklink_value_labels[link_id] = value
         self._refresh_quicklink_values()
 
@@ -1420,7 +1404,7 @@ class BarSettings(Gtk.Window):
             wrap=True,
         )
         hint.set_opacity(0.8)
-        page.pack_start(hint, False, False, 0)
+        compat.pack_start(page, hint, False, False, 0)
 
         self._widgets_enabled = self._radio_bool_row(
             page, "Desktop widgets", bool(widgets.get("enabled", True))
@@ -1431,7 +1415,7 @@ class BarSettings(Gtk.Window):
 
         notebook = Gtk.Notebook()
         notebook.set_vexpand(True)
-        page.pack_start(notebook, True, True, 0)
+        compat.pack_start(page, notebook, True, True, 0)
 
         self._widget_controls: dict[str, dict] = {}
         for wid in WIDGET_IDS:
@@ -1638,9 +1622,9 @@ class BarSettings(Gtk.Window):
         elif keys:
             combo.set_active(0)
         combo.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(combo, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, combo, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return combo
 
     def _entry_row(self, tab: Gtk.Box, label: str, value) -> Gtk.Entry:
@@ -1650,9 +1634,9 @@ class BarSettings(Gtk.Window):
         entry = Gtk.Entry()
         entry.set_text(str(value or ""))
         entry.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(entry, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, entry, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return entry
 
     def _check_row(self, tab: Gtk.Box, label: str, active: bool) -> Gtk.CheckButton:
@@ -1662,9 +1646,9 @@ class BarSettings(Gtk.Window):
         check = Gtk.CheckButton()
         check.set_active(bool(active))
         check.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(check, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, check, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return check
 
     def _float_row(self, tab: Gtk.Box, label: str, value, lo: float, hi: float, step: float) -> Gtk.SpinButton:
@@ -1678,9 +1662,9 @@ class BarSettings(Gtk.Window):
         except (TypeError, ValueError):
             spin.set_value(lo)
         spin.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(spin, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, spin, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return spin
 
     def _percent_row(self, tab: Gtk.Box, label: str, value) -> Gtk.Scale:
@@ -1694,10 +1678,10 @@ class BarSettings(Gtk.Window):
             scale.set_value(75)
         scale.set_draw_value(True)
         scale.set_hexpand(True)
-        scale.get_style_context().add_class("settings-scale")
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(scale, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.add_class(scale, "settings-scale")
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, scale, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return scale
 
     def _color_button_row(self, tab: Gtk.Box, label: str, value) -> Gtk.ColorButton:
@@ -1707,9 +1691,9 @@ class BarSettings(Gtk.Window):
         button = Gtk.ColorButton()
         button.set_rgba(_hex_to_rgba(value or "#c084fc"))
         button.set_hexpand(True)
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(button, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, button, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return button
 
     def _widget_color_row(self, tab: Gtk.Box, label: str, value, fallback: str):
@@ -1728,10 +1712,10 @@ class BarSettings(Gtk.Window):
         button.set_rgba(_hex_to_rgba(value or fallback))
         button.set_sensitive(custom)
         follow.connect("toggled", lambda c: button.set_sensitive(not c.get_active()))
-        row.pack_start(lbl, False, False, 0)
-        row.pack_start(follow, False, False, 0)
-        row.pack_start(button, True, True, 0)
-        tab.pack_start(row, False, False, 0)
+        compat.pack_start(row, lbl, False, False, 0)
+        compat.pack_start(row, follow, False, False, 0)
+        compat.pack_start(row, button, True, True, 0)
+        compat.pack_start(tab, row, False, False, 0)
         return follow, button
 
     @staticmethod
@@ -1896,17 +1880,17 @@ class BarSettings(Gtk.Window):
             wrap=True,
         )
         hint.set_opacity(0.8)
-        tab.pack_start(hint, False, False, 0)
+        compat.pack_start(tab, hint, False, False, 0)
 
         list_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         for mid in MODULE_IDS:
-            list_box.pack_start(self._make_row(mid), False, False, 0)
+            compat.pack_start(list_box, self._make_row(mid), False, False, 0)
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_vexpand(True)
-        scroller.add(list_box)
-        tab.pack_start(scroller, True, True, 0)
+        compat.add(scroller, list_box)
+        compat.pack_start(tab, scroller, True, True, 0)
 
     def _width_percent(self) -> int:
         width = str(self._cfg.get("width", "100%"))
@@ -1924,21 +1908,21 @@ class BarSettings(Gtk.Window):
         check.set_active(mid not in self._hidden)
         check.connect("toggled", self._on_show, mid)
         check.set_hexpand(True)
-        row.pack_start(check, True, True, 0)
+        compat.pack_start(row, check, True, True, 0)
 
         position = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         buttons = _radio_group([(s, SECTION_LABELS[s]) for s in SECTION_ORDER])
         for s, btn in buttons.items():
             btn.connect("toggled", self._on_position, mid, s)
-            position.pack_start(btn, False, False, 0)
-        row.pack_start(position, False, False, 0)
+            compat.pack_start(position, btn, False, False, 0)
+        compat.pack_start(row, position, False, False, 0)
 
-        up = Gtk.Button.new_from_icon_name("go-up-symbolic", Gtk.IconSize.BUTTON)
-        down = Gtk.Button.new_from_icon_name("go-down-symbolic", Gtk.IconSize.BUTTON)
+        up = compat.new_button_from_icon_name("go-up-symbolic")
+        down = compat.new_button_from_icon_name("go-down-symbolic")
         up.connect("clicked", self._on_move, mid, -1)
         down.connect("clicked", self._on_move, mid, 1)
-        row.pack_start(up, False, False, 0)
-        row.pack_start(down, False, False, 0)
+        compat.pack_start(row, up, False, False, 0)
+        compat.pack_start(row, down, False, False, 0)
 
         self._rows[mid] = {
             "check": check,
@@ -2134,14 +2118,14 @@ class BarSettings(Gtk.Window):
                 other.handler_unblock_by_func(self._on_theme_toggled)
 
     def _refresh_themes(self, select: str | None = None) -> None:
-        for child in self._themes_box.get_children():
+        for child in compat.children(self._themes_box):
             self._themes_box.remove(child)
         self._theme_buttons = {}
         self._themes = list_themes()
         if not self._themes:
             label = Gtk.Label(label="No themes imported yet — use Import…", xalign=0)
             label.set_opacity(0.7)
-            self._themes_box.add(label)
+            compat.add(self._themes_box, label)
         else:
             for name in self._themes:
                 btn = Gtk.CheckButton(label=name)
@@ -2150,8 +2134,8 @@ class BarSettings(Gtk.Window):
                 btn.set_halign(Gtk.Align.FILL)
                 btn.connect("toggled", self._on_theme_toggled, name)
                 self._theme_buttons[name] = btn
-                self._themes_box.add(btn)
-        self._themes_box.show_all()
+                compat.add(self._themes_box, btn)
+        compat.show_all(self._themes_box)
         self._update_source_state()
 
     def _on_import(self, *_args) -> None:
@@ -2176,17 +2160,18 @@ class BarSettings(Gtk.Window):
                         self._update_source_state()
                         self._actions["set_source"]("imported")
                         self._actions["set_theme_name"](name)
-            dialog.destroy()
+            compat.destroy(dialog)
 
         chooser.connect("response", on_response)
-        chooser.show()
+        compat.show(chooser)
 
 class _ArcItemDialog(Gtk.Window):
     """Add/edit a single arc menu item (icon, command, tooltip), with an
     embedded application search panel."""
 
     def __init__(self, parent, item: dict | None = None):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        super().__init__() if compat.IS_GTK4 else super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self.set_title("Arc Menu Item")
         self.set_transient_for(parent)
         self.set_modal(True)
@@ -2196,20 +2181,20 @@ class _ArcItemDialog(Gtk.Window):
         _theme_dialog(self)
         self._apps = _load_installed_apps()
 
-        self.connect("key-press-event", self._on_key_press)
+        compat.on_key(self, self._on_key_press)
 
         item = item or {"icon": "", "command": "", "tooltip": ""}
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.get_style_context().add_class("popup-box")
+        compat.add_class(box, "popup-box")
         box.set_margin_start(12)
         box.set_margin_end(12)
         box.set_margin_top(12)
         box.set_margin_bottom(12)
-        self.add(box)
+        compat.add(self, box)
 
         title_label = Gtk.Label(label="Arc Menu Item", xalign=0)
-        title_label.get_style_context().add_class("mc-page-title")
-        box.pack_start(title_label, False, False, 0)
+        compat.add_class(title_label, "mc-page-title")
+        compat.pack_start(box, title_label, False, False, 0)
 
         def field(label: str, value: str) -> Gtk.Entry:
             row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -2217,9 +2202,9 @@ class _ArcItemDialog(Gtk.Window):
             lbl.set_size_request(90, -1)
             entry = Gtk.Entry()
             entry.set_text(value or "")
-            row.pack_start(lbl, False, False, 0)
-            row.pack_start(entry, True, True, 0)
-            box.pack_start(row, False, False, 0)
+            compat.pack_start(row, lbl, False, False, 0)
+            compat.pack_start(row, entry, True, True, 0)
+            compat.pack_start(box, row, False, False, 0)
             return entry
 
         self._glyph_entry = field("Glyph", item.get("glyph", ""))
@@ -2230,7 +2215,7 @@ class _ArcItemDialog(Gtk.Window):
 
         search_btn = Gtk.Button(label="Search Applications...")
         search_btn.connect("clicked", lambda _b: self._show_app_search())
-        box.pack_start(search_btn, False, False, 0)
+        compat.pack_start(box, search_btn, False, False, 0)
 
         self._search = Gtk.SearchEntry()
         self._search.set_placeholder_text("Type to search applications...")
@@ -2244,20 +2229,20 @@ class _ArcItemDialog(Gtk.Window):
         self._apps_scroll = Gtk.ScrolledWindow()
         self._apps_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self._apps_scroll.set_size_request(-1, 280)
-        self._apps_scroll.add(self._apps_list)
+        compat.add(self._apps_scroll, self._apps_list)
 
         hide_btn = Gtk.Button(label="Hide Search")
         hide_btn.connect("clicked", lambda _b: self._hide_app_search())
 
         search_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        search_row.pack_start(self._search, True, True, 0)
-        search_row.pack_start(hide_btn, False, False, 0)
+        compat.pack_start(search_row, self._search, True, True, 0)
+        compat.pack_start(search_row, hide_btn, False, False, 0)
 
         for widget in (self._search, search_row, self._apps_scroll):
-            widget.set_no_show_all(True)
+            compat.hide_from_show_all(widget)
 
-        box.pack_start(search_row, False, False, 0)
-        box.pack_start(self._apps_scroll, True, True, 0)
+        compat.pack_start(box, search_row, False, False, 0)
+        compat.pack_start(box, self._apps_scroll, True, True, 0)
 
         hint = Gtk.Label(
             label="Glyph: Nerd Font codepoint (e.g. \\uf120).\n"
@@ -2266,7 +2251,7 @@ class _ArcItemDialog(Gtk.Window):
             xalign=0, wrap=True,
         )
         hint.set_margin_top(4)
-        box.pack_start(hint, False, False, 0)
+        compat.pack_start(box, hint, False, False, 0)
 
         # Buttons live in the content area (single popup-box), not an action
         # area, so there is one bordered box — not two stacked ones.
@@ -2275,25 +2260,25 @@ class _ArcItemDialog(Gtk.Window):
         cancel_btn = Gtk.Button(label="Cancel")
         cancel_btn.connect("clicked", lambda _b: self._finish(None))
         save_btn = Gtk.Button(label="Save")
-        save_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(save_btn, "settings-apply")
         save_btn.set_can_default(True)
         save_btn.connect("clicked", lambda _b: self._finish(self.get_item()))
-        btn_row.pack_start(cancel_btn, False, False, 0)
-        btn_row.pack_start(save_btn, False, False, 0)
+        compat.pack_start(btn_row, cancel_btn, False, False, 0)
+        compat.pack_start(btn_row, save_btn, False, False, 0)
         save_btn.grab_default()
-        box.pack_start(btn_row, False, False, 0)
+        compat.pack_start(box, btn_row, False, False, 0)
 
         # Theme the dialog's widgets (content + buttons) so it matches
         # the bar settings dialogue's pywal/imported-theme look.
         if hasattr(parent, "_apply_theme_fg_class"):
             parent._apply_theme_fg_class(self)
-        self.show_all()
+        compat.show_all(self)
 
     def run_dialog(self) -> dict | None:
         # Block like Gtk.Dialog.run(): a nested main loop that quits on _finish.
-        Gtk.main()
+        compat.run_main()
         result = self._result
-        self.destroy()
+        compat.destroy(self)
         return result
 
     def _finish(self, result: dict | None) -> None:
@@ -2301,7 +2286,7 @@ class _ArcItemDialog(Gtk.Window):
             return
         self._finished = True
         self._result = result
-        Gtk.main_quit()
+        compat.quit_main()
 
     def _show_app_search(self) -> None:
         self._search.set_visible(True)
@@ -2317,7 +2302,7 @@ class _ArcItemDialog(Gtk.Window):
     def _populate_apps(self) -> None:
         from .arcmenu import load_icon_image
 
-        for child in self._apps_list.get_children():
+        for child in compat.children(self._apps_list):
             self._apps_list.remove(child)
         query = self._search.get_text().strip().lower()
         fg = self._parent._theme_fg()
@@ -2331,18 +2316,18 @@ class _ArcItemDialog(Gtk.Window):
             hbox.set_margin_start(6)
             hbox.set_margin_end(6)
             icon = load_icon_image(app["icon"], 24, fg)
-            hbox.pack_start(icon, False, False, 0)
+            compat.pack_start(hbox, icon, False, False, 0)
             labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             title = Gtk.Label(label=app["name"], xalign=0)
             sub = Gtk.Label(label=app.get("comment") or app["exec"], xalign=0, width_chars=45, ellipsize=True)
             sub.set_opacity(0.7)
-            labels.pack_start(title, False, False, 0)
-            labels.pack_start(sub, False, False, 0)
-            hbox.pack_start(labels, True, True, 0)
-            row.add(hbox)
+            compat.pack_start(labels, title, False, False, 0)
+            compat.pack_start(labels, sub, False, False, 0)
+            compat.pack_start(hbox, labels, True, True, 0)
+            compat.add(row, hbox)
             row._app = app
-            self._apps_list.add(row)
-        self._apps_list.show_all()
+            compat.add(self._apps_list, row)
+        compat.show_all(self._apps_list)
 
     def _select_app(self) -> None:
         from .arcmenu import glyph_for_app
@@ -2391,7 +2376,8 @@ class _QuicklinkPickerDialog(Gtk.Window):
     """
 
     def __init__(self, parent, title: str, current: str):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        super().__init__() if compat.IS_GTK4 else super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self.set_title(f"Choose {title}")
         self.set_transient_for(parent)
         self.set_modal(True)
@@ -2401,29 +2387,29 @@ class _QuicklinkPickerDialog(Gtk.Window):
         _theme_dialog(self)
         self._apps = _load_installed_apps()
 
-        self.connect("key-press-event", self._on_key_press)
+        compat.on_key(self, self._on_key_press)
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.get_style_context().add_class("popup-box")
+        compat.add_class(box, "popup-box")
         box.set_margin_start(12)
         box.set_margin_end(12)
         box.set_margin_top(12)
         box.set_margin_bottom(12)
-        self.add(box)
+        compat.add(self, box)
 
         title_label = Gtk.Label(label=f"Choose {title}", xalign=0)
-        title_label.get_style_context().add_class("mc-page-title")
-        box.pack_start(title_label, False, False, 0)
+        compat.add_class(title_label, "mc-page-title")
+        compat.pack_start(box, title_label, False, False, 0)
 
         hint = Gtk.Label(label=f"Current: {current or 'System default'}", xalign=0, wrap=True)
         hint.set_opacity(0.8)
-        box.pack_start(hint, False, False, 0)
+        compat.pack_start(box, hint, False, False, 0)
 
         self._search = Gtk.SearchEntry()
         self._search.set_placeholder_text("Type to search applications...")
         self._search.connect("search-changed", lambda _e: self._populate())
         self._search.connect("activate", lambda _e: self._select())
-        box.pack_start(self._search, False, False, 0)
+        compat.pack_start(box, self._search, False, False, 0)
 
         self._list = Gtk.ListBox()
         self._list.set_selection_mode(Gtk.SelectionMode.SINGLE)
@@ -2431,8 +2417,8 @@ class _QuicklinkPickerDialog(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_size_request(420, 300)
-        scroll.add(self._list)
-        box.pack_start(scroll, True, True, 0)
+        compat.add(scroll, self._list)
+        compat.pack_start(box, scroll, True, True, 0)
 
         # Buttons live in the content area (single popup-box), not an action
         # area, so there is one bordered box — not two stacked ones.
@@ -2442,20 +2428,20 @@ class _QuicklinkPickerDialog(Gtk.Window):
         system_btn.connect("clicked", lambda _b: self._finish(("", "")))
         cancel_btn = Gtk.Button(label="Cancel")
         cancel_btn.connect("clicked", lambda _b: self._finish(None))
-        btn_row.pack_start(system_btn, False, False, 0)
-        btn_row.pack_start(cancel_btn, False, False, 0)
-        box.pack_start(btn_row, False, False, 0)
+        compat.pack_start(btn_row, system_btn, False, False, 0)
+        compat.pack_start(btn_row, cancel_btn, False, False, 0)
+        compat.pack_start(box, btn_row, False, False, 0)
 
         self._populate()
         if hasattr(parent, "_apply_theme_fg_class"):
             parent._apply_theme_fg_class(self)
-        self.show_all()
+        compat.show_all(self)
 
     def run_dialog(self):
         # Block like Gtk.Dialog.run(): a nested main loop that quits on _finish.
-        Gtk.main()
+        compat.run_main()
         result = self._result
-        self.destroy()
+        compat.destroy(self)
         return result
 
     def _finish(self, result) -> None:
@@ -2463,7 +2449,7 @@ class _QuicklinkPickerDialog(Gtk.Window):
             return
         self._finished = True
         self._result = result
-        Gtk.main_quit()
+        compat.quit_main()
 
     def _on_key_press(self, _widget, event) -> bool:
         if event.keyval == Gdk.KEY_Escape:
@@ -2474,7 +2460,7 @@ class _QuicklinkPickerDialog(Gtk.Window):
     def _populate(self) -> None:
         from .arcmenu import load_icon_image
 
-        for child in self._list.get_children():
+        for child in compat.children(self._list):
             self._list.remove(child)
         query = self._search.get_text().strip().lower()
         fg = self._parent._theme_fg()
@@ -2488,18 +2474,18 @@ class _QuicklinkPickerDialog(Gtk.Window):
             hbox.set_margin_start(6)
             hbox.set_margin_end(6)
             icon = load_icon_image(app["icon"], 24, fg)
-            hbox.pack_start(icon, False, False, 0)
+            compat.pack_start(hbox, icon, False, False, 0)
             labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
             title = Gtk.Label(label=app["name"], xalign=0)
             sub = Gtk.Label(label=app.get("comment") or app["exec"], xalign=0, width_chars=42, ellipsize=True)
             sub.set_opacity(0.7)
-            labels.pack_start(title, False, False, 0)
-            labels.pack_start(sub, False, False, 0)
-            hbox.pack_start(labels, True, True, 0)
-            row.add(hbox)
+            compat.pack_start(labels, title, False, False, 0)
+            compat.pack_start(labels, sub, False, False, 0)
+            compat.pack_start(hbox, labels, True, True, 0)
+            compat.add(row, hbox)
             row._app = app
-            self._list.add(row)
-        self._list.show_all()
+            compat.add(self._list, row)
+        compat.show_all(self._list)
 
     def _select(self) -> None:
         row = self._list.get_selected_row() or self._list.get_row_at_index(0)

@@ -1,9 +1,10 @@
 """hyprtk-bar entry point.
 
 The bar is a plain always-running GTK window (layer-shell surface) driven by
-Gtk.main(). A SIGTERM quits it cleanly. Only one instance is allowed — a
-flock in $XDG_RUNTIME_DIR prevents duplicate bars stacking (e.g. from
-duplicate autostart entries).
+``compat.run_main()`` — a GLib.MainLoop on GTK4 (which removed ``Gtk.main``),
+or ``Gtk.main()`` under the GTK3 escape hatch. A SIGTERM quits it cleanly. Only
+one instance is allowed — a flock in $XDG_RUNTIME_DIR prevents duplicate bars
+stacking (e.g. from duplicate autostart entries).
 """
 
 # ─────────────────────────────────────────────────────────────────
@@ -23,12 +24,8 @@ import sys
 import threading
 from pathlib import Path
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-gi.require_version("GLibUnix", "2.0")
-
-from gi.repository import GLib, GLibUnix, Gtk
+from . import compat  # noqa: E402
+from .compat import GLib, GLibUnix, Gtk  # noqa: E402
 
 from . import proc  # noqa: E402
 from .app import BarWindow, select_monitors
@@ -111,7 +108,7 @@ def _start_surface_watchdog(ipc) -> None:
             logging.warning(
                 "hyprtk-bar layer surface vanished; restarting to restore the bar"
             )
-            Gtk.main_quit()
+            compat.quit_main()
         return GLib.SOURCE_REMOVE
 
     def _tick() -> bool:
@@ -154,7 +151,7 @@ def _run_window() -> int:
 
     windows = []
     for i, monitor in enumerate(monitors):
-        is_primary = i == 0 or monitor.is_primary()
+        is_primary = i == 0 or compat.monitor_is_primary(monitor)
         win = BarWindow(
             cfg,
             monitor=monitor,
@@ -162,40 +159,68 @@ def _run_window() -> int:
             is_primary=is_primary,
             start_ipc=(i == 0),
         )
-        win.show_all()
+        compat.show_all(win)
         windows.append(win)
     logging.info("started %d bar(s) on %d monitor(s)", len(windows), len(monitors))
 
-    # The arc menu overlay is owned by the bar process: created when the
-    # ``arcmenu`` module is enabled, themed with the bar's palette, and toggled
-    # by SIGUSR2 (a Hyprland keybinding signals the running bar).
-    arc_win = None
-    if (cfg.get("arcmenu") or {}).get("enabled", True):
-        arc_win = ArcMenuWindow(
-            cfg,
-            on_settings=lambda: _open_arc_settings(windows),
-        )
-        arc_win.show_all()
-        primary = next((w for w in windows if w.is_primary), windows[0])
-        primary.add_theme_extra_callback(arc_win.apply_bar_palette)
-        primary._bar.set_arcmenu_callback(lambda _block: arc_win.reload_from_cfg())
-        logging.info("started arc menu overlay")
+    primary = next((w for w in windows if w.is_primary), windows[0])
 
-    # The start menu (hyprtk-menu) is likewise owned by the bar process: created
-    # when the ``menu`` module is enabled, toggled by SIGUSR1 and by the bar's
-    # start button. Its settings open the bar settings dialogue's "Menu" page.
-    # Unlike the arc overlay it starts HIDDEN (the start button / keybind
-    # reveals it).
+    # The arc menu overlay is owned by the bar process and toggled by SIGUSR2 (a
+    # Hyprland keybinding signals the running bar). It is created on demand:
+    # enabling it from settings when it was off at startup must work, so the
+    # ``set_arcmenu`` callback creates the overlay if it does not exist yet, and
+    # only then reloads/hides it.
+    arc_win = None
+
+    def ensure_arc():
+        """Create the arc overlay on first need; return it (or None)."""
+        nonlocal arc_win
+        if arc_win is None:
+            arc_win = ArcMenuWindow(
+                cfg, on_settings=lambda: _open_arc_settings(windows)
+            )
+            compat.show_all(arc_win)
+            primary.add_theme_extra_callback(arc_win.apply_bar_palette)
+            if primary._palette_cache:
+                arc_win.apply_bar_palette(primary._palette_cache)
+            logging.info("started arc menu overlay")
+        return arc_win
+
+    def on_arc_config(_block) -> None:
+        if (cfg.get("arcmenu") or {}).get("enabled", True):
+            ensure_arc().reload_from_cfg()
+        elif arc_win is not None:
+            arc_win.reload_from_cfg()  # enabled off → hides the overlay
+
+    primary._bar.set_arcmenu_callback(on_arc_config)
+    if (cfg.get("arcmenu") or {}).get("enabled", True):
+        ensure_arc()
+
+    # The start menu (hyprtk-menu) is likewise owned by the bar process, toggled
+    # by SIGUSR1 and by the bar's start button; it starts HIDDEN (the start
+    # button / keybind reveals it). Created on demand for the same reason as the
+    # arc overlay: enabling it from settings must work without a restart.
     menu_win = None
+
+    def ensure_menu():
+        nonlocal menu_win
+        if menu_win is None:
+            menu_win = MenuWindow(
+                bar_cfg=cfg, on_settings=lambda: _open_menu_settings(windows)
+            )
+            logging.info("started start menu")
+        return menu_win
+
+    def on_menu_config(_block) -> None:
+        if (cfg.get("menu") or {}).get("enabled", True):
+            ensure_menu().reload_from_cfg()
+        elif menu_win is not None:
+            menu_win.reload_from_cfg()
+
+    primary._bar.set_menu_callback(lambda: ensure_menu().toggle())
+    primary._bar.set_menu_reload_callback(on_menu_config)
     if (cfg.get("menu") or {}).get("enabled", True):
-        menu_win = MenuWindow(
-            bar_cfg=cfg,
-            on_settings=lambda: _open_menu_settings(windows),
-        )
-        primary = next((w for w in windows if w.is_primary), windows[0])
-        primary._bar.set_menu_callback(lambda: menu_win.toggle())
-        primary._bar.set_menu_reload_callback(lambda _block: menu_win.reload_from_cfg())
-        logging.info("started start menu")
+        ensure_menu()
 
     # Desktop widgets (clock / weather / visualizer) are likewise owned by the
     # bar process: free-floating layer-shell surfaces, enabled and placed from
@@ -206,7 +231,6 @@ def _run_window() -> int:
     from .desktop import DesktopWidgetManager
 
     widget_mgr = DesktopWidgetManager(cfg, ipc)
-    primary = next((w for w in windows if w.is_primary), windows[0])
     primary.add_theme_extra_callback(widget_mgr.apply_theme)
     primary._bar.set_widgets_callback(lambda _block: widget_mgr.reload(cfg))
     if primary._palette_cache:
@@ -214,7 +238,7 @@ def _run_window() -> int:
     logging.info("started %d desktop widget(s)", len(widget_mgr._wins))
 
     def on_sigterm(*_args):
-        Gtk.main_quit()
+        compat.quit_main()
         return GLib.SOURCE_REMOVE
 
     def on_sigusr2(*_args):
@@ -251,7 +275,7 @@ def _run_window() -> int:
     _start_surface_watchdog(ipc)
 
     try:
-        Gtk.main()
+        compat.run_main()
     finally:
         if arc_win is not None:
             arc_win.destroy()
@@ -302,7 +326,7 @@ def _toggle_clipboard(windows) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="hyprtk-bar",
-        description="HYPRTK taskbar for Hyprland (GTK3 + layer shell).",
+        description="HYPRTK taskbar for Hyprland (GTK4 + layer shell).",
     )
     parser.add_argument(
         "--print-config",

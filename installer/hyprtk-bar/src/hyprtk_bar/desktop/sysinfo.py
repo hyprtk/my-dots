@@ -13,10 +13,8 @@ import platform
 import socket
 import threading
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import GLib, Gtk  # noqa: E402
 
 from .sampled import SampledWidget, clear, label, row  # noqa: E402
 
@@ -67,7 +65,7 @@ class SysInfoWidget(SampledWidget):
 
     def build_content(self) -> None:
         self._rows_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        self.root.pack_start(self._rows_box, False, False, 0)
+        compat.pack_start(self.root, self._rows_box, False, False, 0)
 
     def collect(self) -> dict:
         from ..monitor_data import drives, fmt_bytes, memory
@@ -128,13 +126,13 @@ class SysInfoWidget(SampledWidget):
         for flag, glyph, key, value in rows:
             if not self._block.get(flag, True) or not value:
                 continue
-            self._rows_box.pack_start(self._info_row(glyph, key, str(value)), False, False, 0)
+            compat.pack_start(self._rows_box, self._info_row(glyph, key, str(value)), False, False, 0)
         if self._block.get("show_disks", True) and data.get("disks"):
             count, size = data["disks"]
-            self._rows_box.pack_start(
+            compat.pack_start(self._rows_box, 
                 self._info_row("\uf0a0", "Disks", f"{count} × {size}"), False, False, 0
             )
-        self._rows_box.show_all()
+        compat.show_all(self._rows_box)
 
     def on_content_scale(self, scale: float) -> None:
         self._sample()
@@ -145,11 +143,11 @@ class SysInfoWidget(SampledWidget):
         line = row(8)
         icon = Glyph(glyph, "widget-icon")
         icon.set_pixel_size(max(8, int(round(16 * self._content_scale))))
-        line.pack_start(icon, False, False, 0)
+        compat.pack_start(line, icon, False, False, 0)
         name = label(key, "info-key")
         name.set_size_request(72, -1)
-        line.pack_start(name, False, False, 0)
+        compat.pack_start(line, name, False, False, 0)
         val = label(value, "info-val")
         val.set_ellipsize(3)
-        line.pack_start(val, True, True, 0)
+        compat.pack_start(line, val, True, True, 0)
         return line

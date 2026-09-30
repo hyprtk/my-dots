@@ -22,11 +22,8 @@ import threading
 import time
 from pathlib import Path
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GdkPixbuf, GLib, Gtk  # noqa: E402
 
 from dbus_next.constants import MessageType, NameFlag, RequestNameReply  # noqa: E402
 from dbus_next.glib import MessageBus  # noqa: E402
@@ -378,7 +375,7 @@ class SniItem:
                 safe = _safe_icon_theme_path(value)
                 if safe and not self._theme_paths_added:
                     try:
-                        Gtk.IconTheme.get_default().add_search_path(safe)
+                        compat.icon_theme().add_search_path(safe)
                     except Exception:
                         pass
                     self._theme_paths_added = True
@@ -490,7 +487,7 @@ class TrayButton(HoverButton):
         self._dbusmenu = None
         self._image = Gtk.Image()
         self._image.set_pixel_size(icon_size)
-        self.box.pack_start(self._image, True, True, 0)
+        compat.pack_start(self.box, self._image, True, True, 0)
 
         # Network (nm-applet) and bluetooth (blueman) icons get themed popup
         # tooltips like every other module; nm-applet's left click opens the
@@ -506,14 +503,14 @@ class TrayButton(HoverButton):
 
     def _monitor_geometry(self):
         """(x, y, w, h) of the bar's monitor, or the whole screen fallback."""
-        bar_win = self.get_toplevel()
+        bar_win = compat.toplevel(self)
         monitor = getattr(bar_win, "monitor", None)
         if monitor is not None:
             geo = monitor.get_geometry()
             return geo.x, geo.y, geo.width, geo.height
-        bar_alloc = bar_win.get_allocation()
-        screen = Gdk.Screen.get_default()
-        return bar_alloc.x, bar_alloc.y, screen.get_width(), screen.get_height()
+        bar_alloc = compat.allocation(bar_win)
+        sw, sh = compat.screen_size()
+        return bar_alloc.x, bar_alloc.y, sw, sh
 
     def _screen_xy(self) -> tuple[int, int]:
         """Approximate global pointer target for Activate/ContextMenu.
@@ -522,11 +519,11 @@ class TrayButton(HoverButton):
         position is computable from allocations. Applets (e.g. nm-applet) use
         these to anchor their popup menu next to the icon.
         """
-        bar_win = self.get_toplevel()
+        bar_win = compat.toplevel(self)
         base_x, base_y, _w, screen_h = self._monitor_geometry()
-        alloc = self.get_allocation()
+        alloc = compat.allocation(self)
         x = base_x + alloc.x + alloc.width // 2
-        bar_alloc = bar_win.get_allocation()
+        bar_alloc = compat.allocation(bar_win)
         if self._bar_edge == "top":
             y = base_y + alloc.y + alloc.height // 2
         else:
@@ -552,11 +549,11 @@ class TrayButton(HoverButton):
             )
             self._image.set_from_pixbuf(pixbuf)
         else:
-            self._image.set_from_icon_name(item.icon_name or GENERIC_ICON, Gtk.IconSize.INVALID)
+            compat.image_set_from_icon_name(self._image, item.icon_name or GENERIC_ICON)
             self._image.set_pixel_size(self._icon_size)
         if not (self._is_nm or self._is_blueman):
             self.set_tooltip_text(item.label())
-        ctx = self.box.get_style_context()
+        ctx = compat.style_context(self.box)
         if item.status == "Passive":
             ctx.add_class("dimmed")
         else:
@@ -589,7 +586,7 @@ class TrayButton(HoverButton):
             log.warning("could not open nm-connection-editor: %s", exc)
 
     def _show_dbus_menu(self, event) -> None:
-        """Render the item's com.canonical.dbusmenu (if it exports one) as a Gtk.Menu."""
+        """Render the item's com.canonical.dbusmenu (if it exports one) as a popover."""
         item = self._item
         bus = item._ctrl.bus if item._ctrl is not None else None
         if not (item.menu_path and bus):
@@ -602,26 +599,26 @@ class TrayButton(HoverButton):
         except Exception as exc:
             log.warning("failed to build tray menu: %s", exc)
 
-    def _popup_dbus_menu(self, menu, event) -> None:
-        if menu is None:
+    def _popup_dbus_menu(self, items, event=None) -> None:
+        if not items:
             return
-        menu.show_all()
-        # Anchor the menu to the tray button rather than ``popup_at_pointer``:
-        # the menu is popped up from the async dbus GetLayout callback, by which
-        # time the press event's GdkWindow can be freed (segfault in
-        # gdk_window_get_screen, seen with Whatsie). ``popup_at_widget`` uses
-        # the button's own live window, and a bare ``popup()`` lands the menu
-        # center-screen on this Wayland build. The bar-edge gravity opens the
-        # menu above a bottom bar and below a top bar.
+        if compat.IS_GTK4:
+            from .menus import MenuPopup
+            self._menu_popup = MenuPopup(items)
+            self._menu_popup.show_at(self)
+            return
+
+        from .menus import build_gtk3_menu
+        menu = build_gtk3_menu(items)
+        compat.show_all(menu)
+        # Anchor the menu to the tray button (popup_at_widget uses the button's
+        # own live window; a bare popup() lands center-screen on this build).
         if self._bar_edge == "top":
             widget_anchor, menu_anchor = Gdk.Gravity.NORTH_WEST, Gdk.Gravity.SOUTH_WEST
         else:
             widget_anchor, menu_anchor = Gdk.Gravity.SOUTH_WEST, Gdk.Gravity.NORTH_WEST
         menu.popup_at_widget(self, widget_anchor, menu_anchor, None)
-        # A Gtk.Menu is a popup window that lingers after dismissal unless
-        # destroyed; each open builds a fresh one, so release it on close to
-        # avoid accumulating hidden menu surfaces.
-        menu.connect("deactivate", lambda m: m.destroy())
+        menu.connect("deactivate", lambda m: compat.destroy(m))
 
 
 class Tray(Gtk.Box):
@@ -639,18 +636,18 @@ class Tray(Gtk.Box):
         if btn is None:
             btn = TrayButton(item, self._icon_size, self._bar_edge, self._cfg)
             self._buttons[key] = btn
-            self.pack_start(btn, False, False, 0)
+            compat.pack_start(self, btn, False, False, 0)
         btn.refresh()
-        self.show_all()
+        compat.show_all(self)
 
     def remove_item(self, key: str) -> None:
         btn = self._buttons.pop(key, None)
         if btn is not None:
-            btn.destroy()
+            compat.destroy(btn)
 
     def clear(self) -> None:
         for btn in self._buttons.values():
-            btn.destroy()
+            compat.destroy(btn)
         self._buttons.clear()
 
     def set_bar_edge(self, edge: str) -> None:

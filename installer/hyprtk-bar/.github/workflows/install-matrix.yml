@@ -2,9 +2,14 @@
 #
 # Proves `install.sh` installs the bar cleanly on every supported distro
 # family: it runs the dry-run (detection + dependency report), then a real
-# `--no-extras` install (core typelibs + PyGObject via the package manager +
-# the --system-site-packages venv) and finally imports GTK/GtkLayerShell in the
-# installed venv — the same check the installer's own self-test performs.
+# `--no-extras` install (GTK4 + gtk4-layer-shell typelibs + PyGObject via the
+# package manager + the --system-site-packages venv) and finally imports
+# GTK4/Gtk4LayerShell in the installed venv — the same check the installer's own
+# self-test performs.
+#
+# Debian/Ubuntu have no gtk4-layer-shell GI package, so those jobs build
+# gtk4-layer-shell from source with introspection (the same thing the
+# multi-distro `srcapps-install.sh` does on real installs).
 #
 # Gentoo (emerge) and NixOS (flake) are handled separately — they are not
 # package-manager-detectable in a throwaway container.
@@ -52,6 +57,23 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # Debian/Ubuntu ship no gtk4-layer-shell GI typelib; build it from source
+      # (introspection on) so the bar can import Gtk4LayerShell. This mirrors
+      # installer/scripts/srcapps-install.sh in the multi-distro installer.
+      - name: gtk4-layer-shell (source build)
+        if: matrix.distro == 'debian-bookworm' || matrix.distro == 'ubuntu-noble'
+        run: |
+          apt-get install -y build-essential meson ninja-build pkg-config \
+            libgtk-4-dev libwayland-dev wayland-protocols \
+            gobject-introspection libgirepository1.0-dev
+          git clone --depth=1 --branch v1.3.0 https://github.com/wmww/gtk4-layer-shell.git /tmp/g4
+          cd /tmp/g4
+          meson setup build --prefix=/usr -Dvapi=false -Dintrospection=true \
+            -Dexamples=false -Ddocs=false
+          ninja -C build
+          ninja -C build install
+          ldconfig
+
       - name: Dry run
         run: ./install.sh --dry-run
 
@@ -67,9 +89,9 @@ jobs:
         run: |
           "$HOME/.local/share/hyprtk-bar/venv/bin/python3" - <<'PY'
           import gi
-          gi.require_version("Gtk", "3.0")
-          gi.require_version("GtkLayerShell", "0.1")
-          from gi.repository import Gtk, GtkLayerShell
+          gi.require_version("Gtk", "4.0")
+          gi.require_version("Gtk4LayerShell", "1.0")
+          from gi.repository import Gtk, Gtk4LayerShell
           import hyprtk_bar
           print("hyprtk-bar imports OK")
           PY

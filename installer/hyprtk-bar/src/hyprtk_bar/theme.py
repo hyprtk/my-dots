@@ -418,6 +418,27 @@ def build_css(palette: dict, cfg: dict) -> str:
   padding: 8px;
   color: {fg};
 {popup_border_rule}}}
+/* Toplevels: a GTK4 window/popover paints an opaque theme background, which
+   shows through the gaps around the pill (taskbar margins) and around
+   popup-boxes. GTK3 avoided this with app-paintable + an RGBA visual; here the
+   surface background is removed so only the themed child (with its border)
+   paints. The class is added by compat.transparent_surface(). */
+window.hyprtk-window {{
+  background-color: transparent;
+  background-image: none;
+}}
+popover.hyprtk-window {{
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+  border: none;
+}}
+popover.hyprtk-window > contents {{
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}}
 menu {{
   background-color: {rgba(palette["background"], 0.97)};
   border: 1px solid {menu_border};
@@ -427,6 +448,23 @@ menu {{
 }}
 menu menuitem {{ padding: 6px 14px; border-radius: 4px; color: {fg}; }}
 menu menuitem:hover {{ background-color: {hover}; color: {fg}; }}
+/* GTK4 popover menus (menus.MenuPopup) — flat rows like the legacy Gtk.Menu. */
+.bar-menu {{ background: none; }}
+.bar-menu-box {{ min-width: 180px; }}
+.bar-menu-item {{
+  background: none;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  padding: 6px 12px;
+  border-radius: {max(radius - 6, 6)}px;
+  color: {fg};
+}}
+.bar-menu-item:hover {{ background-color: {hover}; }}
+.bar-menu-item:disabled {{ opacity: 0.45; }}
+.bar-menu-label {{ color: {fg}; }}
+.bar-menu-check, .bar-menu-arrow {{ color: {accent}; }}
+.bar-menu-sep {{ background-color: {menu_border}; min-height: 1px; }}
 menu separator {{
   background-color: {rgba(palette["foreground"], 0.15)};
   min-height: 1px;
@@ -487,6 +525,7 @@ menu separator {{
 .qs-scale slider, .settings-scale slider {{
   min-width: 12px;
   min-height: 12px;
+  margin: 0;
   border-radius: 6px;
   border: none;
   box-shadow: none;

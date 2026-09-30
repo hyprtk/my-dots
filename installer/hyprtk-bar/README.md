@@ -1,7 +1,7 @@
 ## hyprtk-bar
 
 A modern, feature-complete taskbar for the Hyprland Wayland compositor, built
-with GTK3 and the layer-shell protocol. hyprtk-bar is the centerpiece of the
+with GTK4 and the layer-shell protocol. hyprtk-bar is the centerpiece of the
 hyprtk desktop: it hosts app launchers, workspaces, a task list, system
 monitoring, a system tray, quick settings and a built-in notification center —
 all themed live from your pywal16 palette.
@@ -63,15 +63,17 @@ desktop widgets and all nine settings pages with their nested tabs.
 - A Hyprland session (the bar talks to the compositor through `hyprctl` and
   the event socket).
 - Python ≥ 3.10.
-- GTK3 and `gtk-layer-shell` (GObject-Introspection typelibs).
+- GTK4 and `gtk4-layer-shell` (GObject-Introspection typelibs).
 - PyGObject and pycairo — installed from your package manager (they ship no
   binary wheels, so the installer never pip-builds them).
 - `dbus-next` — installed into the bar's virtualenv (pure Python).
 
 The installer handles the system packages for you: it detects your package
 manager and installs the right typelibs, Python GI bindings and venv tooling
-(e.g. `gir1.2-gtk-3.0` + `gir1.2-gtklayershell-0.1` + `python3-gi` on
-Debian/Ubuntu, `gtk3` + `gtk-layer-shell` + `python-gobject` on Arch). The bar
+(e.g. `gir1.2-gtk-4.0` + `gir1.2-gtklayershell-1.0` + `python3-gi` on
+Debian/Ubuntu, `gtk4` + `gtk4-layer-shell` + `python-gobject` on Arch; on
+releases without a `gtk4-layer-shell` GI package the multi-distro installer
+builds it from source with introspection). The bar
 runs in a `--system-site-packages` virtualenv, so the distro's own
 PyGObject/pycairo are used and no compiler is required. See `PORTABILITY.md` for
 the full per-distro mapping, the feature-availability matrix and remaining
@@ -119,8 +121,8 @@ Uninstall with:
 `install.sh` detects pacman / apt / dnf / zypper / xbps / apk / emerge / nix and
 installs the right typelib + PyGObject/pycairo + venv packages for each (Void
 and Alpine need their `-devel`/`-dev` subpackages for the typelibs). It warns —
-but does not fail — when `gtk-layer-shell` is below 0.9 (older LTS releases ship
-0.5–0.8) and prints the source-build steps. The full per-distro mapping, the
+but does not fail — when `gtk4-layer-shell` is missing or below 1.0 (older LTS
+releases ship no GI typelib) and prints the source-build steps. The full per-distro mapping, the
 feature-availability matrix and the remaining AUR/niche "theming wall"
 (wallpaper daemon, folder-icon colouring — pywal itself is bundled) are
 documented in `PORTABILITY.md`, and a container CI matrix

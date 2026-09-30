@@ -22,12 +22,8 @@ import logging
 import math
 import time
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 from .colors import contrast_fg as _contrast_fg  # noqa: E402
 from .config import load_pywal_colors  # noqa: E402
@@ -214,7 +210,23 @@ def load_icon_image(icon_name: str, pixel: int, fg_hex: str) -> Gtk.Image:
     Colored icons are loaded as-is; symbolic icons are tinted with ``fg_hex``
     so they stay readable against any (pywal) background.
     """
-    theme = Gtk.IconTheme.get_default()
+    theme = compat.icon_theme()
+    if compat.IS_GTK4:
+        if theme is None:
+            return compat.new_image_from_icon_name(icon_name)
+        paintable = theme.lookup_icon(
+            icon_name, [], max(8, int(pixel)), 1,
+            Gtk.TextDirection.NONE, Gtk.IconLookupFlags(0),
+        )
+        if paintable is None:
+            paintable = theme.lookup_icon(
+                "application-x-executable", [], max(8, int(pixel)), 1,
+                Gtk.TextDirection.NONE, Gtk.IconLookupFlags(0),
+            )
+        if paintable is None:
+            return compat.new_image_from_icon_name(icon_name)
+        # GTK4 paints symbolic icons with the CSS `color` (no manual tinting).
+        return compat.new_raster_from_paintable(paintable, size=pixel)
     info = theme.lookup_icon(icon_name, pixel, 0)
     if info is None:
         info = theme.lookup_icon("application-x-executable", pixel, 0)
@@ -229,7 +241,7 @@ def load_icon_image(icon_name: str, pixel: int, fg_hex: str) -> Gtk.Image:
     except GLib.Error:
         pixbuf = None
     if pixbuf is None:
-        return Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.BUTTON)
+        return compat.new_image_from_icon_name(icon_name)
     return Gtk.Image.new_from_pixbuf(pixbuf)
 
 
@@ -249,8 +261,8 @@ def _face_widget(size: int, glyph: str, icon_name: str, fg_color: str, glyph_px:
 def _make_round_button(size: int, icon_name: str, css_class: str, fg_color: str = "#000000", glyph: str = "", glyph_px: int = 0) -> Gtk.Button:
     btn = Gtk.Button()
     btn.set_size_request(size, size)
-    btn.get_style_context().add_class(css_class)
-    btn.set_image(_face_widget(size, glyph, icon_name, fg_color, glyph_px))
+    compat.add_class(btn, css_class)
+    compat.set_button_image(btn, _face_widget(size, glyph, icon_name, fg_color, glyph_px))
     btn.set_can_focus(False)
     return btn
 
@@ -397,7 +409,7 @@ class ArcMenu(Gtk.Fixed):
             btn.set_tooltip_text(tooltip)
         btn.connect("clicked", self._on_item_clicked, entry)
         btn.set_opacity(0.0)
-        btn.set_no_show_all(True)
+        compat.hide_from_show_all(btn)
         self.put(btn, 0, 0)
         self._items.append({"btn": btn, "entry": entry})
 
@@ -421,7 +433,7 @@ class ArcMenu(Gtk.Fixed):
 
     def refresh_icons(self) -> None:
         arc = self.cfg.get("arcmenu") or {}
-        self._fab.set_image(
+        compat.set_button_image(self._fab, 
             _face_widget(
                 self.fab_size,
                 arc.get("fab_glyph", ""),
@@ -432,7 +444,7 @@ class ArcMenu(Gtk.Fixed):
         )
         for item in self._items:
             e = item["entry"]
-            item["btn"].set_image(
+            compat.set_button_image(item["btn"], 
                 _face_widget(
                     self.item_size,
                     e.get("glyph", ""),
@@ -488,14 +500,13 @@ class ArcMenu(Gtk.Fixed):
         .arc-item .arc-glyph {{ color: {p["item_icon_color"]}; }}
         """
         provider = self._css_provider
-        screen = Gdk.Screen.get_default()
         if provider is None:
             # Reuse a single provider and reload CSS in place — the border tick
             # calls this every ~15fps while open, and remove/add churn over a
             # screen-wide provider invalidates every surface each frame.
             provider = Gtk.CssProvider()
-            Gtk.StyleContext.add_provider_for_screen(
-                screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            compat.add_provider_for_display(
+                provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
             )
             self._css_provider = provider
         provider.load_from_data(css.encode())
@@ -682,20 +693,19 @@ class ArcMenuWindow(Gtk.Window):
     """
 
     def __init__(self, cfg: dict, palette: dict | None = None, on_settings=None):
-        super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        super().__init__() if compat.IS_GTK4 else super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
         self._cfg = cfg
         self._on_settings = on_settings
 
         self.set_title("hyprtk-bar-arc")
         self.set_decorated(False)
-        self.set_skip_taskbar_hint(True)
-        self.set_skip_pager_hint(True)
-        self.set_app_paintable(True)
-        self.set_accept_focus(False)
+        compat.set_skip_taskbar_hint(self, True)
+        compat.set_skip_pager_hint(self, True)
+        compat.set_app_paintable(self, True)
+        compat.set_accept_focus(self, False)
 
-        visual = self.get_screen().get_rgba_visual()
-        if visual:
-            self.set_visual(visual)
+        compat.apply_rgba_visual(self)
 
         self._menu = ArcMenu(
             cfg,
@@ -704,7 +714,7 @@ class ArcMenuWindow(Gtk.Window):
             on_toggle=self.toggle,
             palette=palette or arc_palette(cfg, {}),
         )
-        self.add(self._menu)
+        compat.add(self, self._menu)
 
         self._init_layer_shell()
         w, h = self._menu.open_size()
@@ -712,10 +722,10 @@ class ArcMenuWindow(Gtk.Window):
         self._menu.layout_fab(w, h)
         self._apply_closed()
 
-        self.connect("key-press-event", self._on_key_press)
-        self.connect("focus-out-event", self._on_focus_out)
+        compat.on_key(self, self._on_key_press)
+        compat.on_focus_out(self, self._on_focus_out)
         # Middle-click anywhere on the menu surface closes it.
-        self.connect("button-press-event", self._on_pointer_press)
+        compat.on_press(self, self._on_pointer_press)
 
     # ── theming ───────────────────────────────────────────────────
 
@@ -736,12 +746,12 @@ class ArcMenuWindow(Gtk.Window):
             self._menu.cancel_animation()
             self._menu._stop_border_animation()
             self._apply_closed()
-            self.hide()
+            compat.hide(self)
             return
 
         self._menu.cancel_animation()
-        self.remove(self._menu)
-        self._menu.destroy()
+        compat.clear_child(self, self._menu)
+        compat.destroy(self._menu)
         self._menu = ArcMenu(
             self._cfg,
             on_close=self._on_menu_closed,
@@ -749,7 +759,7 @@ class ArcMenuWindow(Gtk.Window):
             on_toggle=self.toggle,
             palette=arc_palette(self._cfg, {}),
         )
-        self.add(self._menu)
+        compat.add(self, self._menu)
 
         for edge in (
             GtkLayerShell.Edge.LEFT,
@@ -767,7 +777,7 @@ class ArcMenuWindow(Gtk.Window):
         self._menu.layout_fab(w, h)
         self._apply_closed()
         self._set_keyboard_mode(False)
-        self.show_all()
+        compat.show_all(self)
         self.queue_resize()
 
     # ── layer shell ───────────────────────────────────────────────
@@ -789,7 +799,7 @@ class ArcMenuWindow(Gtk.Window):
             else GtkLayerShell.KeyboardMode.NONE
         )
         GtkLayerShell.set_keyboard_mode(self, mode)
-        self.set_accept_focus(on)
+        compat.set_accept_focus(self, on)
         if on:
             self.grab_focus()
 
@@ -812,9 +822,6 @@ class ArcMenuWindow(Gtk.Window):
         return rect
 
     def _set_input_region(self, rect: Gdk.Rectangle | None) -> None:
-        wnd = self.get_window()
-        if wnd is None:
-            return
         import cairo
 
         if rect is None:
@@ -822,7 +829,7 @@ class ArcMenuWindow(Gtk.Window):
             rect = Gdk.Rectangle()
             rect.x, rect.y, rect.width, rect.height = 0, 0, w, h
         region = cairo.Region(cairo.RectangleInt(rect.x, rect.y, rect.width, rect.height))
-        wnd.input_shape_combine_region(region, 0, 0)
+        compat.set_input_region(self, region)
 
     def _set_surface_size(self, w: int, h: int) -> None:
         self._menu.set_size_request(w, h)

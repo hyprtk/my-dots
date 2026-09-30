@@ -29,13 +29,8 @@ import subprocess
 import threading
 from pathlib import Path
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GdkPixbuf", "2.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, GtkLayerShell  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GdkPixbuf, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 from .colors import contrast_fg as _contrast_fg  # noqa: E402
 from .config import resolve_script, SCRIPTS_DIR  # noqa: E402
@@ -60,7 +55,11 @@ ROFI_CONFIG = HOME / ".config" / "rofi"
 ROFI_VARIANTS = SCRIPTS_DIR / "rofi" / "variants" if (SCRIPTS_DIR / "rofi" / "variants").is_dir() else ROFI_CONFIG / "variants"
 ROFI_VARIANT_LINK = ROFI_CONFIG / "variant.rasi"
 SWAYLOCK_CONFIG = HOME / ".config" / "swaylock" / "config"
-MATUWALL_CONFIG = HOME / ".config" / "matuwall" / "config.json"
+# matuwall reads ~/.config/matuwall/config.toml, a symlink to the pywal-rendered
+# ~/.cache/wal/matuwall-config.toml. Saving must write *through* the symlink (to
+# the target) and also refresh the pywal template so edits survive `wal`.
+MATUWALL_CONFIG = HOME / ".config" / "matuwall" / "config.toml"
+MATUWALL_TEMPLATE = HOME / ".config" / "wal" / "templates" / "matuwall-config.toml"
 WALLPAPER_COLORS_SH = resolve_script("wallpaper-colors.sh", "hypr", "scripts", "wallpaper-colors.sh")
 CHANGE_ICONS_SH = resolve_script("change-icons.sh", "assets", "papirus-icons", "scripts", "change-icons.sh")
 SYNC_ROFI_SH = resolve_script("sync-rofi-theme.sh", "installer", "hyprtk-bar", "scripts", "sync-rofi-theme.sh")
@@ -126,6 +125,8 @@ _PAGE_TITLES = {key: label for key, _glyph, label in PAGES}
 DIALOG_WIDTH = 940
 DIALOG_HEIGHT = 640
 _THUMB_SIZE = (360, 240)
+# A second thumbnail click within this window (µs) counts as a double click.
+_DOUBLE_CLICK_US = 400_000
 _SDDM_PREVIEW = (620, 220)
 _BATCH_SIZE = 20
 POST_ACTION_DELAY_MS = 2500
@@ -231,6 +232,123 @@ def _atomic_write(path: Path, content: str):
         except OSError:
             pass
         raise
+
+
+# ── matuwall config (TOML) ─────────────────────────────────────────────────
+
+try:  # Python >= 3.11 ships tomllib; older interpreters use the tomli shim.
+    import tomllib as _tomllib
+except ModuleNotFoundError:  # pragma: no cover - depends on interpreter
+    try:
+        import tomli as _tomllib
+    except ModuleNotFoundError:
+        _tomllib = None
+
+
+def _toml_quote(value) -> str:
+    return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _toml_value(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_toml_quote(v) for v in value) + "]"
+    return _toml_quote(value)
+
+
+def _toml_dumps(cfg: dict) -> str:
+    """Serialise the (one-level-nested) matuwall config dict back to TOML."""
+    out: list[str] = []
+
+    def emit(prefix: list[str], body: dict) -> None:
+        scalars = [(k, v) for k, v in body.items() if not isinstance(v, dict)]
+        tables = [(k, v) for k, v in body.items() if isinstance(v, dict)]
+        if scalars or not tables:
+            out.append("[{}]".format(".".join(prefix)))
+            for key, value in scalars:
+                out.append("{} = {}".format(key, _toml_value(value)))
+            out.append("")
+        for key, sub in tables:
+            emit(prefix + [key], sub)
+
+    for key, value in cfg.items():
+        if not isinstance(value, dict):
+            out.append("{} = {}".format(key, _toml_value(value)))
+    for key, sub in cfg.items():
+        if isinstance(sub, dict):
+            emit([key], sub)
+    return "\n".join(out).rstrip() + "\n"
+
+
+def _cfg_get(cfg: dict, section: str, key: str):
+    node = cfg
+    for part in section.split("."):
+        if not isinstance(node, dict):
+            return None
+        node = node.get(part)
+        if node is None:
+            return None
+    return node.get(key) if isinstance(node, dict) else None
+
+
+def _cfg_set(cfg: dict, section: str, key: str, value) -> None:
+    node = cfg
+    for part in section.split("."):
+        node = node.setdefault(part, {})
+    node[key] = value
+
+
+def _read_matuwall_toml() -> dict:
+    if not MATUWALL_CONFIG.exists():
+        return {}
+    if _tomllib is None:
+        return {}
+    try:
+        return _tomllib.loads(MATUWALL_CONFIG.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _update_matuwall_template(replacements: dict[tuple[str, str], str]) -> None:
+    """Rewrite existing key lines in the pywal template, preserving comments.
+
+    *replacements* maps ``(section, key)`` to a ready TOML value string. Only
+    lines that already exist are replaced, so the template keeps its comments
+    and its pywal placeholders live on untouched keys.
+    """
+    if not replacements or not MATUWALL_TEMPLATE.exists():
+        return
+    try:
+        lines = MATUWALL_TEMPLATE.read_text().splitlines()
+    except OSError:
+        return
+    pending: dict[str, dict[str, str]] = {}
+    for (section, key), value in replacements.items():
+        pending.setdefault(section, {})[key] = value
+    current = ""
+    out: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            current = stripped[1:-1].strip()
+            out.append(line)
+            continue
+        section = pending.get(current)
+        if section:
+            for key, value in list(section.items()):
+                if re.match(rf"{re.escape(key)}\s*=", stripped):
+                    indent = line[: len(line) - len(line.lstrip())]
+                    out.append(f"{indent}{key} = {value}")
+                    del section[key]
+                    break
+            else:
+                out.append(line)
+        else:
+            out.append(line)
+    _atomic_write(MATUWALL_TEMPLATE, "\n".join(out) + "\n")
 
 
 # swaylock color key -> (pywal index, append a "44" alpha suffix).
@@ -442,15 +560,15 @@ def is_valid(wallpaper_dir: Path) -> bool:
 
 
 def _remove_all_children(widget):
-    for child in list(widget.get_children()):
+    for child in list(compat.children(widget)):
         widget.remove(child)
-        child.destroy()
+        compat.destroy(child)
 
 
 def _set_label_css(widget: Gtk.Widget, css: str):
     provider = Gtk.CssProvider()
     provider.load_from_data(css.encode())
-    widget.get_style_context().add_provider(
+    compat.style_context(widget).add_provider(
         provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
 
@@ -464,9 +582,9 @@ def _radio_group(labels: list[tuple[str, str]]) -> dict[str, Gtk.RadioButton]:
     buttons: dict[str, Gtk.RadioButton] = {}
     first: Gtk.RadioButton | None = None
     for key, label in labels:
-        btn = Gtk.RadioButton(group=None, label=label)
+        btn = compat.new_radio(label=label)
         if first is not None:
-            btn.join_group(first)
+            compat.join_radio_group(btn, first)
         else:
             first = btn
         buttons[key] = btn
@@ -476,15 +594,23 @@ def _radio_group(labels: list[tuple[str, str]]) -> dict[str, Gtk.RadioButton]:
 class ColorButton(Gtk.Button):
     """A swatch button that opens a GTK3 colour chooser dialog."""
 
+    _seq = 0
+
     def __init__(self, hex_color: str = "#ffffff", **kwargs):
         super().__init__(**kwargs)
         self._color = hex_color
         self._callback = None
+        # GTK4 has no per-widget providers, so scope the swatch rule to a unique
+        # class (a bare ``button { ... }`` would repaint every button) and use
+        # USER priority to match the bar's theme provider (app.py).
+        ColorButton._seq += 1
+        self._css_class = f"color-swatch-{ColorButton._seq}"
+        compat.add_class(self, self._css_class)
         self._provider = Gtk.CssProvider()
-        self._apply_color(hex_color)
-        self.get_style_context().add_provider(
-            self._provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+        compat.add_provider_for_display(
+            self._provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
         )
+        self._apply_color(hex_color)
         self.set_size_request(40, 40)
         self.connect("clicked", self._on_clicked)
 
@@ -493,7 +619,7 @@ class ColorButton(Gtk.Button):
         a = int(h[6:8], 16) / 255 if len(h) == 8 else 1.0
         r, g, b = _hex_to_rgb(hex_color)
         css = (
-            f"button {{ background: rgba({r},{g},{b},{a:.2f}); "
+            f"button.{self._css_class} {{ background: rgba({r},{g},{b},{a:.2f}); "
             f"border-radius: 10px; min-width: 32px; min-height: 32px; padding: 0; }}"
         )
         self._provider.load_from_data(css.encode())
@@ -510,7 +636,7 @@ class ColorButton(Gtk.Button):
         self._callback = callback
 
     def _on_clicked(self, *_args):
-        parent = self.get_toplevel()
+        parent = compat.toplevel(self)
         dialog = Gtk.ColorChooserDialog(
             title="Pick a Colour",
             transient_for=parent if isinstance(parent, Gtk.Window) else None,
@@ -520,7 +646,7 @@ class ColorButton(Gtk.Button):
         rgba.parse(self._color)
         dialog.set_rgba(rgba)
         dialog.connect("response", self._on_response)
-        dialog.show()
+        compat.show(dialog)
 
     def _on_response(self, dialog, response):
         if response == Gtk.ResponseType.OK:
@@ -529,7 +655,7 @@ class ColorButton(Gtk.Button):
             self.set_color(hex_str)
             if self._callback:
                 self._callback(hex_str)
-        dialog.destroy()
+        compat.destroy(dialog)
 
 
 def _add_entry_row(parent: Gtk.Box, label: str) -> Gtk.Entry:
@@ -538,9 +664,9 @@ def _add_entry_row(parent: Gtk.Box, label: str) -> Gtk.Entry:
     lbl.set_size_request(140, -1)
     entry = Gtk.Entry()
     entry.set_hexpand(True)
-    row.pack_start(lbl, False, False, 0)
-    row.pack_start(entry, True, True, 0)
-    parent.pack_start(row, False, False, 0)
+    compat.pack_start(row, lbl, False, False, 0)
+    compat.pack_start(row, entry, True, True, 0)
+    compat.pack_start(parent, row, False, False, 0)
     return entry
 
 
@@ -549,17 +675,40 @@ def _add_switch_row(parent: Gtk.Box, label: str) -> Gtk.Switch:
     lbl = Gtk.Label(label=label, xalign=1)
     lbl.set_size_request(140, -1)
     switch = Gtk.Switch()
-    row.pack_start(lbl, False, False, 0)
-    row.pack_start(switch, False, False, 0)
-    parent.pack_start(row, False, False, 0)
+    compat.pack_start(row, lbl, False, False, 0)
+    compat.pack_start(row, switch, False, False, 0)
+    compat.pack_start(parent, row, False, False, 0)
     return switch
+
+
+def _add_combo_row(parent: Gtk.Box, label: str, choices) -> Gtk.ComboBoxText:
+    row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+    lbl = Gtk.Label(label=label, xalign=1)
+    lbl.set_size_request(140, -1)
+    combo = Gtk.ComboBoxText()
+    for choice in choices:
+        combo.append_text(str(choice))
+    compat.pack_start(row, lbl, False, False, 0)
+    compat.pack_start(row, combo, True, True, 0)
+    compat.pack_start(parent, row, False, False, 0)
+    return combo
+
+
+def _combo_set_active(combo: Gtk.ComboBoxText, text: str) -> None:
+    model = combo.get_model()
+    if model is None:
+        return
+    for i, row in enumerate(model):
+        if row[0] == text:
+            combo.set_active(i)
+            return
 
 
 def _add_section_title(parent: Gtk.Box, text: str):
     label = Gtk.Label(label=text, xalign=0)
-    label.get_style_context().add_class("mc-page-title")
+    compat.add_class(label, "mc-page-title")
     label.set_margin_top(6)
-    parent.pack_start(label, False, False, 0)
+    compat.pack_start(parent, label, False, False, 0)
 
 
 def _page_scroller(box: Gtk.Box) -> Gtk.ScrolledWindow:
@@ -570,7 +719,7 @@ def _page_scroller(box: Gtk.Box) -> Gtk.ScrolledWindow:
     box.set_margin_bottom(4)
     box.set_margin_start(4)
     box.set_margin_end(4)
-    scroller.add(box)
+    compat.add(scroller, box)
     return scroller
 
 
@@ -589,8 +738,8 @@ class BarThemeImportDialog(Popup):
         super().__init__(cfg, cfg.get("position", "bottom"))
         self._on_imported = on_imported
         self.set_title("hyprtk-bar theme import")
-        self.set_accept_focus(True)
-        self.connect("key-press-event", self._on_import_key)
+        compat.set_accept_focus(self, True)
+        compat.on_key(self, self._on_import_key)
 
         self.content.set_spacing(8)
         self.content.set_margin_top(10)
@@ -600,19 +749,19 @@ class BarThemeImportDialog(Popup):
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title = Gtk.Label(label="Import Bar Theme", xalign=0)
-        title.get_style_context().add_class("mc-title")
-        header.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-title")
+        compat.pack_start(header, title, True, True, 0)
         close = Gtk.Button(label="\u00d7")
-        close.get_style_context().add_class("mc-close")
-        close.set_relief(Gtk.ReliefStyle.NONE)
-        close.connect("clicked", lambda *_: self.destroy())
-        header.pack_start(close, False, False, 0)
-        self.content.pack_start(header, False, False, 0)
+        compat.add_class(close, "mc-close")
+        compat.set_relief(close)
+        close.connect("clicked", lambda *_: compat.destroy(self))
+        compat.pack_start(header, close, False, False, 0)
+        compat.pack_start(self.content, header, False, False, 0)
 
         self._search = Gtk.SearchEntry()
         self._search.set_placeholder_text("Search detected themes\u2026")
         self._search.connect("changed", self._refresh_list)
-        self.content.pack_start(self._search, False, False, 0)
+        compat.pack_start(self.content, self._search, False, False, 0)
 
         _add_section_title(self.content, "Themes found on this system")
         scroller = Gtk.ScrolledWindow()
@@ -621,8 +770,8 @@ class BarThemeImportDialog(Popup):
         self._list = Gtk.ListBox()
         self._list.set_selection_mode(Gtk.SelectionMode.NONE)
         self._list.connect("row-activated", self._on_row_activated)
-        scroller.add(self._list)
-        self.content.pack_start(scroller, True, True, 0)
+        compat.add(scroller, self._list)
+        compat.pack_start(self.content, scroller, True, True, 0)
 
         _add_section_title(self.content, "Or import a folder / style.css")
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
@@ -630,19 +779,19 @@ class BarThemeImportDialog(Popup):
         self._path_entry.set_hexpand(True)
         self._path_entry.set_placeholder_text("path to a theme folder or .css file")
         self._path_entry.connect("activate", lambda *_: self._on_import_entry())
-        row.pack_start(self._path_entry, True, True, 0)
+        compat.pack_start(row, self._path_entry, True, True, 0)
         browse = Gtk.Button(label="Browse\u2026")
         browse.connect("clicked", self._on_browse)
-        row.pack_start(browse, False, False, 0)
+        compat.pack_start(row, browse, False, False, 0)
         imp = Gtk.Button(label="Import")
-        imp.get_style_context().add_class("settings-apply")
+        compat.add_class(imp, "settings-apply")
         imp.connect("clicked", lambda *_: self._on_import_entry())
-        row.pack_start(imp, False, False, 0)
-        self.content.pack_start(row, False, False, 0)
+        compat.pack_start(row, imp, False, False, 0)
+        compat.pack_start(self.content, row, False, False, 0)
 
         self._status = Gtk.Label(label="", xalign=0)
         self._status.set_opacity(0.8)
-        self.content.pack_start(self._status, False, False, 0)
+        compat.pack_start(self.content, self._status, False, False, 0)
 
         if style_cb is not None:
             style_cb(self.content)
@@ -652,7 +801,7 @@ class BarThemeImportDialog(Popup):
 
     def _on_import_key(self, _window, event) -> bool:
         if event.keyval == Gdk.KEY_Escape:
-            self.destroy()
+            compat.destroy(self)
             return True
         return False
 
@@ -672,8 +821,8 @@ class BarThemeImportDialog(Popup):
                 label="No themes found" if not query else "No matches", xalign=0
             )
             lbl.set_opacity(0.7)
-            self._list.add(lbl)
-            self._list.show_all()
+            compat.add(self._list, lbl)
+            compat.show_all(self._list)
             return
         for name, path in shown:
             row = Gtk.ListBoxRow()
@@ -684,19 +833,19 @@ class BarThemeImportDialog(Popup):
             box.set_margin_bottom(4)
             text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
             title = Gtk.Label(label=name, xalign=0)
-            title.get_style_context().add_class("mc-page-title")
+            compat.add_class(title, "mc-page-title")
             subtitle = Gtk.Label(label=str(path), xalign=0)
             subtitle.set_ellipsize(3)
             subtitle.set_opacity(0.6)
-            text.pack_start(title, False, False, 0)
-            text.pack_start(subtitle, False, False, 0)
-            box.pack_start(text, True, True, 0)
+            compat.pack_start(text, title, False, False, 0)
+            compat.pack_start(text, subtitle, False, False, 0)
+            compat.pack_start(box, text, True, True, 0)
             btn = Gtk.Button(label="Import")
             btn.connect("clicked", lambda _b, p=path: self._import_path(p))
-            box.pack_start(btn, False, False, 0)
-            row.add(box)
-            self._list.add(row)
-        self._list.show_all()
+            compat.pack_start(box, btn, False, False, 0)
+            compat.add(row, box)
+            compat.add(self._list, row)
+        compat.show_all(self._list)
 
     def _on_row_activated(self, _listbox, row):
         path = getattr(row, "_theme_path", None)
@@ -738,7 +887,7 @@ class BarThemeImportDialog(Popup):
         # The Theme Manager is a layer-shell surface, so a normal chooser would
         # render behind it — float the chooser on the overlay layer instead.
         center_layer_dialog(chooser, 820, 560)
-        chooser.show_all()
+        compat.show_all(chooser)
 
     def _on_browse_response(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
@@ -747,7 +896,7 @@ class BarThemeImportDialog(Popup):
                 path = Path(filename)
                 self._path_entry.set_text(str(path))
                 self._import_path(path)
-        dialog.destroy()
+        compat.destroy(dialog)
 
     def _set_status(self, text: str):
         self._status.set_text(text)
@@ -776,6 +925,7 @@ class ThemerDialog(Popup):
         self._thumb_map = {}
         self._loaded_count = 0
         self._fill_id = None
+        self._thumb_last_click = None
         self.connect("destroy", self._on_themer_destroy)
         self._status_id = None
         self._side_buttons: dict[str, HoverButton] = {}
@@ -784,8 +934,8 @@ class ThemerDialog(Popup):
         # This dialogue has text entries — grab keyboard focus on demand so
         # entries/switches/color-choosers are usable (Popup defaults to NONE).
         GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.ON_DEMAND)
-        self.set_accept_focus(True)
-        self.connect("key-press-event", self._on_key)
+        compat.set_accept_focus(self, True)
+        compat.on_key(self, self._on_key)
 
         self._fixed_size = (DIALOG_WIDTH, DIALOG_HEIGHT)
         self.set_size_request(DIALOG_WIDTH, DIALOG_HEIGHT)
@@ -794,19 +944,19 @@ class ThemerDialog(Popup):
         # ── header ────────────────────────────────────────────────
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         title = Gtk.Label(label="Theme Manager", xalign=0)
-        title.get_style_context().add_class("mc-title")
-        header.pack_start(title, True, True, 0)
+        compat.add_class(title, "mc-title")
+        compat.pack_start(header, title, True, True, 0)
         close = Gtk.Button(label="\u00d7")
-        close.get_style_context().add_class("mc-close")
-        close.set_relief(Gtk.ReliefStyle.NONE)
+        compat.add_class(close, "mc-close")
+        compat.set_relief(close)
         close.connect("clicked", lambda *_: self.hide_popup())
-        header.pack_start(close, False, False, 0)
-        self.content.pack_start(header, False, False, 0)
+        compat.pack_start(header, close, False, False, 0)
+        compat.pack_start(self.content, header, False, False, 0)
 
         # ── body: sidebar + stack ─────────────────────────────────
         body = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        sidebar.get_style_context().add_class("mc-sidebar")
+        compat.add_class(sidebar, "mc-sidebar")
         sidebar.set_size_request(132, -1)
         self._sidebar = sidebar
 
@@ -815,22 +965,22 @@ class ThemerDialog(Popup):
         self._stack.set_transition_duration(120)
 
         for key, glyph, label in PAGES:
-            sidebar.pack_start(self._build_side_button(key, glyph, label),
+            compat.pack_start(sidebar, self._build_side_button(key, glyph, label),
                                False, False, 0)
             self._stack.add_named(self._build_page(key), key)
 
-        body.pack_start(sidebar, False, False, 0)
-        body.pack_start(self._stack, True, True, 0)
-        self.content.pack_start(body, True, True, 0)
+        compat.pack_start(body, sidebar, False, False, 0)
+        compat.pack_start(body, self._stack, True, True, 0)
+        compat.pack_start(self.content, body, True, True, 0)
 
         # ── status line (toast stand-in) ──────────────────────────
         self._status = Gtk.Label(label="", xalign=0)
-        self._status.get_style_context().add_class("mc-unavailable")
-        self.content.pack_start(self._status, False, False, 0)
+        compat.add_class(self._status, "mc-unavailable")
+        compat.pack_start(self.content, self._status, False, False, 0)
 
         self._apply_theme_fg_class(self.content)
         self._set_active(PAGES[0][0])
-        self.content.show_all()
+        compat.show_all(self.content)
 
     # ── chrome ────────────────────────────────────────────────────
 
@@ -897,17 +1047,17 @@ class ThemerDialog(Popup):
         )
 
         def _apply(w):
-            ctx = w.get_style_context()
+            ctx = compat.style_context(w)
             if isinstance(w, Gtk.Button):
-                if w.get_relief() != Gtk.ReliefStyle.NONE:
-                    w.set_relief(Gtk.ReliefStyle.NONE)
+                if not compat.is_flat(w):
+                    compat.set_relief(w)
                 if not ctx.has_class("settings-apply"):
                     ctx.add_class("settings-btn")
             elif isinstance(w, Gtk.Label):
                 ctx.add_class("settings-label")
             elif isinstance(w, Gtk.CheckButton):
                 ctx.add_class("settings-check")
-            elif isinstance(w, Gtk.RadioButton):
+            elif compat.is_radio(w):
                 ctx.add_class("settings-radio")
             elif isinstance(w, Gtk.Switch):
                 ctx.add_class("settings-switch")
@@ -919,8 +1069,8 @@ class ThemerDialog(Popup):
                         w.override_background_color(state, _rgba(_hex(bg)))
                     except Exception:
                         pass
-            if isinstance(w, Gtk.Container):
-                for child in w.get_children():
+            if compat.is_container(w):
+                for child in compat.children(w):
                     _apply(child)
 
         _apply(widget)
@@ -930,12 +1080,11 @@ class ThemerDialog(Popup):
         btn.set_size_request(-1, 30)
         icon = Glyph(glyph, "mc-icon")
         icon.set_pixel_size(14)
-        btn.box.pack_start(icon, False, False, 0)
+        compat.pack_start(btn.box, icon, False, False, 0)
         lbl = Gtk.Label(label=label, xalign=0)
-        lbl.get_style_context().add_class("mc-sidebar-label")
-        btn.box.pack_start(lbl, True, True, 0)
-        btn.connect("button-press-event",
-                    lambda _w, _e, k=key: self._on_side(k) or False)
+        compat.add_class(lbl, "mc-sidebar-label")
+        compat.pack_start(btn.box, lbl, True, True, 0)
+        compat.on_press(btn, lambda _w, _e, k=key: self._on_side(k) or False)
         self._side_buttons[key] = btn
         return btn
 
@@ -948,9 +1097,9 @@ class ThemerDialog(Popup):
         for k, btn in self._side_buttons.items():
             box = btn.box
             if k == key:
-                box.get_style_context().add_class("active")
+                compat.add_class(box, "active")
             else:
-                box.get_style_context().remove_class("active")
+                compat.remove_class(box, "active")
         self._stack.set_visible_child_name(key)
         if key == "pywal":
             self._refresh_pywal()
@@ -979,48 +1128,48 @@ class ThemerDialog(Popup):
         # full-resolution image).
         preview_wrap = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         preview_wrap.set_halign(Gtk.Align.CENTER)
-        self._current_img = Gtk.Image()
+        self._current_img = compat.new_raster(cover=True)
         self._current_img.set_size_request(self._preview_w, self._preview_h)
-        self._current_img.get_style_context().add_class("wallpaper-preview")
-        preview_wrap.pack_start(self._current_img, False, False, 0)
-        box.pack_start(preview_wrap, False, False, 0)
+        compat.add_class(self._current_img, "wallpaper-preview")
+        compat.pack_start(preview_wrap, self._current_img, False, False, 0)
+        compat.pack_start(box, preview_wrap, False, False, 0)
 
         # Search field under the preview — filters the thumbnail grid.
         self._search_text = ""
         search = Gtk.SearchEntry()
         search.set_placeholder_text("Search wallpapers\u2026")
         search.connect("changed", self._on_wallpaper_search)
-        box.pack_start(search, False, False, 0)
+        compat.pack_start(box, search, False, False, 0)
 
         _add_section_title(box, "Wallpaper Directory")
         dir_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._dir_label = Gtk.Label(label=str(self._wall_dir), xalign=0)
         self._dir_label.set_ellipsize(3)
         self._dir_label.set_tooltip_text(str(self._wall_dir))
-        dir_row.pack_start(self._dir_label, True, True, 0)
+        compat.pack_start(dir_row, self._dir_label, True, True, 0)
         choose_btn = Gtk.Button(label="Choose")
         choose_btn.connect("clicked", self._on_choose_dir)
-        dir_row.pack_start(choose_btn, False, False, 0)
-        box.pack_start(dir_row, False, False, 0)
+        compat.pack_start(dir_row, choose_btn, False, False, 0)
+        compat.pack_start(box, dir_row, False, False, 0)
 
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         apply_btn = Gtk.Button(label="Apply Wallpaper")
-        apply_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(apply_btn, "settings-apply")
         apply_btn.connect("clicked", self._apply_selected)
-        btn_row.pack_start(apply_btn, False, False, 0)
+        compat.pack_start(btn_row, apply_btn, False, False, 0)
         random_btn = Gtk.Button(label="Random")
         random_btn.connect("clicked", self._apply_random)
-        btn_row.pack_start(random_btn, False, False, 0)
+        compat.pack_start(btn_row, random_btn, False, False, 0)
         build_btn = Gtk.Button(label="Build Cache")
         build_btn.connect("clicked", self._on_build_cache)
-        btn_row.pack_start(build_btn, False, False, 0)
-        box.pack_start(btn_row, False, False, 0)
+        compat.pack_start(btn_row, build_btn, False, False, 0)
+        compat.pack_start(box, btn_row, False, False, 0)
 
         # Cache-build progress (automatic on open + manual "Build Cache").
         self._progress = Gtk.ProgressBar()
         self._progress.set_show_text(True)
-        self._progress.set_no_show_all(True)
-        box.pack_start(self._progress, False, False, 0)
+        compat.hide_from_show_all(self._progress)
+        compat.pack_start(box, self._progress, False, False, 0)
 
         # 2-column thumbnail grid under the preview.
         self._flow = Gtk.FlowBox()
@@ -1030,7 +1179,7 @@ class ThemerDialog(Popup):
         self._flow.set_max_children_per_line(2)
         self._flow.set_min_children_per_line(2)
         self._flow.set_vexpand(True)
-        box.pack_start(self._flow, True, True, 0)
+        compat.pack_start(box, self._flow, True, True, 0)
         self._vadj = scroller.get_vadjustment()
         scroller.connect("edge-reached", self._on_flow_edge)
         if self._vadj is not None:
@@ -1085,7 +1234,7 @@ class ThemerDialog(Popup):
     def _set_preview(self, path: str):
         pb = _cover_pixbuf(path, self._preview_w, self._preview_h)
         if pb is not None:
-            self._current_img.set_from_pixbuf(pb)
+            compat.raster_set_pixbuf(self._current_img, pb)
 
     def _load_current(self):
         wal_file = WAL_CACHE / "wal"
@@ -1138,7 +1287,7 @@ class ThemerDialog(Popup):
         self._thumb_map = {}
         self._cache_gen = cache_steps(self._wall_dir, force)
         self._cache_running = True
-        self._progress.set_no_show_all(False)
+        compat.set_no_show_all(self._progress, False)
         self._progress.set_visible(True)
         self._progress.set_fraction(0.0)
         self._progress.set_text("Building preview cache...")
@@ -1165,7 +1314,7 @@ class ThemerDialog(Popup):
         self._cache_gen = None
         self._cache_step_id = None
         self._progress.set_visible(False)
-        self._progress.set_no_show_all(True)
+        compat.hide_from_show_all(self._progress)
         # cache_steps wrote the index — now show every wallpaper from it.
         self._set_index(load_index())
         self._toast("Preview cache built")
@@ -1178,7 +1327,7 @@ class ThemerDialog(Popup):
             self._cache_step_id = None
         if self._progress is not None:
             self._progress.set_visible(False)
-            self._progress.set_no_show_all(True)
+            compat.hide_from_show_all(self._progress)
 
     def _set_index(self, index: list[dict]):
         self._all_images = [Path(e["path"]) for e in index]
@@ -1211,36 +1360,41 @@ class ThemerDialog(Popup):
             if not img_path.is_file():  # image deleted since the index was built
                 continue
             btn = Gtk.Button()
-            btn.set_relief(Gtk.ReliefStyle.NONE)
-            btn.get_style_context().add_class("wallpaper-thumb")
+            compat.set_relief(btn)
+            compat.add_class(btn, "wallpaper-thumb")
             btn.set_size_request(self._preview_w, self._preview_h)
-            img = Gtk.Image()
+            img = compat.new_raster(cover=True)
             thumb = self._thumb_map.get(str(img_path))
-            if thumb and os.path.isfile(thumb):
-                img.set_from_file(thumb)
-            else:
-                img.set_from_file(str(img_path))
-            btn.add(img)
+            compat.raster_set_file(
+                img, thumb if (thumb and os.path.isfile(thumb)) else img_path
+            )
+            compat.add(btn, img)
             btn.connect("clicked", self._on_thumb_click, img_path)
-            btn.connect("button-press-event", self._on_thumb_press, img_path)
-            self._flow.add(btn)
+            compat.add(self._flow, btn)
             # Children added after the page was shown stay hidden until shown —
             # without this only the first batch ever appeared.
-            btn.show_all()
+            compat.show_all(btn)
         self._loaded_count = end
 
-    def _on_thumb_click(self, btn, path: Path):
-        self._selected = path
-        self._set_preview(str(path))
+    def _on_thumb_click(self, _btn, path: Path):
+        """Select a thumbnail; a second click within the double-click window
+        applies it immediately.
 
-    def _on_thumb_press(self, _btn, event, path: Path) -> bool:
-        """Double-click a thumbnail to apply it immediately."""
-        if event.button == 1 and event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS:
+        A competing ``Gtk.GestureClick`` never receives the second press on a
+        ``Gtk.Button`` (the button's own gesture consumes it), so the double
+        click is timed off the button's reliable ``clicked`` signal instead.
+        """
+        now = GLib.get_monotonic_time()
+        last = self._thumb_last_click
+        if last is not None and last[0] == path and now - last[1] <= _DOUBLE_CLICK_US:
+            self._thumb_last_click = None
             self._selected = path
             self._set_preview(str(path))
             self._apply_selected()
-            return True
-        return False
+            return
+        self._thumb_last_click = (path, now)
+        self._selected = path
+        self._set_preview(str(path))
 
     def _apply_random(self, btn):
         if not self._all_images:
@@ -1250,7 +1404,7 @@ class ThemerDialog(Popup):
         self._apply_selected(btn)
 
     def _on_choose_dir(self, btn):
-        parent = self.get_toplevel()
+        parent = compat.toplevel(self)
         dialog = Gtk.FileChooserDialog(
             title="Select Wallpaper Directory",
             transient_for=parent if isinstance(parent, Gtk.Window) else None,
@@ -1260,7 +1414,7 @@ class ThemerDialog(Popup):
                            Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT)
         dialog.set_current_folder(str(self._wall_dir))
         dialog.connect("response", self._on_dir_chosen)
-        dialog.show()
+        compat.show(dialog)
 
     def _on_dir_chosen(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
@@ -1273,7 +1427,7 @@ class ThemerDialog(Popup):
                 from . import config as config_module
                 config_module.save(self._cfg)
                 self._load_thumbnails()
-        dialog.destroy()
+        compat.destroy(dialog)
 
     def _apply_selected(self, _btn=None):
         if self._selected is None:
@@ -1294,6 +1448,9 @@ class ThemerDialog(Popup):
 
     def _refresh_wallpaper(self):
         self._load_current()
+        # The wallpaper change re-runs pywal, so the Pywal page's palette is
+        # stale by now — refresh it so the section tracks the new colors.
+        self._refresh_pywal()
         return GLib.SOURCE_REMOVE
 
     # ── pywal ─────────────────────────────────────────────────────
@@ -1303,33 +1460,43 @@ class ThemerDialog(Popup):
         self._pywal_grid = Gtk.Grid()
         self._pywal_grid.set_column_spacing(6)
         self._pywal_grid.set_row_spacing(6)
-        box.pack_start(self._pywal_grid, False, False, 0)
+        compat.pack_start(box, self._pywal_grid, False, False, 0)
+
+        # One reusable provider for the 16 swatches, scoped by a per-swatch CSS
+        # class: GTK4 has no per-widget providers, so a bare ``button { ... }``
+        # rule would apply to (and be overwritten by) every button in the app.
+        # USER priority matches the bar's theme provider (app.py) — a lower
+        # priority is overridden by it regardless of selector specificity.
+        self._pywal_provider = Gtk.CssProvider()
+        compat.add_provider_for_display(
+            self._pywal_provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+        )
 
         self._pywal_detail = Gtk.Label(label="Click a color to inspect", xalign=0)
-        box.pack_start(self._pywal_detail, False, False, 0)
+        compat.pack_start(box, self._pywal_detail, False, False, 0)
 
         _add_section_title(box, "Colorscheme Files")
         self._scheme_list = Gtk.ListBox()
         self._scheme_list.set_selection_mode(Gtk.SelectionMode.NONE)
         self._scheme_list.connect("row-activated", self._on_scheme_click)
-        box.pack_start(self._scheme_list, False, False, 0)
+        compat.pack_start(box, self._scheme_list, False, False, 0)
 
         _add_section_title(box, "Re-run")
         rerun_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._wal_dir_label = Gtk.Label(label=str(WALLPAPER_DIRS[0]), xalign=0)
         self._wal_dir_label.set_ellipsize(3)
-        rerun_box.pack_start(self._wal_dir_label, True, True, 0)
+        compat.pack_start(rerun_box, self._wal_dir_label, True, True, 0)
         dir_btn = Gtk.Button(label="Dir")
         dir_btn.connect("clicked", self._on_choose_wal_dir)
-        rerun_box.pack_start(dir_btn, False, False, 0)
+        compat.pack_start(rerun_box, dir_btn, False, False, 0)
         rerun_btn = Gtk.Button(label="Re-run wal")
-        rerun_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(rerun_btn, "settings-apply")
         rerun_btn.connect("clicked", self._rerun_wal)
-        rerun_box.pack_start(rerun_btn, False, False, 0)
+        compat.pack_start(rerun_box, rerun_btn, False, False, 0)
         refresh_btn = Gtk.Button(label="Refresh")
         refresh_btn.connect("clicked", lambda b: self._refresh_pywal())
-        rerun_box.pack_start(refresh_btn, False, False, 0)
-        box.pack_start(rerun_box, False, False, 0)
+        compat.pack_start(rerun_box, refresh_btn, False, False, 0)
+        compat.pack_start(box, rerun_box, False, False, 0)
 
         self._wal_dir = WALLPAPER_DIRS[0]
         self._refresh_pywal()
@@ -1344,7 +1511,7 @@ class ThemerDialog(Popup):
             for f in sorted(schemes_dir.iterdir())[:30]:
                 row = self._make_list_row(f.name)
                 row._scheme_path = f
-                self._scheme_list.add(row)
+                compat.add(self._scheme_list, row)
 
     def _render_color_grid(self, colors: dict[str, str]):
         _remove_all_children(self._pywal_grid)
@@ -1352,23 +1519,26 @@ class ThemerDialog(Popup):
                  "white", "bright-black", "bright-red", "bright-green",
                  "bright-yellow", "bright-blue", "bright-magenta",
                  "bright-cyan", "bright-white"]
+        css_rules: list[str] = []
         for i in range(16):
             key = f"color{i}"
             hex_val = colors.get(key, "#000000")
+            cls = f"pywal-swatch-{i}"
             btn = Gtk.Button()
-            btn.set_relief(Gtk.ReliefStyle.NONE)
+            compat.set_relief(btn)
+            compat.add_class(btn, cls)
             btn.set_size_request(48, 48)
             btn.set_tooltip_text(f"{names[i]}\n{hex_val}")
-            _set_label_css(
-                btn,
-                f"button {{ background: {hex_val}; border-radius: 22px; "
-                f"min-width: 44px; min-height: 44px; }}",
+            css_rules.append(
+                f"button.{cls} {{ background: {hex_val}; border-radius: 22px; "
+                f"min-width: 44px; min-height: 44px; }}"
             )
             btn.connect("clicked", lambda b, n=i, k=key: self._on_color_click(n, k))
             self._pywal_grid.attach(btn, i % 8, i // 8, 1, 1)
+        self._pywal_provider.load_from_data("\n".join(css_rules).encode())
         # Children added after the page was shown stay hidden until shown —
         # without this a refresh while the dialog is open blanks the palette.
-        self._pywal_grid.show_all()
+        compat.show_all(self._pywal_grid)
 
     def _on_color_click(self, index: int, key: str):
         colors = _parse_wal_colors()
@@ -1393,7 +1563,7 @@ class ThemerDialog(Popup):
         return GLib.SOURCE_REMOVE
 
     def _on_choose_wal_dir(self, btn):
-        parent = self.get_toplevel()
+        parent = compat.toplevel(self)
         dialog = Gtk.FileChooserDialog(
             title="Select Wallpaper Directory for wal",
             transient_for=parent if isinstance(parent, Gtk.Window) else None,
@@ -1403,7 +1573,7 @@ class ThemerDialog(Popup):
                            Gtk.STOCK_OPEN, Gtk.ResponseType.ACCEPT)
         dialog.set_current_folder(str(self._wal_dir))
         dialog.connect("response", self._on_wal_dir_chosen)
-        dialog.show()
+        compat.show(dialog)
 
     def _on_wal_dir_chosen(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
@@ -1411,7 +1581,7 @@ class ThemerDialog(Popup):
             if folder.is_dir():
                 self._wal_dir = folder
                 self._wal_dir_label.set_text(str(folder))
-        dialog.destroy()
+        compat.destroy(dialog)
 
     def _rerun_wal(self, btn):
         try:
@@ -1426,17 +1596,17 @@ class ThemerDialog(Popup):
 
     def _build_rofi_page(self, box: Gtk.Box, scroller: Gtk.ScrolledWindow | None = None) -> None:
         self._rofi_active = Gtk.Label(label="Active variant: ...", xalign=0)
-        self._rofi_active.get_style_context().add_class("mc-page-title")
-        box.pack_start(self._rofi_active, False, False, 0)
+        compat.add_class(self._rofi_active, "mc-page-title")
+        compat.pack_start(box, self._rofi_active, False, False, 0)
 
         self._variant_list = Gtk.ListBox()
         self._variant_list.set_selection_mode(Gtk.SelectionMode.NONE)
         self._variant_list.connect("row-activated", self._on_variant_click)
-        box.pack_start(self._variant_list, True, True, 0)
+        compat.pack_start(box, self._variant_list, True, True, 0)
 
         regen_btn = Gtk.Button(label="Regenerate from Pywal")
         regen_btn.connect("clicked", self._on_rofi_regenerate)
-        box.pack_start(regen_btn, False, False, 0)
+        compat.pack_start(box, regen_btn, False, False, 0)
 
         self._refresh_rofi()
 
@@ -1457,7 +1627,7 @@ class ThemerDialog(Popup):
                 suffix = self._active_badge()
             row = self._make_list_row(f.stem, suffix)
             row._variant_path = f
-            self._variant_list.add(row)
+            compat.add(self._variant_list, row)
 
     def _on_variant_click(self, _listbox, row):
         variant_path = row._variant_path
@@ -1488,8 +1658,8 @@ class ThemerDialog(Popup):
         self._bar_ready = False
 
         self._bar_active = Gtk.Label(label="Active theme: ...", xalign=0)
-        self._bar_active.get_style_context().add_class("mc-page-title")
-        box.pack_start(self._bar_active, False, False, 0)
+        compat.add_class(self._bar_active, "mc-page-title")
+        compat.pack_start(box, self._bar_active, False, False, 0)
 
         _add_section_title(box, "Source")
         self._bar_source_buttons = _radio_group([
@@ -1500,8 +1670,8 @@ class ThemerDialog(Popup):
         source_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         for btn in self._bar_source_buttons.values():
             btn.connect("toggled", self._on_bar_source_toggled)
-            source_box.pack_start(btn, False, False, 0)
-        box.pack_start(source_box, False, False, 0)
+            compat.pack_start(source_box, btn, False, False, 0)
+        compat.pack_start(box, source_box, False, False, 0)
 
         _add_section_title(box, "Imported theme")
         self._bar_theme_buttons: dict[str, Gtk.CheckButton] = {}
@@ -1516,13 +1686,13 @@ class ThemerDialog(Popup):
         self._bar_themes_box.set_max_children_per_line(3)
         self._bar_themes_box.set_min_children_per_line(3)
         self._bar_themes_box.set_homogeneous(True)
-        themes_scroller.add(self._bar_themes_box)
-        box.pack_start(themes_scroller, False, False, 0)
+        compat.add(themes_scroller, self._bar_themes_box)
+        compat.pack_start(box, themes_scroller, False, False, 0)
         themes_scroller.set_hexpand(True)
 
         import_btn = Gtk.Button(label="Import theme…")
         import_btn.connect("clicked", self._on_bar_import)
-        box.pack_start(import_btn, False, False, 0)
+        compat.pack_start(box, import_btn, False, False, 0)
 
         # Manual colours — shown/editable only when source == "manual".
         _add_section_title(box, "Manual colours")
@@ -1544,16 +1714,16 @@ class ThemerDialog(Popup):
             if key == "hover":
                 btn.set_use_alpha(True)
             btn.connect("color-set", self._on_bar_manual_color, key)
-            row.pack_start(lbl, False, False, 0)
-            row.pack_start(btn, True, True, 0)
-            self._bar_manual_box.pack_start(row, False, False, 0)
+            compat.pack_start(row, lbl, False, False, 0)
+            compat.pack_start(row, btn, True, True, 0)
+            compat.pack_start(self._bar_manual_box, row, False, False, 0)
             self._bar_manual_colors[key] = btn
         self._sync_bar_manual_colors()
-        box.pack_start(self._bar_manual_box, False, False, 0)
+        compat.pack_start(box, self._bar_manual_box, False, False, 0)
 
         restart_btn = Gtk.Button(label="Restart Bar")
         restart_btn.connect("clicked", self._on_restart_bar)
-        box.pack_start(restart_btn, False, False, 0)
+        compat.pack_start(box, restart_btn, False, False, 0)
 
         self._refresh_bar_themes()
         self._bar_ready = True
@@ -1570,15 +1740,15 @@ class ThemerDialog(Popup):
             btn.set_active(key == source)
             btn.handler_unblock_by_func(self._on_bar_source_toggled)
 
-        for child in self._bar_themes_box.get_children():
+        for child in compat.children(self._bar_themes_box):
             self._bar_themes_box.remove(child)
-            child.destroy()
+            compat.destroy(child)
         self._bar_theme_buttons = {}
         themes = list_themes()
         if not themes:
             lbl = Gtk.Label(label="No themes imported yet — use Import…", xalign=0)
             lbl.set_opacity(0.7)
-            self._bar_themes_box.add(lbl)
+            compat.add(self._bar_themes_box, lbl)
         else:
             for tname in themes:
                 row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
@@ -1586,17 +1756,17 @@ class ThemerDialog(Popup):
                 btn.set_active(source == "imported" and Path(name).name == tname)
                 btn.connect("toggled", self._on_bar_theme_toggled, tname)
                 self._bar_theme_buttons[tname] = btn
-                row.pack_start(btn, True, True, 0)
+                compat.pack_start(row, btn, True, True, 0)
                 remove = Gtk.Button()
-                remove.set_relief(Gtk.ReliefStyle.NONE)
+                compat.set_relief(remove)
                 remove.set_tooltip_text(f"Remove {tname}")
                 trash = Glyph("\uf1f8", "mc-icon")  # fa-trash
                 trash.set_pixel_size(13)
-                remove.add(trash)
+                compat.add(remove, trash)
                 remove.connect("clicked", self._on_bar_theme_remove, tname)
-                row.pack_start(remove, False, False, 0)
-                self._bar_themes_box.add(row)
-        self._bar_themes_box.show_all()
+                compat.pack_start(row, remove, False, False, 0)
+                compat.add(self._bar_themes_box, row)
+        compat.show_all(self._bar_themes_box)
         self._update_bar_theme_state()
 
     def _update_bar_theme_state(self):
@@ -1717,12 +1887,12 @@ class ThemerDialog(Popup):
         center_layer_dialog(dialog, 460, 220)
 
         def on_response(dlg, response):
-            dlg.destroy()
+            compat.destroy(dlg)
             if response == Gtk.ResponseType.OK:
                 on_confirm()
 
         dialog.connect("response", on_response)
-        dialog.show_all()
+        compat.show_all(dialog)
 
     def _apply_bar_theme(self, source: str, theme_name: str, colors: dict | None = None):
         msg = f"Bar theme: {source}"
@@ -1785,79 +1955,212 @@ class ThemerDialog(Popup):
 
     # ── matuwall ──────────────────────────────────────────────────
 
+    # (section, title, [(key, label, kind[, choices])]) mirrors the matuwall
+    # 0.3.x config.toml schema (src/config/config.c).
+    _MW_SECTIONS = [
+        ("general", "General", [
+            ("directory", "Wallpaper Directory", "str"),
+            ("backend", "Backend", "choice",
+             ["auto", "awww", "sweetbg", "plasma", "command"]),
+        ]),
+        ("window", "Window", [
+            ("preview", "Preview Wallpaper", "bool"),
+            ("close_on_focus_loss", "Close On Focus Loss", "bool"),
+            ("position", "Position", "choice",
+             ["center", "left", "right", "top", "bottom"]),
+            ("background", "Panel Background", "str"),
+            ("margin", "Tile Margin", "int"),
+            ("edge_margin", "Edge Margin", "int"),
+            ("radius", "Panel Radius", "int"),
+        ]),
+        ("input", "Input", [
+            ("mouse", "Mouse Control", "bool"),
+        ]),
+        ("animation", "Animation", [
+            ("navigation_ms", "Navigation (ms)", "int"),
+            ("zoom_percent", "Zoom (%)", "int"),
+        ]),
+        ("grid", "Grid", [
+            ("columns", "Columns", "int"),
+            ("spacing", "Spacing", "int"),
+            ("radius", "Tile Radius", "int"),
+            ("border_width", "Border Width", "int"),
+            ("shadow_width", "Shadow Width", "int"),
+            ("ring_width", "Ring Width", "int"),
+            ("visible_rows", "Visible Rows", "int"),
+            ("carousel", "Carousel", "bool"),
+            ("edge", "Edge Style", "choice", ["auto", "clip", "peek", "fade"]),
+        ]),
+        ("thumbnail", "Thumbnail", [
+            ("width", "Width", "int"),
+            ("height", "Height", "int"),
+        ]),
+        ("colors", "Colors (pywal-driven)", [
+            ("tile", "Tile", "str"),
+            ("border", "Border", "str"),
+            ("shadow", "Shadow", "str"),
+            ("ring", "Ring", "str"),
+            ("spinner", "Spinner", "str"),
+        ]),
+        ("backend.sweetbg", "Sweetbg Backend", [
+            ("args", "Extra args", "list"),
+        ]),
+        ("backend.awww", "Awww Backend", [
+            ("args", "Extra args", "list"),
+        ]),
+        ("backend.plasma", "Plasma Backend", [
+            ("args", "Extra args", "list"),
+        ]),
+        ("backend.command", "Command Backend", [
+            ("apply", "Apply ({path})", "str"),
+        ]),
+        ("hooks", "Hooks", [
+            ("on_apply", "On Apply", "list"),
+        ]),
+    ]
+
+    # Pywal-rendered keys: shown live but never written back into the template,
+    # or the placeholders would be replaced by a single frozen colour.
+    _MW_TEMPLATE_SKIP = {
+        ("window", "background"),
+        ("colors", "tile"),
+        ("colors", "border"),
+        ("colors", "shadow"),
+        ("colors", "ring"),
+        ("colors", "spinner"),
+    }
+
+    # Placeholder hints for keys that are commonly left to the upstream default.
+    _MW_HINTS = {
+        ("window", "margin"): "34",
+        ("window", "radius"): "40",
+        ("animation", "navigation_ms"): "410",
+        ("animation", "zoom_percent"): "10",
+        ("backend.sweetbg", "args"): "--persist",
+        ("backend.awww", "args"): "--transition-type, grow",
+        ("backend.plasma", "args"): "--fill-mode, preserveAspectCrop",
+        ("backend.command", "apply"): "swww img {path}",
+    }
+
     def _build_matuwall_page(self, box: Gtk.Box, scroller: Gtk.ScrolledWindow | None = None) -> None:
         self._mw_config: dict = {}
-        _add_section_title(box, "Matuwall Configuration")
-        self._mw_entries: dict[str, Gtk.Entry] = {}
-        self._mw_switches: dict[str, Gtk.Switch] = {}
-        for key, label in (
-            ("wallpaper_dir", "Wallpaper Directory"),
-            ("thumbnail_size", "Thumbnail Size"),
-            ("batch_size", "Batch Size"),
-        ):
-            self._mw_entries[key] = _add_entry_row(box, label)
-        self._mw_switches["mouse_enabled"] = _add_switch_row(box, "Mouse Enabled")
-        self._mw_switches["keep_ui_alive"] = _add_switch_row(box, "Keep UI Alive")
-
-        _add_section_title(box, "Wall Mode")
-        self._mw_switches["wall_mode_only"] = _add_switch_row(box, "Wall Mode Only")
-        self._mw_entries["wall_awww_flags"] = _add_entry_row(box, "Awww Transition Flags")
-
-        _add_section_title(box, "Panel Mode")
-        self._mw_switches["panel_mode"] = _add_switch_row(box, "Panel Mode")
-        self._mw_entries["panel_edge"] = _add_entry_row(box, "Panel Edge")
-        self._mw_entries["panel_exclusive_zone"] = _add_entry_row(box, "Exclusive Zone")
+        self._mw_entries: dict[tuple[str, str], Gtk.Entry] = {}
+        self._mw_switches: dict[tuple[str, str], Gtk.Switch] = {}
+        self._mw_combos: dict[tuple[str, str], Gtk.ComboBoxText] = {}
+        self._mw_kinds: dict[tuple[str, str], str] = {}
+        for section, title, fields in self._MW_SECTIONS:
+            _add_section_title(box, title)
+            for field in fields:
+                key, label, kind = field[0], field[1], field[2]
+                sid = (section, key)
+                self._mw_kinds[sid] = kind
+                if kind == "bool":
+                    self._mw_switches[sid] = _add_switch_row(box, label)
+                elif kind == "choice":
+                    self._mw_combos[sid] = _add_combo_row(box, label, field[3])
+                else:
+                    entry = _add_entry_row(box, label)
+                    hint = self._MW_HINTS.get(sid)
+                    if hint:
+                        entry.set_placeholder_text(hint)
+                    self._mw_entries[sid] = entry
 
         save_btn = Gtk.Button(label="Save Configuration")
-        save_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(save_btn, "settings-apply")
         save_btn.connect("clicked", self._save_matuwall)
-        box.pack_start(save_btn, False, False, 0)
+        compat.pack_start(box, save_btn, False, False, 0)
 
         self._load_matuwall()
 
     def _load_matuwall(self):
-        if MATUWALL_CONFIG.exists():
-            try:
-                cfg = json.loads(MATUWALL_CONFIG.read_text())
-            except (json.JSONDecodeError, OSError):
-                cfg = {}
-        else:
-            cfg = {}
+        cfg = _read_matuwall_toml()
         self._mw_config = cfg
-        for section in cfg.values():
-            if not isinstance(section, dict):
+        # Older configs (and the previous pywal template) used grid.edge_peek;
+        # fold it onto the 0.3.x grid.edge before populating the combo.
+        if _cfg_get(cfg, "grid", "edge") is None:
+            legacy_peek = _cfg_get(cfg, "grid", "edge_peek")
+            if legacy_peek is not None:
+                _cfg_set(cfg, "grid", "edge", "peek" if legacy_peek else "clip")
+        for sid, entry in self._mw_entries.items():
+            val = _cfg_get(cfg, *sid)
+            if val is None:
                 continue
-            for key, val in section.items():
-                if key in self._mw_entries:
-                    self._mw_entries[key].set_text(str(val))
-                if key in self._mw_switches:
-                    self._mw_switches[key].set_active(bool(val))
+            if isinstance(val, list):
+                entry.set_text(", ".join(str(v) for v in val))
+            else:
+                entry.set_text(str(val))
+        for sid, switch in self._mw_switches.items():
+            switch.set_active(bool(_cfg_get(cfg, *sid)))
+        for sid, combo in self._mw_combos.items():
+            val = _cfg_get(cfg, *sid)
+            if val is not None:
+                _combo_set_active(combo, str(val))
+
+    def _collect_matuwall(self) -> dict | None:
+        """Fold the widgets back onto the loaded config; None on bad input."""
+        cfg = self._mw_config
+        bad: list[str] = []
+        for sid, entry in self._mw_entries.items():
+            kind = self._mw_kinds[sid]
+            raw = entry.get_text().strip()
+            if kind == "int":
+                if raw == "":
+                    continue
+                try:
+                    value = int(raw)
+                except ValueError:
+                    bad.append(f"{sid[1]}={raw}")
+                    continue
+            elif kind == "list":
+                value = [part.strip() for part in raw.split(",") if part.strip()]
+            else:
+                value = raw
+            _cfg_set(cfg, sid[0], sid[1], value)
+        for sid, switch in self._mw_switches.items():
+            _cfg_set(cfg, sid[0], sid[1], switch.get_active())
+        for sid, combo in self._mw_combos.items():
+            text = combo.get_active_text()
+            if text:
+                _cfg_set(cfg, sid[0], sid[1], text)
+        if bad:
+            self._toast("Invalid number: " + ", ".join(bad))
+            return None
+        grid = cfg.get("grid")
+        if isinstance(grid, dict):
+            grid.pop("edge_peek", None)
+        return cfg
 
     def _save_matuwall(self, btn=None):
-        cfg = self._mw_config
-        for key, entry in self._mw_entries.items():
-            val = entry.get_text()
-            for section in cfg.values():
-                if isinstance(section, dict) and key in section:
-                    orig = section[key]
-                    if isinstance(orig, int):
-                        try:
-                            section[key] = int(val)
-                        except ValueError:
-                            pass
-                    elif isinstance(orig, bool):
-                        pass
-                    else:
-                        section[key] = val
-        for key, switch in self._mw_switches.items():
-            for section in cfg.values():
-                if isinstance(section, dict) and key in section:
-                    section[key] = switch.get_active()
+        cfg = self._collect_matuwall()
+        if cfg is None:
+            return
         try:
-            _atomic_write(MATUWALL_CONFIG, json.dumps(cfg, indent=2))
-            self._toast("Matuwall config saved")
+            # Write *through* the pywal symlink, not over it.
+            _atomic_write(MATUWALL_CONFIG.resolve(), _toml_dumps(cfg))
+            _update_matuwall_template(self._template_replacements(cfg))
         except OSError as exc:
             self._toast(f"Save failed: {exc}")
+            return
+        self._mw_config = cfg
+        self._toast("Matuwall config saved")
+
+    def _template_replacements(self, cfg: dict) -> dict[tuple[str, str], str]:
+        out: dict[tuple[str, str], str] = {}
+        for section, _title, fields in self._MW_SECTIONS:
+            for field in fields:
+                key = field[0]
+                if (section, key) in self._MW_TEMPLATE_SKIP:
+                    continue
+                val = _cfg_get(cfg, section, key)
+                if val is None:
+                    continue
+                rendered = _toml_value(val)
+                # Skip pywal placeholders / {path} tokens so the renderer is
+                # not fed a literal brace expression.
+                if "{" in rendered or "}" in rendered:
+                    continue
+                out[(section, key)] = rendered
+        return out
 
     # ── swaylock ──────────────────────────────────────────────────
 
@@ -1868,20 +2171,20 @@ class ThemerDialog(Popup):
                   "the lock screen with your current wallpaper palette.",
             xalign=0, wrap=True,
         )
-        box.pack_start(desc, False, False, 0)
+        compat.pack_start(box, desc, False, False, 0)
         apply_wal_btn = Gtk.Button(label="Apply Pywal Colors")
-        apply_wal_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(apply_wal_btn, "settings-apply")
         apply_wal_btn.connect("clicked", self._apply_swaylock_pywal)
-        box.pack_start(apply_wal_btn, False, False, 0)
+        compat.pack_start(box, apply_wal_btn, False, False, 0)
 
         _add_section_title(box, "Manual Color Editor")
         load_btn = Gtk.Button(label="Load Current Pywal Colors")
         load_btn.connect("clicked", self._load_swaylock_pywal)
-        box.pack_start(load_btn, False, False, 0)
+        compat.pack_start(box, load_btn, False, False, 0)
 
         manual_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
         self._preview = SwaylockPreview()
-        manual_row.pack_start(self._preview, False, False, 0)
+        compat.pack_start(manual_row, self._preview, False, False, 0)
 
         self._color_buttons: dict[str, ColorButton] = {}
         fields = [
@@ -1911,13 +2214,13 @@ class ThemerDialog(Popup):
                 cb.connect_color_changed(lambda c, k=key: self._on_swaylock_color(k, c))
                 self._color_buttons[key] = cb
                 grid.attach(cb, 1, i, 1, 1)
-            manual_row.pack_start(grid, False, False, 0)
+            compat.pack_start(manual_row, grid, False, False, 0)
 
-        box.pack_start(manual_row, False, False, 0)
+        compat.pack_start(box, manual_row, False, False, 0)
 
         save_btn = Gtk.Button(label="Save Manual Config")
         save_btn.connect("clicked", self._save_swaylock_manual)
-        box.pack_start(save_btn, False, False, 0)
+        compat.pack_start(box, save_btn, False, False, 0)
 
         _add_section_title(box, "Indicator Settings")
         self._sl_radius = _add_entry_row(box, "Indicator Radius")
@@ -1926,7 +2229,7 @@ class ThemerDialog(Popup):
         self._sl_effect = _add_entry_row(box, "Effect (e.g. effect-pixelate=5)")
         save_settings_btn = Gtk.Button(label="Save Settings")
         save_settings_btn.connect("clicked", self._save_swaylock_settings)
-        box.pack_start(save_settings_btn, False, False, 0)
+        compat.pack_start(box, save_settings_btn, False, False, 0)
 
         self._load_swaylock()
 
@@ -2041,9 +2344,9 @@ class ThemerDialog(Popup):
         self._icon_preview_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
                                          spacing=8)
         self._icon_preview_box.set_halign(Gtk.Align.START)
-        box.pack_start(self._icon_preview_box, False, False, 0)
+        compat.pack_start(box, self._icon_preview_box, False, False, 0)
         self._icon_color_label = Gtk.Label(label="", xalign=0)
-        box.pack_start(self._icon_color_label, False, False, 0)
+        compat.pack_start(box, self._icon_color_label, False, False, 0)
 
         _add_section_title(box, "Pywal Auto-Color")
         desc = Gtk.Label(
@@ -2051,11 +2354,11 @@ class ThemerDialog(Popup):
                   "Uses Euclidean distance to find the closest preset.",
             xalign=0, wrap=True,
         )
-        box.pack_start(desc, False, False, 0)
+        compat.pack_start(box, desc, False, False, 0)
         auto_btn = Gtk.Button(label="Apply Pywal Color Match")
-        auto_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(auto_btn, "settings-apply")
         auto_btn.connect("clicked", self._apply_icon_auto)
-        box.pack_start(auto_btn, False, False, 0)
+        compat.pack_start(box, auto_btn, False, False, 0)
 
         _add_section_title(box, "Manual Folder Color")
         grid = Gtk.Grid()
@@ -2064,32 +2367,32 @@ class ThemerDialog(Popup):
         self._icon_presets = []
         for i, (display_name, papirus_color) in enumerate(_COLOR_PRESETS):
             btn = Gtk.Button()
-            btn.set_relief(Gtk.ReliefStyle.NONE)
+            compat.set_relief(btn)
             btn.set_tooltip_text(papirus_color)
             content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             icon_pb = _fit_pixbuf(
                 str(ICON_THEME_DIR / f"folder-{papirus_color}.svg"), 20, 20
             )
             if icon_pb is not None:
-                img = Gtk.Image.new_from_pixbuf(icon_pb)
-                content.pack_start(img, False, False, 0)
+                img = compat.new_raster_from_pixbuf(icon_pb)
+                compat.pack_start(content, img, False, False, 0)
             lbl = Gtk.Label(label=display_name, xalign=0)
-            content.pack_start(lbl, False, False, 0)
-            btn.add(content)
+            compat.pack_start(content, lbl, False, False, 0)
+            compat.add(btn, content)
             btn.connect("clicked", lambda b, c=papirus_color: self._apply_icon_preset(c))
             grid.attach(btn, i % 4, i // 4, 1, 1)
             self._icon_presets.append(btn)
-        box.pack_start(grid, False, False, 0)
+        compat.pack_start(box, grid, False, False, 0)
 
         _add_section_title(box, "Custom Hex")
         custom_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self._icon_custom = Gtk.Entry()
         self._icon_custom.set_text("#2196F3")
-        custom_row.pack_start(self._icon_custom, True, True, 0)
+        compat.pack_start(custom_row, self._icon_custom, True, True, 0)
         apply_custom_btn = Gtk.Button(label="Apply")
         apply_custom_btn.connect("clicked", self._apply_icon_custom)
-        custom_row.pack_start(apply_custom_btn, False, False, 0)
-        box.pack_start(custom_row, False, False, 0)
+        compat.pack_start(custom_row, apply_custom_btn, False, False, 0)
+        compat.pack_start(box, custom_row, False, False, 0)
 
         self._refresh_icons()
 
@@ -2099,7 +2402,7 @@ class ThemerDialog(Popup):
         _remove_all_children(self._icon_preview_box)
         if not ICON_THEME_DIR.exists():
             lbl = Gtk.Label(label="(icon theme not found)")
-            self._icon_preview_box.pack_start(lbl, False, False, 0)
+            compat.pack_start(self._icon_preview_box, lbl, False, False, 0)
             return
         for icon_template, label_text in _PREVIEW_ICONS:
             icon_path = ICON_THEME_DIR / icon_template.replace("{color}", color)
@@ -2111,10 +2414,10 @@ class ThemerDialog(Popup):
             item.set_halign(Gtk.Align.CENTER)
             img = Gtk.Image.new_from_file(str(icon_path))
             img.set_pixel_size(40)
-            item.pack_start(img, False, False, 0)
+            compat.pack_start(item, img, False, False, 0)
             lbl = Gtk.Label(label=label_text)
-            item.pack_start(lbl, False, False, 0)
-            self._icon_preview_box.pack_start(item, False, False, 0)
+            compat.pack_start(item, lbl, False, False, 0)
+            compat.pack_start(self._icon_preview_box, item, False, False, 0)
 
     def _apply_icon_auto(self, btn):
         if not CHANGE_ICONS_SH.is_file():
@@ -2174,21 +2477,21 @@ class ThemerDialog(Popup):
                   "your current wallpaper.",
             xalign=0, wrap=True,
         )
-        box.pack_start(info, False, False, 0)
+        compat.pack_start(box, info, False, False, 0)
 
         self._sddm_wallpaper_path = HOME / ".cache" / "current-wallpaper.png"
-        self._sddm_preview_img = Gtk.Image()
+        self._sddm_preview_img = compat.new_raster()
         self._sddm_preview_img.set_halign(Gtk.Align.CENTER)
-        box.pack_start(self._sddm_preview_img, False, False, 0)
+        compat.pack_start(box, self._sddm_preview_img, False, False, 0)
         self._refresh_sddm_preview()
 
         update_btn = Gtk.Button(label="Update SDDM & GRUB Wallpaper")
-        update_btn.get_style_context().add_class("settings-apply")
+        compat.add_class(update_btn, "settings-apply")
         update_btn.connect("clicked", self._on_sddm_update)
-        box.pack_start(update_btn, False, False, 0)
+        compat.pack_start(box, update_btn, False, False, 0)
 
         self._sddm_status = Gtk.Label(label="", xalign=0)
-        box.pack_start(self._sddm_status, False, False, 0)
+        compat.pack_start(box, self._sddm_status, False, False, 0)
 
     def _refresh_sddm_preview(self) -> None:
         """Sync current-wallpaper.png with the live wallpaper and re-render.
@@ -2209,14 +2512,14 @@ class ThemerDialog(Popup):
                 except OSError:
                     pass
         if not self._sddm_wallpaper_path.exists():
-            self._sddm_preview_img.set_from_pixbuf(None)
+            compat.raster_set_pixbuf(self._sddm_preview_img, None)
             return
         pb = _fit_pixbuf(
             str(self._sddm_wallpaper_path),
             _SDDM_PREVIEW[0], _SDDM_PREVIEW[1],
         )
         if pb is not None:
-            self._sddm_preview_img.set_from_pixbuf(pb)
+            compat.raster_set_pixbuf(self._sddm_preview_img, pb)
             self._sddm_preview_img.set_size_request(pb.get_width(), pb.get_height())
 
     def _on_sddm_update(self, btn):
@@ -2267,20 +2570,20 @@ class ThemerDialog(Popup):
 
     def _make_list_row(self, title: str, suffix: Gtk.Widget | None = None) -> Gtk.ListBoxRow:
         row = Gtk.ListBoxRow()
-        row.get_style_context().add_class("settings-row")
+        compat.add_class(row, "settings-row")
         row.set_activatable(True)
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         label = Gtk.Label(label=title, xalign=0)
         label.set_ellipsize(3)
-        box.pack_start(label, True, True, 0)
+        compat.pack_start(box, label, True, True, 0)
         if suffix is not None:
-            box.pack_start(suffix, False, False, 0)
-        row.add(box)
+            compat.pack_start(box, suffix, False, False, 0)
+        compat.add(row, box)
         return row
 
     def _active_badge(self) -> Gtk.Label:
         badge = Gtk.Label(label="Active")
-        badge.get_style_context().add_class("settings-value")
+        compat.add_class(badge, "settings-value")
         return badge
 
     def hide_popup(self) -> None:
@@ -2307,7 +2610,7 @@ class SwaylockPreview(Gtk.DrawingArea):
         }
         self._indicator_radius = 100
         self._indicator_thickness = 18
-        self.connect("draw", self._draw)
+        compat.set_draw_func(self, self._draw)
 
     def update_colors(self, colors: dict[str, str]):
         self._colors.update(colors)
@@ -2321,7 +2624,7 @@ class SwaylockPreview(Gtk.DrawingArea):
     def _draw(self, _area, cr):
         import cairo
 
-        width, height = self.get_allocated_width(), self.get_allocated_height()
+        width, height = compat.allocated_width(self), compat.allocated_height(self)
         cx, cy = width / 2, height / 2
         radius = min(self._indicator_radius, min(width, height) / 2 - 8)
 

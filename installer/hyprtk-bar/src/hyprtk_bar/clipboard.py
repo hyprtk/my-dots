@@ -19,12 +19,8 @@ import logging
 import re
 import subprocess
 
-import gi
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
-gi.require_version("GtkLayerShell", "0.1")
-
-from gi.repository import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, GLib, Gtk, GtkLayerShell  # noqa: E402
 
 from .popup import Popup  # noqa: E402
 
@@ -122,30 +118,30 @@ class CliphistDialog(Popup):
 
         # The search entry needs keyboard input, which the Popup base disables.
         GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.ON_DEMAND)
-        self.set_accept_focus(True)
-        self.connect("key-press-event", self._on_key)
+        compat.set_accept_focus(self, True)
+        compat.on_key(self, self._on_key)
 
         # ── header ────────────────────────────────────────────────
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.get_style_context().add_class("cliphist-header")
+        compat.add_class(header, "cliphist-header")
         title = Gtk.Label(label="Clipboard")
-        title.get_style_context().add_class("notif-title")
+        compat.add_class(title, "notif-title")
         title.set_xalign(0)
         title.set_hexpand(True)
-        header.pack_start(title, True, True, 0)
+        compat.pack_start(header, title, True, True, 0)
 
         self._clear_btn = Gtk.Button(label="Clear all")
-        self._clear_btn.get_style_context().add_class("notif-clear")
+        compat.add_class(self._clear_btn, "notif-clear")
         self._clear_btn.connect("clicked", self._on_clear)
-        header.pack_start(self._clear_btn, False, False, 0)
-        self.content.pack_start(header, False, False, 0)
+        compat.pack_start(header, self._clear_btn, False, False, 0)
+        compat.pack_start(self.content, header, False, False, 0)
 
         # ── search ────────────────────────────────────────────────
         self._search = Gtk.SearchEntry()
         self._search.set_placeholder_text("Search history…")
-        self._search.get_style_context().add_class("cliphist-search")
+        compat.add_class(self._search, "cliphist-search")
         self._search.connect("search-changed", self._on_search)
-        self.content.pack_start(self._search, False, False, 0)
+        compat.pack_start(self.content, self._search, False, False, 0)
 
         # ── list ──────────────────────────────────────────────────
         self._listbox = Gtk.ListBox()
@@ -154,15 +150,15 @@ class CliphistDialog(Popup):
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_max_content_height(420)
-        scroller.add(self._listbox)
-        self.content.pack_start(scroller, True, True, 0)
+        compat.add(scroller, self._listbox)
+        compat.pack_start(self.content, scroller, True, True, 0)
 
         self._empty = Gtk.Label(label="Clipboard is empty")
-        self._empty.get_style_context().add_class("cliphist-empty")
+        compat.add_class(self._empty, "cliphist-empty")
         self._empty.set_margin_top(16)
         self._empty.set_margin_bottom(16)
 
-        self.content.show_all()
+        compat.show_all(self.content)
 
     # ── popup lifecycle ───────────────────────────────────────────
 
@@ -183,9 +179,9 @@ class CliphistDialog(Popup):
 
     def _refresh(self) -> None:
         self._entries = _list_entries()
-        for child in self._listbox.get_children():
+        for child in compat.children(self._listbox):
             self._listbox.remove(child)
-            child.destroy()
+            compat.destroy(child)
 
         filtered = self._entries
         needle = self._search.get_text().strip().lower()
@@ -193,30 +189,30 @@ class CliphistDialog(Popup):
             filtered = [e for e in self._entries if needle in e["info"].lower()]
 
         if not filtered:
-            self._listbox.add(self._empty)
+            compat.add(self._listbox, self._empty)
         for entry in filtered:
-            self._listbox.add(self._make_row(entry))
-        self._listbox.show_all()
+            compat.add(self._listbox, self._make_row(entry))
+        compat.show_all(self._listbox)
 
     def _make_row(self, entry) -> Gtk.ListBoxRow:
         row = Gtk.ListBoxRow()
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        box.get_style_context().add_class("cliphist-row")
+        compat.add_class(box, "cliphist-row")
 
         label = Gtk.Label(label=entry["info"][:_MAX_PREVIEW])
         label.set_xalign(0)
         label.set_ellipsize(3)  # Pango.EllipsizeMode.END
         label.set_hexpand(True)
-        label.get_style_context().add_class("cliphist-preview")
-        box.pack_start(label, True, True, 0)
+        compat.add_class(label, "cliphist-preview")
+        compat.pack_start(box, label, True, True, 0)
 
         delete = Gtk.Button(label="✕")
-        delete.set_relief(Gtk.ReliefStyle.NONE)
-        delete.get_style_context().add_class("cliphist-del")
+        compat.set_relief(delete)
+        compat.add_class(delete, "cliphist-del")
         delete.connect("clicked", lambda _b, e=entry: self._on_delete(e))
-        box.pack_start(delete, False, False, 0)
+        compat.pack_start(box, delete, False, False, 0)
 
-        row.add(box)
+        compat.add(row, box)
         return row
 
     # ── actions ───────────────────────────────────────────────────

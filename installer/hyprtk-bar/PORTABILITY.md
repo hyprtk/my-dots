@@ -27,9 +27,9 @@ The bar's dependencies split into three layers:
 
 | Typelib            | Used by                        |
 |--------------------|--------------------------------|
-| `Gtk-3.0`          | everything                     |
-| `Gdk-3.0`          | windows / pixbuf               |
-| `GtkLayerShell-0.1`| layer-shell anchoring          |
+| `Gtk-4.0`          | everything                     |
+| `Gdk-4.0`          | windows / pixbuf               |
+| `Gtk4LayerShell-1.0`| layer-shell anchoring         |
 | `GLib-2.0`         | proc / GObject                 |
 | `Pango-1.0`        | font + glyph sizing            |
 | `GdkPixbuf-2.0`    | themer image handling          |
@@ -117,8 +117,8 @@ reference for the rest:
 
 | Dep                | pacman | Debian/Ubuntu | Fedora | openSUSE | Void | Alpine | Gentoo |
 |--------------------|--------|---------------|--------|----------|------|--------|--------|
-| GTK3 typelib       | `gtk3` | `gir1.2-gtk-3.0` | `gtk3` | `typelib-1_0-Gtk-3_0` | `gtk+3` | `gtk+3.0` | `x11-libs/gtk+:3` |
-| layer-shell        | `gtk-layer-shell` | `gir1.2-gtklayershell-0.1` | `gtk-layer-shell` | `gtk-layer-shell` | `gtk-layer-shell` | `gtk-layer-shell` | `gui-libs/gtk-layer-shell` |
+| GTK4 typelib       | `gtk4` | `gir1.2-gtk-4.0` | `gtk4` | `typelib-1_0-Gtk-4_0` | `gtk4` | `gtk4.0` | `x11-libs/gtk+:4` |
+| layer-shell        | `gtk4-layer-shell` | *(srcapps builds)* | `gtk4-layer-shell` | `gtk4-layer-shell` | `gtk4-layer-shell` | `gtk4-layer-shell` | `gui-libs/gtk4-layer-shell` |
 | PyGObject          | `python-gobject` | `python3-gi` + `python3-gi-cairo` | `python3-gobject` | `python3-gobject` + `python3-gobject-Gdk` | `python3-gobject` | `py3-gobject3` | `dev-python/pygobject` |
 | GdkPixbuf          | `gdk-pixbuf2` | `gir1.2-gdkpixbuf-2.0` | `gdk-pixbuf2` | `typelib-1_0-GdkPixbuf-2_0` | `gdk-pixbuf` | `gdk-pixbuf` | `x11-libs/gdk-pixbuf` |
 | Pango              | `pango` | `gir1.2-pango-1.0` | `pango` | `typelib-1_0-Pango-1_0` | `pango` | `pango` | `x11-libs/pango` |
@@ -169,26 +169,25 @@ a standalone bar:
 These must become configurable (or skip gracefully when the tree is absent)
 before the bar is a fully standalone install.
 
-### gtk-layer-shell age
-Every distro family packages `gtk-layer-shell`, but older LTS releases ship
-ancient versions. Use a reasonably current release (≥ 0.9) to avoid missing
-layer-shell API.
+### gtk4-layer-shell availability
+The bar needs the GTK4 layer-shell GI typelib (`Gtk4LayerShell-1.0`). Some
+families package it (`gtk4-layer-shell` on Arch/Fedora/openSUSE/Void; the
+nixpkgs package ships it), but Debian/Ubuntu (≤ 24.04) have no GI package, so
+the multi-distro installer builds `gtk4-layer-shell` from source with
+`-Dintrospection=true` (see `installer/scripts/srcapps-install.sh`). A
+standalone bar install prints the source-build steps and continues.
 
-Families below 0.9 (need a source build of gtk-layer-shell, or a newer distro
-release):
-
-- Debian ≤ 12 (0.8.0), Ubuntu ≤ 24.04 (0.8.2) — Ubuntu 20.04 ships 0.1.0, unusable
-- Fedora ≤ 40, openSUSE Leap 15.x (0.8.2)
-- Alpine ≤ 3.20, nixpkgs ≤ 24.05
-
-Arch/Void/Gentoo and the newest releases of the others are ≥ 0.9.
+On GTK builds without the layer-shell patch (most distros) the bar's launcher
+preloads the library (`LD_PRELOAD`); the installer-generated launcher handles
+this automatically.
 
 ## Remaining work
 
 1. `yum` (RHEL/CentOS 7) detection is currently folded into `dnf` — verify the
    older `yum` install flags if those systems matter.
-2. Auto-build gtk-layer-shell from source when it is present but < 0.9 (the
-   installer currently warns and prints the manual steps instead).
+2. Auto-build `gtk4-layer-shell` from source in the standalone installer when
+   the GI typelib is missing (the multi-distro `srcapps-install.sh` already does;
+   the standalone installer warns and prints the manual steps instead).
 3. Validate the `-devel`/`-dev` package names for Void/Alpine and the openSUSE
    `typelib-1_0-*` names via the CI matrix (the workflow exists; it needs a
    first run on GitHub Actions to confirm each name resolves).

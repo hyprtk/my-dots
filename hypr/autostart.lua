@@ -21,6 +21,9 @@ hl.on("hyprland.start", function()
     -- it is launched on demand by hypr/scripts/matuwall-toggle.sh (SUPER+W).
     hl.exec_cmd("rm -f /tmp/wobpipe && mkfifo /tmp/wobpipe && tail -f /tmp/wobpipe | wob -c ~/.config/wob/wob.ini &")
     hl.exec_cmd("~/hyprtk/installer/scripts/lockscreentime.sh")
+    -- Persist Hyprland's runtime log + snapshot DRM/GPU state if the compositor
+    -- stalls (the idle DPMS-wake freeze). See hypr/scripts/hypr-watchdog.sh.
+    hl.exec_cmd("~/.config/hypr/scripts/hypr-watchdog.sh &")
     hl.exec_cmd("~/hyprtk/hypr/scripts/wallpaper-restore.sh")
     hl.exec_cmd("~/hyprtk/hypr/scripts/wal-watcher.sh &")
     hl.exec_cmd("~/hyprtk/configs/gtk/gtk.sh")

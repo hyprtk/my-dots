@@ -3,21 +3,41 @@
 # Rendered by `wal` to ~/.cache/wal/matuwall-config.toml on every wallpaper
 # change; the installer symlinks ~/.config/matuwall/config.toml to it so the
 # picker follows the pywal palette (its own UI colours, like the old Matuwall).
-# Schema per src/config/config.c (upstream's config/example.toml is stale — the
-# grid keys belong under [grid]).
+# Schema per matuwall 0.3.x (src/config/config.c).
 
 [general]
 directory = "~/Pictures/Wallpapers"
 backend = "auto"
 
+# Extra per-backend flags passed to the img command (one argument per item).
+[backend.sweetbg]
+args = []
+
+[backend.awww]
+args = []
+
+[backend.plasma]
+args = []
+
+# Used when backend = "command"; {path} is the wallpaper path.
+[backend.command]
+apply = ""
+
 [window]
+preview = false
+close_on_focus_loss = false
 position = "left"
 background = "{background}f2"
+margin = 34
 edge_margin = 45
-close_on_focus_loss = false
+radius = 40
 
 [input]
 mouse = true
+
+[animation]
+navigation_ms = 410
+zoom_percent = 10
 
 [grid]
 columns = 4
@@ -28,7 +48,7 @@ shadow_width = 12
 ring_width = 0
 visible_rows = 1
 carousel = true
-edge_peek = false
+edge = "auto"
 
 [thumbnail]
 width = 300

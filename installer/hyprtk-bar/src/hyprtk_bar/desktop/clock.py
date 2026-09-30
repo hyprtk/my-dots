@@ -20,10 +20,8 @@ import math
 
 import cairo
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import GLib, Gtk  # noqa: E402
 
 from ..colors import hex_to_rgb  # noqa: E402
 from .base import DesktopWidgetWindow  # noqa: E402
@@ -115,14 +113,14 @@ class ClockWidget(DesktopWidgetWindow):
     def _build_digital(self) -> None:
         self._labels["time"] = self._label("clock-time", "--:--")
         self._labels["date"] = self._label("clock-date", "")
-        self.root.pack_start(self._labels["time"], False, False, 0)
-        self.root.pack_start(self._labels["date"], False, False, 0)
+        compat.pack_start(self.root, self._labels["time"], False, False, 0)
+        compat.pack_start(self.root, self._labels["date"], False, False, 0)
 
     def _build_text(self) -> None:
         self._labels["words"] = self._label("clock-words", "…")
         self._labels["date"] = self._label("clock-date", "")
-        self.root.pack_start(self._labels["words"], False, False, 0)
-        self.root.pack_start(self._labels["date"], False, False, 0)
+        compat.pack_start(self.root, self._labels["words"], False, False, 0)
+        compat.pack_start(self.root, self._labels["date"], False, False, 0)
 
     def _build_dials(self) -> None:
         dials = self._merged().get("dials") or {}
@@ -132,11 +130,11 @@ class ClockWidget(DesktopWidgetWindow):
         self._area = Gtk.DrawingArea()
         self._area.set_size_request(size, size)
         self._area.set_halign(Gtk.Align.CENTER)
-        self._area.connect("draw", self._draw_dials)
-        self.root.pack_start(self._area, False, False, 0)
+        compat.set_draw_func(self._area, self._draw_dials)
+        compat.pack_start(self.root, self._area, False, False, 0)
         if self._merged().get("show_date", True):
             self._labels["date"] = self._label("clock-date", "")
-            self.root.pack_start(self._labels["date"], False, False, 0)
+            compat.pack_start(self.root, self._labels["date"], False, False, 0)
         if count == 3:
             rows = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
             rows.set_halign(Gtk.Align.CENTER)
@@ -144,16 +142,16 @@ class ClockWidget(DesktopWidgetWindow):
                 cell = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
                 name = self._label("clock-dial-label", label)
                 value = self._label("clock-dial-value", "--")
-                cell.pack_start(name, False, False, 0)
-                cell.pack_start(value, False, False, 0)
-                rows.pack_start(cell, False, False, 0)
+                compat.pack_start(cell, name, False, False, 0)
+                compat.pack_start(cell, value, False, False, 0)
+                compat.pack_start(rows, cell, False, False, 0)
                 self._labels[key] = value
-            self.root.pack_start(rows, False, False, 0)
+            compat.pack_start(self.root, rows, False, False, 0)
 
     @staticmethod
     def _label(css_class: str, text: str) -> Gtk.Label:
         label = Gtk.Label(label=text)
-        label.get_style_context().add_class(css_class)
+        compat.add_class(label, css_class)
         label.set_justify(Gtk.Justification.CENTER)
         return label
 
@@ -210,7 +208,7 @@ class ClockWidget(DesktopWidgetWindow):
         return (rgb[0] / 255, rgb[1] / 255, rgb[2] / 255, alpha)
 
     def _draw_dials(self, _widget, cr) -> bool:
-        alloc = self._area.get_allocation()
+        alloc = compat.allocation(self._area)
         w, h = alloc.width, alloc.height
         cx, cy = w / 2, h / 2
         radius = min(w, h) / 2 - 6

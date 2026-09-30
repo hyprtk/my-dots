@@ -7,10 +7,8 @@
 
 from __future__ import annotations
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import Gtk  # noqa: E402
 
 from ..graphs import HistoryGraph  # noqa: E402
 from .sampled import SampledWidget, label, row  # noqa: E402
@@ -18,7 +16,7 @@ from .sampled import SampledWidget, label, row  # noqa: E402
 
 def _bar() -> Gtk.ProgressBar:
     bar = Gtk.ProgressBar()
-    bar.get_style_context().add_class("widget-progress")
+    compat.add_class(bar, "widget-progress")
     return bar
 
 
@@ -45,46 +43,46 @@ class ResourcesWidget(SampledWidget):
     def build_content(self) -> None:
         if self._block.get("show_cpu", True):
             head = row(8)
-            head.pack_start(label("CPU", "res-key"), False, False, 0)
+            compat.pack_start(head, label("CPU", "res-key"), False, False, 0)
             self._cpu_val = label("--", "res-val")
             self._cpu_val.set_halign(Gtk.Align.END)
             self._cpu_val.set_xalign(1)
-            head.pack_end(self._cpu_val, False, False, 0)
-            self.root.pack_start(head, False, False, 0)
+            compat.pack_end(head, self._cpu_val, False, False, 0)
+            compat.pack_start(self.root, head, False, False, 0)
             self._cpu_bar = _bar()
-            self.root.pack_start(self._cpu_bar, False, False, 0)
+            compat.pack_start(self.root, self._cpu_bar, False, False, 0)
             self._graph = HistoryGraph(
                 color=self._accent, height=44, max_points=60, scale=100.0,
                 multi=self._multi,
             )
-            self._graph.get_style_context().add_class("widget-graph")
-            self.root.pack_start(self._graph, False, False, 0)
+            compat.add_class(self._graph, "widget-graph")
+            compat.pack_start(self.root, self._graph, False, False, 0)
 
         if self._block.get("show_ram", True):
             head = row(8)
-            head.pack_start(label("RAM", "res-key"), False, False, 0)
+            compat.pack_start(head, label("RAM", "res-key"), False, False, 0)
             self._ram_val = label("--", "res-val")
             self._ram_val.set_halign(Gtk.Align.END)
             self._ram_val.set_xalign(1)
-            head.pack_end(self._ram_val, False, False, 0)
-            self.root.pack_start(head, False, False, 0)
+            compat.pack_end(head, self._ram_val, False, False, 0)
+            compat.pack_start(self.root, head, False, False, 0)
             self._ram_bar = _bar()
-            self.root.pack_start(self._ram_bar, False, False, 0)
+            compat.pack_start(self.root, self._ram_bar, False, False, 0)
 
         if self._block.get("show_swap", True):
             head = row(8)
-            head.pack_start(label("Swap", "res-key"), False, False, 0)
+            compat.pack_start(head, label("Swap", "res-key"), False, False, 0)
             self._swap_val = label("--", "res-val")
             self._swap_val.set_halign(Gtk.Align.END)
             self._swap_val.set_xalign(1)
-            head.pack_end(self._swap_val, False, False, 0)
-            self.root.pack_start(head, False, False, 0)
+            compat.pack_end(head, self._swap_val, False, False, 0)
+            compat.pack_start(self.root, head, False, False, 0)
             self._swap_bar = _bar()
-            self.root.pack_start(self._swap_bar, False, False, 0)
+            compat.pack_start(self.root, self._swap_bar, False, False, 0)
 
         if self._block.get("show_temp", True) or self._block.get("show_load", True):
             self._meta = label("", "res-meta")
-            self.root.pack_start(self._meta, False, False, 0)
+            compat.pack_start(self.root, self._meta, False, False, 0)
 
     def collect(self):
         from ..monitor_data import memory

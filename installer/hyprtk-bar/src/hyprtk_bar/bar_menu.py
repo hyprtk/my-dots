@@ -11,15 +11,36 @@ The context menu itself is just the entry point plus a config reload utility.
 
 from __future__ import annotations
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gdk, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gdk, Gtk  # noqa: E402
 
 from .__init__ import __version__  # noqa: E402
 
 
+def menu_items(cfg: dict, actions: dict) -> list:
+    """The bar context menu as a ``menus.MenuPopup`` item model."""
+    return [
+        {"label": "Bar settings…", "activate": actions["open_settings"]},
+        {"label": "Reload config", "activate": actions["reload_config"]},
+        {"label": "About hyprtk-bar", "activate": actions["open_about"]},
+    ]
+
+
+def show_bar_menu(anchor, cfg: dict, actions: dict, at=None):
+    """Show the bar context menu anchored to *anchor* (GTK4 popover).
+
+    ``at`` (optional ``(x, y)`` in *anchor* coordinates) places the menu under
+    the click point rather than the anchor's centre.
+    """
+    from .menus import MenuPopup
+
+    popup = MenuPopup(menu_items(cfg, actions))
+    popup.show_at(anchor, at=at)
+    return popup
+
+
 def build_bar_menu(cfg: dict, actions: dict) -> Gtk.Menu:
+    """Legacy GTK3 ``Gtk.Menu`` build (escape hatch)."""
     menu = Gtk.Menu()
 
     settings = Gtk.MenuItem(label="Bar settings…")
@@ -48,53 +69,71 @@ def show_about(parent: Gtk.Widget | None = None) -> None:
 
     load()  # ensure config validation runs (harmless; theme provider is global)
 
-    win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
+    win = compat.new_window()
     win.set_title("hyprtk-bar about")
     win.set_decorated(False)
-    win.set_keep_above(True)
+    compat.set_keep_above(win, True)
     win.set_resizable(False)
-    win.set_position(Gtk.WindowPosition.CENTER)
-    win.get_style_context().add_class("settings-window")
+    compat.set_window_position(win)
+    compat.add_class(win, "settings-window")
+    compat.transparent_surface(win)
     # Transparent toplevel so the popup-box's themed bg + animated border show.
-    win.set_app_paintable(True)
-    visual = win.get_screen().get_rgba_visual()
-    if visual:
-        win.set_visual(visual)
+    compat.set_app_paintable(win, True)
+    compat.apply_rgba_visual(win)
     if isinstance(parent, Gtk.Window):
         win.set_transient_for(parent)
-    win.connect("key-press-event", lambda _w, e: win.close() if e.keyval == Gdk.KEY_Escape else False)
+    compat.on_key(win, lambda _w, e: win.close() if e.keyval == Gdk.KEY_Escape else False)
 
     root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-    root.get_style_context().add_class("popup-box")
+    compat.add_class(root, "popup-box")
     root.set_size_request(360, -1)
-    win.add(root)
+    compat.add(win, root)
 
     brand = Gtk.Label(label="HYPRTK", xalign=0.5)
-    brand.get_style_context().add_class("mc-title")
+    compat.add_class(brand, "mc-title")
     brand.set_markup('<span size="xx-large" weight="bold">HYPRTK</span>')
-    root.pack_start(brand, False, False, 0)
+    compat.pack_start(root, brand, False, False, 0)
 
     name = Gtk.Label(label=f"hyprtk-bar  ·  v{__version__}", xalign=0.5)
-    name.get_style_context().add_class("mc-page-title")
-    root.pack_start(name, False, False, 0)
+    compat.add_class(name, "mc-page-title")
+    compat.pack_start(root, name, False, False, 0)
+
+    def _ver(ns) -> str:
+        try:
+            return "%d.%d.%d" % (
+                ns.get_major_version(), ns.get_minor_version(), ns.get_micro_version()
+            )
+        except Exception:
+            return "unknown"
+
+    import platform
+
+    versions = (
+        f"GTK {_ver(Gtk)}  ·  layer-shell {_ver(compat.GtkLayerShell)}"
+        f"  ·  Python {platform.python_version()}"
+    )
+    ver = Gtk.Label(label=versions, xalign=0.5)
+    compat.add_class(ver, "settings-label")
+    ver.set_opacity(0.6)
+    compat.pack_start(root, ver, False, False, 0)
 
     desc = Gtk.Label(
         label="A modern, pywal-themed taskbar for the Hyprland desktop.\n"
               "Part of the Hyprtk desktop suite.",
         xalign=0.5, justify=Gtk.Justification.CENTER, wrap=True,
     )
-    desc.get_style_context().add_class("settings-label")
+    compat.add_class(desc, "settings-label")
     desc.set_opacity(0.85)
-    root.pack_start(desc, False, False, 0)
+    compat.pack_start(root, desc, False, False, 0)
 
     repo = Gtk.Label(label="github.com/hyprtk/hyprtk-bar", xalign=0.5)
-    repo.get_style_context().add_class("settings-label")
+    compat.add_class(repo, "settings-label")
     repo.set_opacity(0.6)
-    root.pack_start(repo, False, False, 0)
+    compat.pack_start(root, repo, False, False, 0)
 
     close = Gtk.Button(label="Close")
-    close.get_style_context().add_class("settings-apply")
+    compat.add_class(close, "settings-apply")
     close.connect("clicked", lambda *_a: win.close())
-    root.pack_start(close, False, False, 0)
+    compat.pack_start(root, close, False, False, 0)
 
-    win.show_all()
+    compat.show_all(win)

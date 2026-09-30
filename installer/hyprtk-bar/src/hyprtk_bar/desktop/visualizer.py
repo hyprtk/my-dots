@@ -30,10 +30,8 @@ from pathlib import Path
 
 import cairo
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from .. import compat  # noqa: E402
+from ..compat import GLib, Gtk  # noqa: E402
 
 from ..colors import hex_to_rgb  # noqa: E402
 from .base import DesktopWidgetWindow  # noqa: E402
@@ -210,9 +208,9 @@ class VisualizerWidget(DesktopWidgetWindow):
         self._area.set_size_request(max(40, width - 2 * padding), max(30, height - 2 * padding))
         self._area.set_hexpand(True)
         self._area.set_vexpand(True)
-        self._area.get_style_context().add_class("visualizer-area")
-        self._area.connect("draw", self._on_draw)
-        self.root.pack_start(self._area, True, True, 0)
+        compat.add_class(self._area, "visualizer-area")
+        compat.set_draw_func(self._area, self._on_draw)
+        compat.pack_start(self.root, self._area, True, True, 0)
 
         self._start_source()
         fps = max(15, min(120, int(block.get("fps", 60) or 60)))
@@ -325,7 +323,7 @@ class VisualizerWidget(DesktopWidgetWindow):
     # ── drawing ──────────────────────────────────────────────────
 
     def _on_draw(self, _widget, cr) -> bool:
-        alloc = self._area.get_allocation()
+        alloc = compat.allocation(self._area)
         w, h = alloc.width, alloc.height
         if w <= 4 or h <= 4 or not self._levels:
             return True

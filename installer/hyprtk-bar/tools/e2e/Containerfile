@@ -1,0 +1,37 @@
+# ── hyprtk-bar-gtk4 · end-to-end test image ─────────────────────────────────
+# Arch Linux + BOTH GTK stacks (the port's compat.py runs either) + a headless
+# Wayland compositor that speaks wlr-layer-shell (sway), so the real BarWindow /
+# ArcMenuWindow / MenuWindow / SettingsWindow layer surfaces actually map.
+#
+# Build once:   podman build -t hyprtk-bar-gtk4-e2e tools/e2e
+# Run:          podman run --rm -v $PWD:/work:Z hyprtk-bar-gtk4-e2e
+#
+# One RUN layer on purpose: this host's rootless podman uses the vfs storage
+# driver (no overlayfs), so every layer is a full copy.
+FROM docker.io/library/archlinux:latest
+
+ENV LANG=C.UTF-8 \
+    HOME=/root \
+    XDG_RUNTIME_DIR=/run/xdg \
+    WLR_BACKENDS=headless \
+    WLR_LIBINPUT_NO_DEVICES=1 \
+    WLR_RENDERER=pixman \
+    GSK_RENDERER=cairo \
+    GDK_BACKEND=wayland \
+    LIBGL_ALWAYS_SOFTWARE=1
+
+# both GTK stacks + introspection + layer-shell; headless Wayland + grim;
+# pytest/jq; fonts. sway ships with file capability cap_sys_nice, which under
+# rootless podman's no_new_privs makes execve() fail with EPERM — so drop it.
+RUN pacman -Syu --noconfirm --needed \
+        gtk3 gtk4 gtk-layer-shell gtk4-layer-shell \
+        python python-gobject python-cairo python-dbus-next gobject-introspection \
+        sway grim dbus \
+        python-pytest python-pytest-timeout jq \
+        noto-fonts ttf-nerd-fonts-symbols \
+    && pacman -Scc --noconfirm \
+    && (setcap -r /usr/bin/sway || true) \
+    && mkdir -p /run/xdg /work \
+    && chmod 700 /run/xdg
+
+WORKDIR /work

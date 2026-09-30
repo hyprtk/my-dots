@@ -3,6 +3,39 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.0] - 2026-09-28
+
+### Changed
+
+- **GTK4 port.** hyprtk-bar now targets GTK4 (`Gtk 4.0` + `Gtk4LayerShell 1.0`)
+  instead of GTK3. Every module, popup, menu and desktop widget was ported:
+  - a central `compat.py` bootstrap/shim owns the toolkit choice (default GTK4,
+    with a `HYPRTK_GTK=3` escape hatch) and polyfills the removed GTK3 API;
+  - `Gtk.main()` / `Gtk.main_quit()` → a `GLib.MainLoop` (`compat.run_main`);
+  - `Gtk.EventBox`, `Gdk.Screen`, `Gtk.Menu`, per-widget style contexts,
+    `Gtk.WindowType`, `Gtk.RadioButton`, `Gtk.IconTheme`/`IconSize`, paned
+    `pack1/2`, `FontButton`, `size-allocate` and the pointer/key/enter/leave
+    event signals are replaced by GTK4 equivalents (or `compat` shims);
+  - `Gtk.Menu` → a themed `Gtk.Popover` menu (`menus.MenuPopup`) used by the bar
+    context menu, the tasklist menu and the SNI `dbusmenu`;
+  - toplevels are made transparent (`window.hyprtk-window`) so the pill/popup
+    border is the only painted surface (GTK3 used app-paintable + RGBA);
+  - `Gtk.DrawingArea` `::draw` → `set_draw_func`; the resize grip uses a
+    `Gtk.GestureDrag`.
+- **Installer/deps target GTK4.** `install.sh` installs the GTK4 typelib and
+  `gtk4-layer-shell` per distro family, self-tests `Gtk 4.0` + `Gtk4LayerShell
+  1.0`, requires `gtk4-layer-shell >= 1.0`, and the generated launcher preloads
+  `libgtk4-layer-shell.so` (needed on GTK builds without the layer-shell patch).
+- **Nix.** `gtk4`, `gtk4-layer-shell`, `wrapGAppsHook4` (derivation + flake).
+
+### Fixed
+
+- Quick-settings/scale sliders no longer emit GTK's `reported min height -2`
+  warning (the `.qs-scale slider` rule now sets an explicit `margin`).
+- `deps_ok` also probes `import gi` and `import ensurepip`, so a GTK4 dev
+  package that brings the typelib cannot make the installer skip installing the
+  Python bindings / venv tooling.
+
 ## [0.3.2] - 2026-09-25
 
 ### Fixed

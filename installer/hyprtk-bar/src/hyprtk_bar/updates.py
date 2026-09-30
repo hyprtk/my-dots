@@ -21,10 +21,8 @@ import os
 import shlex
 import threading
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import GLib, Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import GLib, Gtk  # noqa: E402
 
 from .config import icon_size_for, resolve_script, SCRIPTS_DIR  # noqa: E402
 from .popup import bind_hover_tooltip  # noqa: E402
@@ -122,11 +120,11 @@ class Updates(HoverButton):
         self._glyph.set_pixel_size(
             icon_size_for(font_cfg.get("size", 16), font_cfg.get("icon_size", 0))
         )
-        self.box.pack_start(self._glyph, False, False, 0)
+        compat.pack_start(self.box, self._glyph, False, False, 0)
 
         self._label = Gtk.Label(label="")
-        self._label.get_style_context().add_class("updates-value")
-        self.box.pack_start(self._label, False, False, 0)
+        compat.add_class(self._label, "updates-value")
+        compat.pack_start(self.box, self._label, False, False, 0)
 
         self._tip = ""
         self._update()
@@ -157,7 +155,7 @@ class Updates(HoverButton):
 
     def _apply(self, text: str, css: str, tooltip: str) -> None:
         self._label.set_text(text)
-        ctx = self._label.get_style_context()
+        ctx = compat.style_context(self._label)
         if css == "red":
             ctx.add_class("high")
             ctx.remove_class("warn")

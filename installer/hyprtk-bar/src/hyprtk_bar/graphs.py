@@ -20,10 +20,8 @@ import re
 
 import cairo
 
-import gi
-gi.require_version("Gtk", "3.0")
-
-from gi.repository import Gtk  # noqa: E402
+from . import compat  # noqa: E402
+from .compat import Gtk  # noqa: E402
 
 
 def _parse_color(color: str, alpha: float = 1.0) -> tuple[float, float, float, float]:
@@ -146,7 +144,7 @@ class HistoryGraph(Gtk.DrawingArea):
         self._multi = multi
         self.set_size_request(-1, max(28, int(height)))
         self.set_hexpand(True)
-        self.connect("draw", self._on_draw)
+        compat.set_draw_func(self, self._on_draw)
 
     def set_color(self, color: str) -> None:
         self._color = color
@@ -188,7 +186,7 @@ class HistoryGraph(Gtk.DrawingArea):
         self.queue_draw()
 
     def _on_draw(self, _widget, cr) -> bool:
-        alloc = self.get_allocation()
+        alloc = compat.allocation(self)
         w, h = alloc.width, alloc.height
         if w <= 4 or h <= 4:
             return True
