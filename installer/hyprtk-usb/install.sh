@@ -2,10 +2,10 @@
 # ── hyprtk-usb GUI installer ──────────────────────────────────────────────
 # Installs the GTK front end of hyprtk-usb. The CLI/TUI is already on PATH as a
 # single-file zipapp from installer/standalone; the GUI additionally needs the
-# Python package (for hyprtk_usb.gui / hyprtk_usb.helper) and PyGObject/GTK.
+# Python package (for hyprtk_usb.gui / hyprtk_usb.helper) and PyGObject (GTK 4).
 #
 # It builds a venv with system site-packages (so it can see the distro's
-# PyGObject + GTK), pip-installs this directory into it, links the GUI launchers
+# PyGObject + GTK 4), pip-installs this directory into it, links the GUI launchers
 # into ~/.local/bin and drops a desktop entry + icon.
 #
 #   bash installer/hyprtk-usb/install.sh

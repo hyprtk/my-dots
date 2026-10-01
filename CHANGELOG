@@ -3,6 +3,20 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.16] - 2026-10-01
+
+### Changed
+
+- **hyprtk-usb GUI is now GTK 4** (completes P7 of the GTK3→GTK4 migration).
+  `installer/hyprtk-usb/hyprtk_usb/gui.py` was ported from GTK 3 to GTK 4
+  (PyGObject `Gtk 4.0`/`Gdk 4.0`), matching hyprtk-bar: `set_child`/`append`
+  instead of `add`/`pack_*`, CSS classes + display-scoped `add_provider_for_display`,
+  a `Gtk.WindowHandle` for the header drag, and `Gtk.FileChooserDialog` driven
+  by its `response` signal with `get_file()`. The installer's venv uses system
+  site-packages, so it now needs the distro's GTK 4 typelib (`gtk4` +
+  `python-gobject`, already required by hyprtk-bar). Steps and behaviour
+  unchanged. Vendored byte-identically from `hyprtk-usb` (0ada718 + this port).
+
 ## [v1.3.15] - 2026-10-01
 
 ### Fixed

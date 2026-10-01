@@ -1,4 +1,4 @@
-"""GTK 3 front end for hyprtk-usb.
+"""GTK 4 front end for hyprtk-usb.
 
 The GUI runs unprivileged and drives the same ``core`` backend as the CLI. The
 single privileged operation — the write — is performed by ``hyprtk_usb.helper``
@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import gi
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 
 import json  # noqa: E402
 import os  # noqa: E402
@@ -66,60 +66,59 @@ class Window(Gtk.ApplicationWindow):
         self.size = "rest"
         self.refresh = False
 
-        # Match hyprtk-bar's floating dialogs: no client-side decorations (the CSD
-        # headerbar caused artifacts along the top edge). The compositor draws the
-        # pywal border + rounding; the panel is frosted at the bar's opacity.
+        # Match hyprtk-bar's floating dialogs: no client-side decorations (the
+        # compositor draws the pywal border + rounding); the panel is frosted at
+        # the bar's opacity. GTK4 surfaces are RGBA by default, so unlike GTK3
+        # there is no app-paintable / rgba-visual dance.
         self.set_decorated(False)
         self.set_resizable(False)
-        self.set_app_paintable(True)
-        screen = self.get_screen()
-        visual = screen.get_rgba_visual() if screen is not None else None
-        if visual is not None:
-            self.set_visual(visual)
 
         # Scope our stylesheet to this window; prefer the dark GTK variant so the
         # combo popups (separate windows) stay dark too.
-        self.get_style_context().add_class("hyprtk-usb")
+        self.add_css_class("hyprtk-usb")
         settings = Gtk.Settings.get_default()
         if settings is not None:
             settings.set_property("gtk-application-prefer-dark-theme", True)
         self._apply_css()
 
         self.panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.panel.get_style_context().add_class("panel")
-        self.add(self.panel)
-        self.panel.pack_start(self._header_row(), False, False, 0)
+        self.panel.add_css_class("panel")
+        self.set_child(self.panel)
+        self.panel.append(self._header_row())
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        self.box.set_border_width(18)
-        self.panel.pack_start(self.box, True, True, 0)
+        self.box.set_margin_top(18)
+        self.box.set_margin_bottom(18)
+        self.box.set_margin_start(18)
+        self.box.set_margin_end(18)
+        self.panel.append(self.box)
         self.show_step()
 
     def _header_row(self) -> Gtk.Widget:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        row.get_style_context().add_class("header")
+        row.add_css_class("header")
         title = Gtk.Label(label="hyprtk-usb", xalign=0)
-        title.get_style_context().add_class("title")
+        title.add_css_class("title")
         title.set_hexpand(True)
-        row.pack_start(title, True, True, 0)
+        row.append(title)
         if self.p.theme_name:
             theme_lbl = Gtk.Label(label=self.p.theme_name, xalign=1)
-            theme_lbl.get_style_context().add_class("dim")
-            row.pack_start(theme_lbl, False, False, 0)
+            theme_lbl.add_css_class("dim")
+            row.append(theme_lbl)
 
         close = Gtk.Button(label="\u00d7")
-        close.get_style_context().add_class("close")
-        close.set_relief(Gtk.ReliefStyle.NONE)
-        close.set_focus_on_click(False)
+        close.add_css_class("close")
+        close.set_has_frame(False)
+        close.set_focusable(False)
         close.connect("clicked", lambda *_: self.close())
-        row.pack_end(close, False, False, 0)
+        row.append(close)
 
-        # No CSD titlebar, so let the header drag the window.
-        row.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        row.connect(
-            "button-press-event",
-            lambda w, e: self.begin_move_drag(e.button, int(e.x_root), int(e.y_root), e.time),
-        )
-        return row
+        # No CSD titlebar, so let the header drag the window. GTK4 removed the
+        # add_events/button-press-event/begin_move_drag dance; a WindowHandle is
+        # the supported way to make an area move the toplevel (and works on
+        # Wayland, where begin_move_drag did not).
+        handle = Gtk.WindowHandle()
+        handle.set_child(row)
+        return handle
 
     # ── theming ────────────────────────────────────────────────────────
     def _apply_css(self) -> None:
@@ -219,50 +218,55 @@ class Window(Gtk.ApplicationWindow):
 """
         provider = Gtk.CssProvider()
         provider.load_from_data(css.encode())
-        screen = Gdk.Screen.get_default()
-        if screen is not None:
-            Gtk.StyleContext.add_provider_for_screen(
-                screen, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        display = self.get_display() or Gdk.Display.get_default()
+        if display is not None:
+            Gtk.StyleContext.add_provider_for_display(
+                display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
             )
 
     # ── widgets ────────────────────────────────────────────────────────
     def _clear(self) -> None:
-        for child in self.box.get_children():
+        # GTK4 removed Gtk.Container.get_children()/remove() on widgets; walk the
+        # box's child list instead (Gtk.Box still exposes remove()).
+        child = self.box.get_first_child()
+        while child is not None:
+            nxt = child.get_next_sibling()
             self.box.remove(child)
+            child = nxt
 
     def _title(self, text: str, sub: str = "") -> None:
         lbl = Gtk.Label(label=text, xalign=0)
-        lbl.get_style_context().add_class("title")
-        self.box.pack_start(lbl, False, False, 0)
+        lbl.add_css_class("title")
+        self.box.append(lbl)
         if sub:
             s = Gtk.Label(label=sub, xalign=0)
-            s.get_style_context().add_class("dim")
-            s.set_line_wrap(True)
-            self.box.pack_start(s, False, False, 0)
+            s.add_css_class("dim")
+            s.set_wrap(True)
+            self.box.append(s)
 
     def _buttons(self, back: bool, forward: tuple[str, str] | None) -> None:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         row.set_halign(Gtk.Align.END)
         row.set_margin_top(6)
-        if back:
-            b = Gtk.Button(label="Back")
-            b.connect("clicked", lambda *_: self.go_back())
-            row.pack_end(b, False, False, 0)
+        # The old GTK3 row pack_end-ed Back first then the forward button; that
+        # put the primary action to the left of Back. Appending in visual order
+        # reproduces it exactly.
         if forward:
             label, nxt = forward
             b = Gtk.Button(label=label)
-            b.get_style_context().add_class("suggested-action")
+            b.add_css_class("suggested-action")
             b.connect("clicked", lambda *_: self.advance(nxt))
-            row.pack_end(b, False, False, 0)
-        self.box.pack_end(row, False, False, 0)
+            row.append(b)
+        if back:
+            b = Gtk.Button(label="Back")
+            b.connect("clicked", lambda *_: self.go_back())
+            row.append(b)
+        self.box.append(row)
 
     # ── steps ──────────────────────────────────────────────────────────
     def show_step(self) -> None:
         self._clear()
         getattr(self, f"_step_{self.step}")()
-        # Widgets added after the window is mapped are not visible until shown;
-        # the first page works because ApplicationWindow.show_all() runs once.
-        self.box.show_all()
 
     def go_back(self) -> None:
         self.step = {"device": "iso", "options": "device", "review": "options"}.get(self.step, "iso")
@@ -283,17 +287,17 @@ class Window(Gtk.ApplicationWindow):
         combo.connect("changed", lambda c: self._set_iso(c.get_active_text() or ""))
         if isos:
             self.iso_path = isos[0]
-        self.box.pack_start(combo, False, False, 0)
+        self.box.append(combo)
 
         browse = Gtk.Button(label="Browse…")
         browse.set_halign(Gtk.Align.START)
         browse.connect("clicked", lambda *_: self._browse_iso())
-        self.box.pack_start(browse, False, False, 0)
+        self.box.append(browse)
 
         if not isos:
             w = Gtk.Label(label="No hyprtk ISO found in ~/Documents/Isos or ~.", xalign=0)
-            w.get_style_context().add_class("warn")
-            self.box.pack_start(w, False, False, 0)
+            w.add_css_class("warn")
+            self.box.append(w)
 
         self._buttons(back=False, forward=("Continue", "device"))
 
@@ -306,9 +310,17 @@ class Window(Gtk.ApplicationWindow):
         f.set_name("ISO images")
         f.add_pattern("*.iso")
         dlg.add_filter(f)
-        if dlg.run() == Gtk.ResponseType.OK:
-            self._set_iso(dlg.get_filename() or "")
-        dlg.destroy()
+        dlg.connect("response", self._on_iso_chosen)
+        dlg.present()
+
+    def _on_iso_chosen(self, dialog: Gtk.FileChooserDialog, response: int) -> None:
+        if response == Gtk.ResponseType.OK:
+            # GTK4 removed Gtk.FileChooser.get_filename(); get_file() gives a
+            # Gio.File whose get_path() returns the local path.
+            gfile = dialog.get_file()
+            if gfile is not None:
+                self._set_iso(gfile.get_path() or "")
+        dialog.destroy()
 
     def _set_iso(self, path: str) -> None:
         self.iso_path = path
@@ -343,7 +355,7 @@ class Window(Gtk.ApplicationWindow):
         combo.set_active(0)
         self.target = self.devices[0].path
         combo.connect("changed", lambda c: self._set_device(c.get_active()))
-        self.box.pack_start(combo, False, False, 0)
+        self.box.append(combo)
         self._buttons(back=True, forward=("Continue", "options"))
 
     def _set_device(self, idx: int) -> None:
@@ -372,8 +384,8 @@ class Window(Gtk.ApplicationWindow):
             refresh_sw.connect("notify::active", lambda s, _: setattr(self, "refresh", s.get_active()))
             self._row("Keep the existing partition", refresh_sw)
             note = Gtk.Label(label="An existing hyprtk-persist partition was found.", xalign=0)
-            note.get_style_context().add_class("dim")
-            self.box.pack_start(note, False, False, 0)
+            note.add_css_class("dim")
+            self.box.append(note)
 
         self._buttons(back=True, forward=("Review", "review"))
 
@@ -416,49 +428,49 @@ class Window(Gtk.ApplicationWindow):
             )
         for line in lines:
             lbl = Gtk.Label(label=line, xalign=0)
-            self.box.pack_start(lbl, False, False, 0)
+            self.box.append(lbl)
         for w in plan.warnings:
             wl = Gtk.Label(label="! " + w, xalign=0)
-            wl.get_style_context().add_class("warn")
-            self.box.pack_start(wl, False, False, 0)
+            wl.add_css_class("warn")
+            self.box.append(wl)
 
         erase = Gtk.Label(label=f"This ERASES {dev.path}.", xalign=0)
-        erase.get_style_context().add_class("err")
-        self.box.pack_start(erase, False, False, 0)
+        erase.add_css_class("err")
+        self.box.append(erase)
 
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         row.set_halign(Gtk.Align.END)
+        write = Gtk.Button(label="Write")
+        write.add_css_class("suggested-action")
+        write.connect("clicked", lambda *_: self._start_write())
+        row.append(write)
         back = Gtk.Button(label="Back")
         back.connect("clicked", lambda *_: self.go_back())
-        row.pack_end(back, False, False, 0)
-        write = Gtk.Button(label="Write")
-        write.get_style_context().add_class("suggested-action")
-        write.connect("clicked", lambda *_: self._start_write())
-        row.pack_end(write, False, False, 0)
-        self.box.pack_end(row, False, False, 0)
+        row.append(back)
+        self.box.append(row)
 
     def _step_progress(self) -> None:
         self._title("Writing", "Do not unplug the device.")
         self.bar = Gtk.ProgressBar()
         self.bar.set_show_text(True)
-        self.box.pack_start(self.bar, False, False, 0)
+        self.box.append(self.bar)
         self.status = Gtk.Label(label="starting…", xalign=0)
-        self.status.get_style_context().add_class("dim")
-        self.box.pack_start(self.status, False, False, 0)
+        self.status.add_css_class("dim")
+        self.box.append(self.status)
 
     def _step_done(self) -> None:
         self._title("Done")
         msg = 'Boot the stick and pick "Hyprtk live with persistence".'
         lbl = Gtk.Label(label=msg, xalign=0)
-        lbl.get_style_context().add_class("ok")
-        lbl.set_line_wrap(True)
-        self.box.pack_start(lbl, False, False, 0)
+        lbl.add_css_class("ok")
+        lbl.set_wrap(True)
+        self.box.append(lbl)
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         row.set_halign(Gtk.Align.END)
         close = Gtk.Button(label="Close")
-        close.connect("clicked", lambda *_: self.destroy())
-        row.pack_end(close, False, False, 0)
-        self.box.pack_end(row, False, False, 0)
+        close.connect("clicked", lambda *_: self.close())
+        row.append(close)
+        self.box.append(row)
 
     def _step_error(self) -> None:
         self._title("Failed")
@@ -467,17 +479,17 @@ class Window(Gtk.ApplicationWindow):
 
     def _error_label(self, msg: str) -> None:
         lbl = Gtk.Label(label=msg, xalign=0)
-        lbl.get_style_context().add_class("err")
-        lbl.set_line_wrap(True)
-        self.box.pack_start(lbl, False, False, 0)
+        lbl.add_css_class("err")
+        lbl.set_wrap(True)
+        self.box.append(lbl)
 
     def _row(self, label: str, widget: Gtk.Widget) -> None:
         row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         lbl = Gtk.Label(label=label, xalign=0)
         lbl.set_hexpand(True)
-        row.pack_start(lbl, True, True, 0)
-        row.pack_end(widget, False, False, 0)
-        self.box.pack_start(row, False, False, 0)
+        row.append(lbl)
+        row.append(widget)
+        self.box.append(row)
 
     # ── writing ────────────────────────────────────────────────────────
     def _start_write(self) -> None:
@@ -556,7 +568,7 @@ class App(Gtk.Application):
 
     def do_activate(self) -> None:
         win = self.get_active_window() or Window(self)
-        win.show_all()
+        win.present()
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -212,23 +212,31 @@ A `compat.py` shim (e.g. `box_append(box, child)`, `add_class(w, c)`,
 
 ---
 
-## 5. `hyprtk-usb-gui` module plan
+## 5. `hyprtk-usb-gui` module plan — DONE (2026-10-01)
 
-Small (~480 LOC, 56 GTK refs) and self-contained:
+Small (~480 LOC, 56 GTK refs) and self-contained. **Ported** (see P7 below);
+as-built notes in brackets:
 
 - `Gtk.Application` + `Gtk.ApplicationWindow` already used → lifecycle is fine.
 - `Gtk.Box` fine; `row.add_events(Gdk.EventMask…)` + button handler →
-  `GestureClick` (one site).
+  `GestureClick` (one site). *[As built: a `Gtk.WindowHandle` wraps the header
+  and drags the toplevel — GTK4 also removed `Gtk.Window.begin_move_drag`, so
+  the gesture route would not have moved a Wayland window.]*
 - `Gtk.CssProvider` / `add_provider_for_screen(Gdk.Screen)` → display-based
   provider (one site).
 - `Gtk.ComboBoxText` (3), `Gtk.Switch` (2), `Gtk.ProgressBar`, `Gtk.FileFilter`
   all survive; `Gtk.FileChooserDialog` + `dlg.run()` → `Gtk.FileDialog` async
   (or `FileChooserNative`) because `Dialog.run()` is removed in GTK4.
+  *[As built: kept `Gtk.FileChooserDialog` (exists since GTK 4.0 and through
+  4.22; `Gtk.FileDialog` is 4.10+, which would break Debian 12 / Ubuntu 22.04),
+  driven by its `response` signal with `get_file()` — `FileChooser.get_filename`
+  is gone.]*
 - `Gtk.MessageDialog`/`ResponseType` (if used in the write/confirm flow) →
-  `Gtk.AlertDialog` or a custom `Window`.
+  `Gtk.AlertDialog` or a custom `Window`. *[Not used.]*
 
 This is a **1–2 session** port once the patterns from the bar exist; it can
-share the same `compat.py` idioms.
+share the same `compat.py` idioms. (`hyprtk-usb` has no `compat.py`; the port is
+plain GTK4, no GTK3 fallback, matching the bar's 0.4.x state.)
 
 ---
 
@@ -342,7 +350,7 @@ Stay inside the existing rules:
 | P4 | Menus rewrite (`dbusmenu`/`tray`/`bar_menu`) | SNI menus + nested/check items work |
 | P5 | `popup.py` port + CSS retune | visual parity vs `SHOWCASE.md` |
 | P6 | Landing: installer deps, Nix, vendor, docs | T1/T2/audit green; VM install passes |
-| P7 | `hyprtk-usb-gui` port (can run parallel to P2+) | GUI flows work on GTK4 |
+| P7 | `hyprtk-usb-gui` port (can run parallel to P2+) — **DONE 2026-10-01** | GUI flows work on GTK4 |
 | P8 | Release | CHANGELOG + bar version bump + tag on dev repo |
 
 Rollback: the GTK3 `main` stays untouched until parity; the installer keeps
