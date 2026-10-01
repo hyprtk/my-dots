@@ -162,6 +162,7 @@ class BarWindow(Gtk.Window):
         self._border_hue = 0.0
         self._border_base = ""
         self._palette_cache: dict | None = None
+        self._theme_scheduled = False
         self._theme_extra_cbs: list = []
         self._ls_ready = False
         self._last_margins: tuple[int, int] | None = None
@@ -191,7 +192,7 @@ class BarWindow(Gtk.Window):
             self._notif_ctrl = NotificationController(cfg, monitor=monitor, bar_win=self)
             self._notif_ctrl.start()
         self._bar = Bar(cfg, self._ipc, is_primary=is_primary, notif_ctrl=self._notif_ctrl)
-        self._bar.set_theme_callback(self._apply_theme)
+        self._bar.set_theme_callback(self._schedule_theme)
         self._bar.set_height_callback(self._on_bar_height)
         self._bar.set_position_callback(self._on_bar_position)
         compat.set_single_child(self, self._bar)
@@ -259,6 +260,26 @@ class BarWindow(Gtk.Window):
                 callback(palette)
             except Exception:
                 log.exception("theme extra callback failed")
+
+    def _schedule_theme(self) -> None:
+        """Coalesce re-theme requests into one pass per main-loop burst.
+
+        A settings *Apply* runs ~12 actions, and each used to call ``_apply_theme``
+        synchronously — and each re-theme re-styles the bar *and* every desktop
+        widget window (7 of them on a default config). That stacked into a
+        multi-second freeze on the GTK main thread. Deferring to an idle callback
+        collapses the whole burst into a single re-theme; the config writes that
+        precede it are unaffected.
+        """
+        if self._theme_scheduled:
+            return
+        self._theme_scheduled = True
+        GLib.idle_add(self._run_scheduled_theme)
+
+    def _run_scheduled_theme(self) -> bool:
+        self._theme_scheduled = False
+        self._apply_theme()
+        return GLib.SOURCE_REMOVE
 
     def set_theme_extra_callback(self, callback) -> None:
         """Register a callback invoked with the palette after each re-theme.
@@ -534,8 +555,9 @@ class BarWindow(Gtk.Window):
         total_height = self._surface_height()
         GtkLayerShell.set_exclusive_zone(self, total_height)
         self.set_size_request(-1, total_height)
-        # The pill's gap_in/gap_out margins flip with the position — rebuild CSS.
-        self._apply_theme()
+        # The pill's gap_in/gap_out margins flip with the position — rebuild CSS
+        # (coalesced, so a settings Apply re-themes once, not per action).
+        self._schedule_theme()
         # Move any open popups (calendar, previews, quick settings, notification
         # center) and the toast to the new bar edge.
         position = self._cfg["position"]

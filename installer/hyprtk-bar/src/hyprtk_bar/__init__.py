@@ -8,4 +8,4 @@
 # Single source of truth for the release version: ``pyproject.toml`` reads this
 # via ``dynamic = ["version"]``, and the About window shows it. Bump it here
 # (and the CHANGELOG) for a release.
-__version__ = "0.4.5"
+__version__ = "0.4.6"

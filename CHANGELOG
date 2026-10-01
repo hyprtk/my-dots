@@ -3,6 +3,18 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.18] - 2026-10-01
+
+### Fixed
+
+- **hyprtk-bar 0.4.6 — Settings "Apply" no longer freezes the bar for 5–10 s.**
+  Each Apply ran ~12 actions and every one re-themed the whole bar, which also
+  re-themed all 7 desktop-widget windows; the Resources widget additionally ran
+  a synchronous CPU/mem sample on every re-theme. The bar's theme callback now
+  coalesces (one re-theme per main-loop burst), the Resources widget samples
+  asynchronously, and the desktop-widget manager only re-pushes the palette when
+  a widget was (re)built. Measured: Apply **7.1 s → ~0.7 s**.
+
 ## [v1.3.17] - 2026-10-01
 
 ### Fixed

@@ -97,12 +97,14 @@ class DesktopWidgetManager:
         # Rebuild a widget when it is newly enabled or its block changed (a
         # style/source change needs a fresh widget — an in-place update cannot
         # swap a clock's layout or restart cava); destroy it when disabled.
+        rebuilt = False
         for wid in list(self._wins):
             if wid not in wanted or self._blocks.get(wid) != wanted.get(wid):
                 if self._wins[wid] is self._move_win:
                     self.end_move()
                 self._destroy(self._wins.pop(wid))
                 self._blocks.pop(wid, None)
+                rebuilt = True
 
         classes = _widget_classes()
         for wid, block in wanted.items():
@@ -116,10 +118,14 @@ class DesktopWidgetManager:
                 compat.show_all(win)
                 self._wins[wid] = win
                 self._blocks[wid] = block
+                rebuilt = True
             except Exception:
                 log.exception("failed to build widget %s", wid)
 
-        if self._palette is not None:
+        # Fresh widgets already themed themselves in their constructor; only
+        # push the bar palette when something was (re)built. Re-theming every
+        # widget on a no-op reload cost ~0.4 s per settings Apply.
+        if rebuilt and self._palette is not None:
             self.apply_theme(self._palette)
         self._schedule_snap_layout()
 

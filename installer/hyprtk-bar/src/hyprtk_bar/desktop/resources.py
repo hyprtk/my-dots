@@ -129,7 +129,10 @@ class ResourcesWidget(SampledWidget):
     def on_content_scale(self, scale: float) -> None:
         if self._graph is not None:
             self._graph.set_size_request(-1, max(16, int(round(44 * scale))))
-        self._sample()
+        # Refresh off the GTK thread: this runs on every theme/scale change, and
+        # the synchronous collect() (procfs reads + cpu sample) stalled the main
+        # thread for ~250 ms each time.
+        self._sample_async()
 
     def on_palette(self, palette: dict) -> None:
         self._accent = palette.get("accent", "#7aa2f7")

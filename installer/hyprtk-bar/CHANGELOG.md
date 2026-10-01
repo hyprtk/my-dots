@@ -3,6 +3,21 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.6] - 2026-10-01
+
+### Fixed
+
+- **Settings "Apply" no longer freezes the bar for 5–10 s.** A single Apply ran
+  ~12 actions, and *each* one re-themed the whole bar synchronously — which also
+  re-themed every desktop-widget window (7 on a default config). The bar's
+  theme callback now **coalesces**: it defers to a GLib idle callback, so a
+  burst of config changes re-themes once instead of ~10 times. Two supporting
+  fixes: the Resources desktop widget no longer runs its synchronous CPU/mem
+  `collect()` on every re-theme (it uses the async sampler), and
+  `DesktopWidgetManager.reload` only re-pushes the palette when a widget was
+  actually (re)built. Measured on the default 7-widget config: Apply **7.1 s →
+  ~0.7 s** (full re-themes 10 → 1; per-widget theme 417 ms → 186 ms).
+
 ## [0.4.5] - 2026-10-01
 
 ### Fixed
