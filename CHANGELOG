@@ -3,6 +3,18 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.17] - 2026-10-01
+
+### Fixed
+
+- **hyprtk-bar 0.4.5 — "About hyprtk-bar" now shows the real version.** The
+  About window read `hyprtk_bar.__version__`, which had been hardcoded at
+  `0.4.0` while releases bumped only `pyproject.toml`, so it never updated. The
+  version is now single-sourced in `src/hyprtk_bar/__init__.py` and
+  `pyproject.toml` derives it (`dynamic = ["version"]`), so About can't drift
+  from the release again. (Vendored bar updated; reinstall the bar to pick it
+  up — the running bar shows it after a restart.)
+
 ## [v1.3.16] - 2026-10-01
 
 ### Changed

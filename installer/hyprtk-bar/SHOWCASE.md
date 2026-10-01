@@ -1,6 +1,6 @@
 # Showcase
 
-Screenshots of **hyprtk-bar 0.4.1** — the GTK4-native build — on a 3840x1080
+Screenshots of **hyprtk-bar 0.4.4** — the GTK4-native build — on a 3840x1080
 display under Hyprland, captured on an empty workspace so only the bar and its
 own surfaces show. The bar is themed live from the pywal16 palette of the
 current wallpaper.

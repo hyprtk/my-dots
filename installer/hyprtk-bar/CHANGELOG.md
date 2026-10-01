@@ -3,6 +3,16 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.5] - 2026-10-01
+
+### Fixed
+
+- **About hyprtk-bar now shows the real version.** The window read
+  `hyprtk_bar.__version__`, which had been hardcoded at `0.4.0` while releases
+  bumped only `pyproject.toml` — so About was stuck. The version is now
+  single-sourced in `src/hyprtk_bar/__init__.py`, and `pyproject.toml` reads it
+  via `dynamic = ["version"]`; bump `__init__.py` (and this file) for a release.
+
 ## [0.4.4] - 2026-09-30
 
 ### Added
