@@ -3,6 +3,24 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.7] - 2026-10-01
+
+### Added
+
+- **Quicklinks are now fully editable from Settings → Quicklinks** (add, edit,
+  reorder, remove). The page lists every quick link (glyph, label, command) with
+  Add / Edit / Remove / move buttons, mirroring the Arc Menu items editor. A new
+  link takes any shell command (plus optional right-/middle-click commands) and a
+  Nerd Font glyph — or "Choose application…" to fill the command, label and glyph
+  from an installed app. An empty link list is now respected instead of silently
+  falling back to the defaults.
+
+### Fixed
+
+- **The Arc Menu item and start-menu settings dialogues no longer crash on
+  GTK4** — they called `set_can_default()` / `grab_default()`, which GTK4 removed;
+  they now use `Gtk.Window.set_default_widget()`.
+
 ## [0.4.6] - 2026-10-01
 
 ### Fixed

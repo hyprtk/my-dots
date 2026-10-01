@@ -184,7 +184,11 @@ class QuickLinks(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=2)
         self._cfg = cfg
         self._buttons: list[QuickLinkButton] = []
-        links = (cfg.get("quicklinks") or {}).get("links") or DEFAULT_LINKS
+        # An empty list is respected (no quick links); only a missing key falls
+        # back to the defaults.
+        links = (cfg.get("quicklinks") or {}).get("links")
+        if links is None:
+            links = DEFAULT_LINKS
         for link in links:
             if not isinstance(link, dict) or not link.get("icon"):
                 continue

@@ -1641,8 +1641,7 @@ class MenuWindow(Gtk.Window):
 
         compat.add(win, vbox)
         compat.show_all(win)
-        apply_btn.set_can_default(True)
-        apply_btn.grab_default()
+        win.set_default_widget(apply_btn)
 
     def _on_settings_key(self, _win, event):
         if event.keyval == Gdk.KEY_Escape:

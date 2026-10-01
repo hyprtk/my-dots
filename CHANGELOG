@@ -3,6 +3,24 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.19] - 2026-10-01
+
+### Added
+
+- **hyprtk-bar 0.4.7 — quick links can be added, edited, reordered and removed
+  from Settings → Quicklinks.** The page lists every link (glyph, label,
+  command) with Add / Edit / Remove / move buttons, mirroring the Arc Menu items
+  editor; a new link takes any shell command (plus optional right-/middle-click
+  commands) and a Nerd Font glyph, or "Choose application…" to fill it from an
+  installed app. An empty link list is now respected rather than falling back to
+  the defaults.
+
+### Fixed
+
+- The Arc Menu item and start-menu settings dialogues no longer crash on GTK4
+  (`set_can_default()`/`grab_default()` were removed; now
+  `Gtk.Window.set_default_widget()`).
+
 ## [v1.3.18] - 2026-10-01
 
 ### Fixed

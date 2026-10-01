@@ -14,6 +14,7 @@ and theme. Apply writes the config and rebuilds/re-themes the bar live.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from . import compat  # noqa: E402
@@ -1309,50 +1310,164 @@ class BarSettings(Gtk.Window):
         ("files", "File manager", default_filemanager_command),
         ("web", "Web browser", default_browser_command),
     )
+    # Link ids with special in-bar behaviour (they open a dialogue, not a command).
+    _QUICKLINK_SPECIAL = {
+        "wallpaper": "Opens the in-bar Theme Manager",
+        "cliphist": "Opens the in-bar clipboard history",
+    }
 
     def _build_quicklinks_tab(self, page: Gtk.Box) -> None:
         ql = self._cfg.get("quicklinks") or {}
-        # Working copy of the links; edits accumulate until Apply.
-        links = ql.get("links") or DEFAULT_LINKS
+        # Working copy of the links; edits accumulate until Apply. An empty list
+        # is respected (the user removed them all); only a missing key falls
+        # back to the defaults.
+        links = ql.get("links")
+        if links is None:
+            links = DEFAULT_LINKS
         self._quicklinks: list[dict] = [dict(l) for l in links if isinstance(l, dict)]
-        # Ensure the three app links exist so they can always be chosen.
-        for link_id, _label, _resolver in self._QUICKLINK_APPS:
-            self._ensure_quicklink(link_id)
 
         hint = Gtk.Label(
-            label="Quick links launch your preferred apps. Choose an app, or "
-            "leave one on \"System default\" to follow the session's preferred "
-            "terminal, file manager and web browser.",
+            label="The launcher buttons shown on the bar, left to right. Add "
+            "your own (any command), edit, reorder or remove them. Leave a "
+            "Terminal / File manager / Web browser command empty to follow the "
+            "session's preferred app.",
             xalign=0, wrap=True,
         )
         hint.set_opacity(0.8)
         compat.pack_start(page, hint, False, False, 0)
 
-        self._quicklink_value_labels: dict[str, Gtk.Label] = {}
-        for link_id, label, _resolver in self._QUICKLINK_APPS:
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            lbl = Gtk.Label(label=label + ":", xalign=0)
-            lbl.set_size_request(120, -1)
-            value = Gtk.Label(xalign=0)
-            value.set_ellipsize(Pango.EllipsizeMode.END)
-            value.set_hexpand(True)
-            edit = Gtk.Button(label="Choose\u2026")
-            edit.connect("clicked", self._on_quicklink_edit, link_id)
-            compat.pack_start(row, lbl, False, False, 0)
-            compat.pack_start(row, value, True, True, 0)
-            compat.pack_start(row, edit, False, False, 0)
-            compat.pack_start(page, row, False, False, 0)
-            self._quicklink_value_labels[link_id] = value
-        self._refresh_quicklink_values()
+        self._quicklink_list = Gtk.ListBox()
+        self._quicklink_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self._populate_quicklinks()
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_min_content_height(170)
+        scroll.set_vexpand(True)
+        compat.add(scroll, self._quicklink_list)
+        compat.pack_start(page, scroll, True, True, 0)
 
-    def _ensure_quicklink(self, link_id: str) -> dict:
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        up_btn = compat.new_button_from_icon_name("go-up-symbolic")
+        down_btn = compat.new_button_from_icon_name("go-down-symbolic")
+        add_btn = Gtk.Button(label="Add")
+        edit_btn = Gtk.Button(label="Edit")
+        remove_btn = Gtk.Button(label="Remove")
+        up_btn.set_tooltip_text("Move link left")
+        down_btn.set_tooltip_text("Move link right")
+        up_btn.connect("clicked", self._on_quicklink_move, -1)
+        down_btn.connect("clicked", self._on_quicklink_move, 1)
+        add_btn.connect("clicked", self._on_quicklink_add)
+        edit_btn.connect("clicked", self._on_quicklink_edit)
+        remove_btn.connect("clicked", self._on_quicklink_remove)
+        for b in (up_btn, down_btn, add_btn, edit_btn, remove_btn):
+            compat.pack_start(btn_row, b, False, False, 0)
+        compat.pack_start(page, btn_row, False, False, 0)
+
+    def _populate_quicklinks(self) -> None:
+        from .widgets import Glyph
+
+        for child in compat.children(self._quicklink_list):
+            self._quicklink_list.remove(child)
+        ql = self._cfg.get("quicklinks") or {}
+        glyph_font = (ql.get("glyph_font") or "").strip()
         for link in self._quicklinks:
-            if link.get("id") == link_id:
-                return link
-        default = next((l for l in DEFAULT_LINKS if l.get("id") == link_id), {})
-        link = dict(default)
+            row = Gtk.ListBoxRow()
+            hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            hbox.set_margin_top(4)
+            hbox.set_margin_bottom(4)
+            hbox.set_margin_start(6)
+            hbox.set_margin_end(6)
+            icon = Glyph(link.get("icon", ""), "quicklink-glyph", glyph_font)
+            icon.set_pixel_size(18)
+            compat.pack_start(hbox, icon, False, False, 0)
+            labels = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            title = Gtk.Label(label=link.get("label") or link.get("id") or "(unnamed)", xalign=0)
+            sub = Gtk.Label(label=self._quicklink_summary(link), xalign=0, width_chars=46)
+            sub.set_ellipsize(Pango.EllipsizeMode.END)
+            sub.set_opacity(0.7)
+            compat.pack_start(labels, title, False, False, 0)
+            compat.pack_start(labels, sub, False, False, 0)
+            compat.pack_start(hbox, labels, True, True, 0)
+            compat.add(row, hbox)
+            compat.add(self._quicklink_list, row)
+        compat.show_all(self._quicklink_list)
+
+    def _quicklink_summary(self, link: dict) -> str:
+        link_id = link.get("id", "")
+        command = (link.get("command") or "").strip()
+        extra = []
+        if link.get("command_right"):
+            extra.append("right")
+        if link.get("command_middle"):
+            extra.append("middle")
+        suffix = f"   (+{', '.join(extra)}-click)" if extra else ""
+        if link_id in self._QUICKLINK_SPECIAL:
+            return self._QUICKLINK_SPECIAL[link_id] + suffix
+        if command:
+            return command + suffix
+        resolver = self._quicklink_resolver(link_id)
+        if resolver is not None:
+            resolved = resolver() or ""
+            return "System default" + (f" ({resolved})" if resolved else "")
+        return "(no command)"
+
+    def _quicklink_selected_index(self) -> int | None:
+        row = self._quicklink_list.get_selected_row()
+        if row is None:
+            return None
+        return row.get_index()
+
+    def _on_quicklink_move(self, _btn, delta: int) -> None:
+        idx = self._quicklink_selected_index()
+        if idx is None:
+            return
+        new = idx + delta
+        if new < 0 or new >= len(self._quicklinks):
+            return
+        self._quicklinks[idx], self._quicklinks[new] = self._quicklinks[new], self._quicklinks[idx]
+        self._populate_quicklinks()
+        row = self._quicklink_list.get_row_at_index(new)
+        if row is not None:
+            self._quicklink_list.select_row(row)
+
+    def _on_quicklink_add(self, _btn) -> None:
+        link = _QuicklinkDialog(self).run_dialog()
+        if link is None:
+            return
+        link["id"] = self._unique_quicklink_id(link.get("label", ""))
         self._quicklinks.append(link)
-        return link
+        self._populate_quicklinks()
+
+    def _on_quicklink_edit(self, _btn) -> None:
+        idx = self._quicklink_selected_index()
+        if idx is None:
+            return
+        link = _QuicklinkDialog(self, self._quicklinks[idx]).run_dialog()
+        if link is None:
+            return
+        link["id"] = self._quicklinks[idx].get("id", "")
+        self._quicklinks[idx] = link
+        self._populate_quicklinks()
+
+    def _on_quicklink_remove(self, _btn) -> None:
+        idx = self._quicklink_selected_index()
+        if idx is None:
+            return
+        del self._quicklinks[idx]
+        self._populate_quicklinks()
+
+    def _unique_quicklink_id(self, label: str) -> str:
+        """A stable, non-special id for a new link (ids are not user-visible)."""
+        base = re.sub(r"[^a-z0-9]+", "-", (label or "").strip().lower()).strip("-") or "link"
+        if base in self._QUICKLINK_SPECIAL:
+            base += "-link"
+        used = {l.get("id") for l in self._quicklinks}
+        candidate = base
+        n = 2
+        while candidate in used:
+            candidate = f"{base}-{n}"
+            n += 1
+        return candidate
 
     def _quicklink_link(self, link_id: str) -> dict | None:
         for link in self._quicklinks:
@@ -1365,33 +1480,6 @@ class BarSettings(Gtk.Window):
             if id_ == link_id:
                 return resolver
         return None
-
-    def _refresh_quicklink_values(self) -> None:
-        for link_id, label in self._quicklink_value_labels.items():
-            command = (self._quicklink_link(link_id) or {}).get("command", "")
-            if command:
-                label.set_text(command)
-                label.set_opacity(1.0)
-            else:
-                resolver = self._quicklink_resolver(link_id)
-                resolved = (resolver() or "") if resolver is not None else ""
-                label.set_text("System default" + (f" ({resolved})" if resolved else ""))
-                label.set_opacity(0.8)
-
-    def _on_quicklink_edit(self, _btn, link_id: str) -> None:
-        link = self._quicklink_link(link_id) or {}
-        title = next(lbl for id_, lbl, _ in self._QUICKLINK_APPS if id_ == link_id)
-        dialog = _QuicklinkPickerDialog(self, title, link.get("command", ""))
-        result = dialog.run_dialog()
-        if result is None:
-            return
-        command, name = result
-        link["command"] = command
-        if name:
-            link["label"] = name
-        else:
-            link.pop("label", None)
-        self._refresh_quicklink_values()
 
     def _active_quicklinks_block(self) -> dict:
         ql = dict(self._cfg.get("quicklinks") or {})
@@ -2275,11 +2363,10 @@ class _ArcItemDialog(Gtk.Window):
         cancel_btn.connect("clicked", lambda _b: self._finish(None))
         save_btn = Gtk.Button(label="Save")
         compat.add_class(save_btn, "settings-apply")
-        save_btn.set_can_default(True)
         save_btn.connect("clicked", lambda _b: self._finish(self.get_item()))
         compat.pack_start(btn_row, cancel_btn, False, False, 0)
         compat.pack_start(btn_row, save_btn, False, False, 0)
-        save_btn.grab_default()
+        self.set_default_widget(save_btn)
         compat.pack_start(box, btn_row, False, False, 0)
 
         # Theme the dialog's widgets (content + buttons) so it matches
@@ -2381,12 +2468,183 @@ class _ArcItemDialog(Gtk.Window):
         return item
 
 
+class _QuicklinkDialog(Gtk.Window):
+    """Add/edit one quick link (label, glyph, command, right/middle commands).
+
+    ``run_dialog()`` returns ``None`` on cancel, else a link dict (without an
+    ``id`` — the caller assigns one for a new link).
+    """
+
+    def __init__(self, parent, link: dict | None = None):
+        super().__init__() if compat.IS_GTK4 else super().__init__(type=Gtk.WindowType.TOPLEVEL)
+        compat.transparent_surface(self)
+        self.set_title("Quick link")
+        self.set_transient_for(parent)
+        self.set_modal(True)
+        self._parent = parent
+        self._result: dict | None = None
+        self._finished = False
+        _theme_dialog(self)
+        compat.on_key(self, self._on_key_press)
+
+        from .widgets import Glyph
+
+        link = link or {}
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        compat.add_class(box, "popup-box")
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+        compat.add(self, box)
+
+        title_label = Gtk.Label(label="Quick link", xalign=0)
+        compat.add_class(title_label, "mc-page-title")
+        compat.pack_start(box, title_label, False, False, 0)
+
+        def field(label: str, value: str) -> Gtk.Entry:
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            lbl = Gtk.Label(label=label, xalign=0)
+            lbl.set_size_request(90, -1)
+            entry = Gtk.Entry()
+            entry.set_text(value or "")
+            compat.pack_start(row, lbl, False, False, 0)
+            compat.pack_start(row, entry, True, True, 0)
+            compat.pack_start(box, row, False, False, 0)
+            return entry
+
+        self._label_entry = field("Label", link.get("label", ""))
+        glyph_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        glyph_lbl = Gtk.Label(label="Glyph", xalign=0)
+        glyph_lbl.set_size_request(90, -1)
+        self._glyph_entry = Gtk.Entry()
+        self._glyph_entry.set_text(link.get("icon", ""))
+        self._glyph_entry.connect("changed", self._on_glyph_changed)
+        self._glyph_preview = Glyph("", "quicklink-glyph")
+        self._glyph_preview.set_pixel_size(20)
+        compat.pack_start(glyph_row, glyph_lbl, False, False, 0)
+        compat.pack_start(glyph_row, self._glyph_entry, True, True, 0)
+        compat.pack_start(glyph_row, self._glyph_preview, False, False, 0)
+        compat.pack_start(box, glyph_row, False, False, 0)
+        self._on_glyph_changed()
+
+        self._command_entry = field("Command", link.get("command", ""))
+        self._right_entry = field("Right-click", link.get("command_right", ""))
+        self._middle_entry = field("Middle-click", link.get("command_middle", ""))
+
+        choose_btn = Gtk.Button(label="Choose application\u2026")
+        choose_btn.connect("clicked", self._on_choose_app)
+        compat.pack_start(box, choose_btn, False, False, 0)
+
+        hint = Gtk.Label(
+            label="Glyph: paste a Nerd Font glyph (the icon shown on the bar).\n"
+            "Command: the shell command to run. Leave it empty on a Terminal /\n"
+            "File manager / Web browser link to follow the system default.",
+            xalign=0, wrap=True,
+        )
+        hint.set_margin_top(4)
+        compat.pack_start(box, hint, False, False, 0)
+
+        # Buttons live in the content area (single popup-box), not an action
+        # area, so there is one bordered box — not two stacked ones.
+        btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        btn_row.set_halign(Gtk.Align.END)
+        cancel_btn = Gtk.Button(label="Cancel")
+        cancel_btn.connect("clicked", lambda _b: self._finish(None))
+        save_btn = Gtk.Button(label="Save")
+        compat.add_class(save_btn, "settings-apply")
+        save_btn.connect("clicked", lambda _b: self._finish(self.get_link()))
+        compat.pack_start(btn_row, cancel_btn, False, False, 0)
+        compat.pack_start(btn_row, save_btn, False, False, 0)
+        self._save_btn = save_btn
+        self.set_default_widget(save_btn)
+        compat.pack_start(box, btn_row, False, False, 0)
+        self._update_save_sensitivity()
+
+        if hasattr(parent, "_apply_theme_fg_class"):
+            parent._apply_theme_fg_class(self)
+        compat.show_all(self)
+
+    def run_dialog(self) -> dict | None:
+        compat.run_main()
+        result = self._result
+        compat.destroy(self)
+        return result
+
+    def _finish(self, result: dict | None) -> None:
+        if self._finished:
+            return
+        self._finished = True
+        self._result = result
+        compat.quit_main()
+
+    def _on_key_press(self, _widget, event) -> bool:
+        if event.keyval == Gdk.KEY_Escape:
+            self._finish(None)
+            return True
+        return False
+
+    def _on_glyph_changed(self, *_args) -> None:
+        self._glyph_preview.set_text(self._glyph_entry.get_text())
+        self._update_save_sensitivity()
+
+    def _update_save_sensitivity(self) -> None:
+        # A quick link without a glyph renders nothing (quicklinks.py skips it),
+        # so require one before saving.
+        btn = getattr(self, "_save_btn", None)
+        if btn is not None:
+            btn.set_sensitive(bool(self._glyph_entry.get_text().strip()))
+
+    # The app picker (and any nested dialogue) expects a settings-like parent
+    # for theming; delegate to the settings window we were opened from.
+    def _theme_fg(self) -> str:
+        parent = getattr(self, "_parent", None)
+        if parent is not None and hasattr(parent, "_theme_fg"):
+            return parent._theme_fg()
+        return "#e5e7eb"
+
+    def _apply_theme_fg_class(self, widget) -> None:
+        parent = getattr(self, "_parent", None)
+        if parent is not None and hasattr(parent, "_apply_theme_fg_class"):
+            parent._apply_theme_fg_class(widget)
+
+    def _on_choose_app(self, _btn) -> None:
+        result = _QuicklinkPickerDialog(
+            self, "application", self._command_entry.get_text()
+        ).run_dialog()
+        if result is None:
+            return
+        self._command_entry.set_text(result.get("command", ""))
+        if result.get("name"):
+            self._label_entry.set_text(result["name"])
+        if result.get("icon"):
+            self._glyph_entry.set_text(result["icon"])
+
+    def get_link(self) -> dict:
+        link: dict = {}
+        label = self._label_entry.get_text().strip()
+        if label:
+            link["label"] = label
+        icon = self._glyph_entry.get_text().strip()
+        if icon:
+            link["icon"] = icon
+        link["command"] = self._command_entry.get_text().strip()
+        right = self._right_entry.get_text().strip()
+        if right:
+            link["command_right"] = right
+        middle = self._middle_entry.get_text().strip()
+        if middle:
+            link["command_middle"] = middle
+        return link
+
+
 class _QuicklinkPickerDialog(Gtk.Window):
     """Pick the app for a quick link, or reset it to the system default.
 
-    ``run_dialog()`` returns ``None`` on cancel, else a ``(command, name)``
-    tuple — ``command`` is the bare binary name (empty = system default) and
-    ``name`` the app's display name.
+    ``run_dialog()`` returns ``None`` on cancel, else a ``{"command", "name",
+    "icon"}`` dict — ``command`` is the bare binary name (empty = system
+    default), ``name`` the app's display name and ``icon`` a Nerd Font glyph for
+    the link's ``icon`` field.
     """
 
     def __init__(self, parent, title: str, current: str):
@@ -2439,7 +2697,7 @@ class _QuicklinkPickerDialog(Gtk.Window):
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         btn_row.set_halign(Gtk.Align.END)
         system_btn = Gtk.Button(label="System default")
-        system_btn.connect("clicked", lambda _b: self._finish(("", "")))
+        system_btn.connect("clicked", lambda _b: self._finish({"command": "", "name": "", "icon": ""}))
         cancel_btn = Gtk.Button(label="Cancel")
         cancel_btn.connect("clicked", lambda _b: self._finish(None))
         compat.pack_start(btn_row, system_btn, False, False, 0)
@@ -2502,9 +2760,15 @@ class _QuicklinkPickerDialog(Gtk.Window):
         compat.show_all(self._list)
 
     def _select(self) -> None:
+        from .arcmenu import glyph_for_app
+
         row = self._list.get_selected_row() or self._list.get_row_at_index(0)
         app = getattr(row, "_app", None)
         if app is None:
             return
         command = app["exec"].split()[0].rsplit("/", 1)[-1]
-        self._finish((command, app["name"]))
+        self._finish({
+            "command": command,
+            "name": app["name"],
+            "icon": glyph_for_app(app),
+        })
