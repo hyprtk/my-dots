@@ -3,6 +3,32 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.15] - 2026-10-01
+
+### Fixed
+
+- **The idle lockscreen no longer strands the session on the "lockscreen app
+  died" screen.** On the DPMS-wake path the monitor briefly hotplug-flaps
+  (DP-1 disconnect → reconnect on the Samsung C49J89x), and that tore down the
+  lock surface and killed the lock client. Worse, every lock request
+  (`swayidle` timer, the `lock` alias, the logout menu, a relock) spawned a
+  fresh supervisor, so swaylock instances stacked up (8 seen) and unlocking one
+  no longer released the session. `hypr/scripts/lock.sh` is now single-instance
+  — it holds an exclusive `flock` for the whole locked period and exits
+  immediately on a duplicate request — and it waits for Hyprland to report a
+  monitor before (re)starting swaylock, so a restart no longer races the DRM
+  re-modeset. Each phase is timestamped to `~/.local/state/hyprtk/lock.log`.
+
+### Added
+
+- **The watchdog now catches a dead lockscreen.** `hypr/scripts/hypr-watchdog.sh`
+  checks the same lock: *locked but no lockscreen process alive* for three
+  consecutive heartbeats is snapshotted (reason `lockscreen client died while
+  session locked`), together with `lock.log`, the lock state and the usual
+  journals/DRM/`hyprctl` dumps. Previously this failure was invisible — the
+  compositor stays alive on the crash screen, so the `hyprctl`-timeout hang
+  heartbeat never fired.
+
 ## [v1.3.14] - 2026-09-30
 
 ### Changed

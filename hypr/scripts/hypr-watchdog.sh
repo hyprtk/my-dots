@@ -12,6 +12,11 @@
 #      the Hyprland process is still alive = a hang (not a crash). On the Nth
 #      miss it writes a timestamped snapshot: kernel + user journals, the
 #      mirrored log, DRM connector state, process state and hyprctl output.
+#   3. Watches the session lock. lock.sh holds $XDG_RUNTIME_DIR/hyprtk-session.lock
+#      for as long as the session is locked; if that lock is held but no
+#      lockscreen process is alive, the client died (the DPMS-wake DP-1 hotplug
+#      flap that leaves the "lockscreen app died" screen). Snapshot it too, since
+#      the compositor itself stays alive and the hang heartbeat never fires.
 #
 # It runs as a plain child process, so it keeps working while the compositor's
 # event loop is blocked. No root, no extra packages required.
@@ -50,6 +55,9 @@ RUNTIME_LOG_SRC="$runtime/hyprland.log"
 MIRROR="$STATE_DIR/hyprland-last.log"
 EVENT_LOG="$STATE_DIR/events-last.log"
 DPMS_LOG="$STATE_DIR/dpms.log"
+LOCK_LOG="$STATE_DIR/lock.log"
+# lock.sh holds this flock for the whole locked period (see lock.sh).
+LOCKFILE="${XDG_RUNTIME_DIR:-/tmp}/hyprtk-session.lock"
 
 # Keep the persistent mirror bounded across sessions.
 if [ -f "$MIRROR" ] && [ "$(stat -c%s "$MIRROR" 2>/dev/null || echo 0)" -gt "$MAX_MIRROR" ]; then
@@ -58,6 +66,21 @@ fi
 printf '\n===== watchdog start %s (sig %s) =====\n' "$(date -Is)" "$sig" >> "$MIRROR"
 
 hypr_pid() { pgrep -x Hyprland 2>/dev/null | head -n1; }
+
+# Is the session locked? lock.sh holds an exclusive flock on LOCKFILE for the
+# whole locked period and releases it only on a normal unlock, so a failed
+# non-blocking flock at that path means "locked".
+lock_held() {
+    command -v flock >/dev/null 2>&1 || return 1
+    [ -e "$LOCKFILE" ] || return 1
+    flock -n "$LOCKFILE" true 2>/dev/null && return 1 || return 0
+}
+
+# Is any lockscreen client alive? (swaylock is the hyprtk default; hyprlock is
+# accepted for variants.)
+lock_client_alive() {
+    pgrep -x swaylock >/dev/null 2>&1 || pgrep -x hyprlock >/dev/null 2>&1
+}
 
 # 1. Mirror Hyprland's runtime log into persistent storage.
 tail -n +1 -F "$runtime/hyprland.log" >> "$MIRROR" 2>/dev/null &
@@ -87,6 +110,8 @@ snapshot() {
         echo "uptime:   $(uptime)"
         echo "hypr pid: $pid"
         echo "sig:      $sig"
+        echo "locked:   $(lock_held && echo yes || echo no)"
+        echo "lockpids: $(pgrep -x swaylock 2>/dev/null | tr '\n' ' ')"
     } > "$dir/summary.txt"
 
     [ -n "$pid" ] && {
@@ -100,6 +125,7 @@ snapshot() {
     cp -f "$RUNTIME_LOG_SRC" "$dir/hyprland.log" 2>/dev/null
     tail -n 500 "$EVENT_LOG" > "$dir/events.log" 2>/dev/null
     tail -n 200 "$DPMS_LOG" > "$dir/dpms.log" 2>/dev/null
+    tail -n 200 "$LOCK_LOG" > "$dir/lock.log" 2>/dev/null
 
     {   for c in /sys/class/drm/card*/card*/*; do
             case "${c##*/}" in status|enabled|dpms|modes) [ -r "$c" ] && echo "${c}: $(cat "$c")";; esac
@@ -121,6 +147,7 @@ snapshot() {
 }
 
 fails=0
+lock_fails=0
 while :; do
     sleep "$INTERVAL"
     pid=$(hypr_pid)
@@ -130,6 +157,17 @@ while :; do
     fi
     if timeout "$TIMEOUT" hyprctl -j activeworkspace >/dev/null 2>&1; then
         fails=0
+        # Compositor responsive: the lock client must still be alive. The
+        # threshold debounces the brief gap while lock.sh restarts swaylock
+        # (1s backoff / settle), so only a real death is snapshotted.
+        if lock_held && ! lock_client_alive; then
+            lock_fails=$((lock_fails + 1))
+            if [ "$lock_fails" -eq "$FAIL_THRESHOLD" ]; then
+                snapshot "lockscreen client died while session locked" "$pid"
+            fi
+        else
+            lock_fails=0
+        fi
     else
         fails=$((fails + 1))
         if [ "$fails" -eq "$FAIL_THRESHOLD" ]; then
