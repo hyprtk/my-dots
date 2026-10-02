@@ -3,6 +3,14 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.21] - 2026-10-02
+
+### Changed
+
+- **Docs: HyprMod is now listed in the per-distro READMEs' Hyprland component
+  list.** The vendored hyprtk-bar README also notes HyprMod as the desktop's
+  native compositor settings app (hyprtk-bar `b272538`).
+
 ## [v1.3.20] - 2026-10-02
 
 ### Changed

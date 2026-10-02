@@ -6,6 +6,10 @@ hyprtk desktop: it hosts app launchers, workspaces, a task list, system
 monitoring, a system tray, quick settings and a built-in notification center —
 all themed live from your pywal16 palette.
 
+For the compositor's own options (keybinds, monitors, window and layer rules),
+the desktop pairs the bar with **HyprMod** — a native GTK4/libadwaita settings
+app.
+
 ---
 
 ## Features

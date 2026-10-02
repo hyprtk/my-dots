@@ -27,6 +27,7 @@ This will work on most flavours of Arch.
 - Logout: hyprlogout
 - Screenlock: swaylock-effects
 - Screen Capture: wf-recorder
+- Settings: hyprmod
 
 ## Templating
 
