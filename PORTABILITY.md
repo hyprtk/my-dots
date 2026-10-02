@@ -61,7 +61,7 @@ on other families (the rest of the install continues):
 | Feature | Why |
 |---------|-----|
 | AUR packages (`swaylock-effects`, `brave-bin`, `bibata-cursor-theme`, `trizen`, `sublime-text-4`, `sddm-theme-sugar-candy-git`, `pacseek`, `pamac-*`, `github-desktop-bin`, `waypaper`, `hyprquickframe-git`, `thunar-shares-plugin`, `tumbler-extra-thumbnailers`, `vmware-*`, `orca-slicer-bin`, `bambustudio-bin`, `libva-nvidia-driver-git`) | No AUR off Arch. Where a repo equivalent exists it is listed in the family's `PKGS` (e.g. `swaylock`, `papirus-icon-theme`). |
-| `hyprviz-bin` build | AUR-only GUI; source build is referenced instead. |
+| `hyprmod` (Hyprland settings GUI) | AUR-only; installed with the AUR helper and skipped off Arch. |
 | `pacman -Ssq 'pcp-pmda-*'` (Performance Co-Pilot modules) | Arch packaging only. |
 | `mkinitcpio` module edits + `install_boot` splash | Arch initramfs. Other families regenerate with `update-initramfs`/`dracut` where present. |
 | `os-release-<distro>` branding → `/usr/lib/` | The 11 Arch-based distros only; other systems keep their own os-release. |

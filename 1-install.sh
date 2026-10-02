@@ -689,10 +689,11 @@ for pkg in hyprland xfce4 filetools webtools printers network media terminaltool
     _ok "$pkg installed"
 done
 
-# hyprviz needs interactive sudo - run without spin
-echo -e "${CYAN}  → ${WHITE}Installing hyprviz${NC}"
-bash "$SCRIPT_DIR/hypr/packages/hyprviz.sh"
-_ok "hyprviz installed"
+# hyprmod (Hyprland settings GUI) is AUR-only; run without spin so any AUR
+# helper sudo prompt stays visible.
+echo -e "${CYAN}  → ${WHITE}Installing hyprmod${NC}"
+bash "$SCRIPT_DIR/hypr/packages/hyprmod.sh"
+_ok "hyprmod installed"
 
 # wallpapers needs y/n confirmation - run without spin
 echo -e "${CYAN}  → ${WHITE}Installing wallpapers${NC}"

@@ -3,6 +3,21 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.20] - 2026-10-02
+
+### Changed
+
+- **The Hyprland settings GUI is now `hyprmod`** (native GTK4/libadwaita,
+  `BlueManCZ/hyprmod`), replacing `hyprviz`. It is AUR-only and is now installed
+  with the AUR helper (`yay`/`paru`) instead of a direct `makepkg` build; off
+  Arch it is skipped with a note. See `PORTABILITY.md`.
+
+### Fixed
+
+- `installer/scripts/verify/installer-dryrun.sh` now pre-seeds the `hyprtk-usb`
+  venv, matching `container-dryrun.sh`, so the 11-Arch host dry-run no longer
+  fails at the hyprtk-usb step.
+
 ## [v1.3.19] - 2026-10-01
 
 ### Added

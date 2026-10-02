@@ -71,6 +71,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | **Desktop widgets** | Clock, weather, audio visualizer, hard disks, network, CPU/RAM and system info — free-floating surfaces you drag into place and snap into groups, themed by pywal |
 | **Theming** | pywal16 (bundled), live, from your wallpaper |
 | **Wallpaper** | Matuwall film-strip picker + rofi list + random (awww daemon, installed automatically) |
+| **Hyprland settings** | hyprmod — native GTK4/libadwaita settings app, tweak options and see them live (Arch/AUR) |
 | **Screenshots** | grim & slurp |
 | **Screen recording** | wf-recorder |
 | **Clipboard** | cliphist |
