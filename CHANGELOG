@@ -3,6 +3,15 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [v1.3.22] - 2026-10-06
+
+### Changed
+
+- **Re-vendored `hyprtk-usb` 0.3.0** (byte-identical to the `hyprtk-usb` repo).
+  This tags the previously untagged GTK 4 GUI port: `hyprtk-usb` `v0.3.0` adds
+  the GTK 4 front end and the `pkexec` write helper over the same `core` backend
+  (the installer already shipped these files under the 0.2.0 version string).
+
 ## [v1.3.21] - 2026-10-02
 
 ### Changed
