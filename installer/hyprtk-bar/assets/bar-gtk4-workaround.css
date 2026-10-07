@@ -1,0 +1,71 @@
+/* hyprtk-bar — GTK >= 4.24 box-model workaround
+   --------------------------------------------------------------------------
+   GTK 4.24 ignores CSS `padding`/`border` in a widget's preferred size, so the
+   bar's module pills lost their internal spacing (padding is used for the gaps
+   between modules). `margin`, `min-height`/`min-width` and `border-spacing`
+   still work; this sheet recreates the paddings as child margins + min sizes.
+
+   Appended by app.py only when GTK >= 4.24, so it disables itself once GTK
+   restores the box model. */
+
+.taskbar {
+    /* the theme padding (padding_rule) insets the whole pill */
+    min-height: 20px;
+}
+.taskbar > box {
+    margin: 0 6px;
+}
+
+/* Taskbar buttons + tray (was padding: 2px 6px) */
+.task-button > box,
+.task-button > * {
+    margin: 0 6px;
+}
+.tray-button > box,
+.tray-button > * {
+    margin: 0 6px;
+}
+
+/* Workspace chips (was padding: 0 10px) */
+.workspace-chip > * {
+    margin: 0 10px;
+}
+
+/* Right-side modules (their own horizontal padding) */
+.clock > box,
+.clock > * {
+    margin: 0 10px;
+}
+.kbstate > box,
+.kbstate > * {
+    margin: 0 8px;
+}
+.window > box,
+.window > * {
+    margin: 2px 10px;
+}
+.sysmon > box,
+.sysmon > * {
+    margin: 2px 8px;
+}
+.updates > box,
+.updates > * {
+    margin: 2px 8px;
+}
+
+/* Popups / menus */
+.popup-row > * {
+    margin: 6px 8px;
+}
+.popup-title {
+    margin-bottom: 4px;
+}
+.popup-box > * {
+    margin: 4px;
+}
+.bar-menu-item > * {
+    margin: 6px 12px;
+}
+menu menuitem > * {
+    margin: 6px 14px;
+}

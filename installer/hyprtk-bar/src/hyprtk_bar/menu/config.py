@@ -51,7 +51,7 @@ DEFAULT_CONFIG = {
     "favorites": [],
     "recents": [],
     "power": {
-        "lock": "pidof swaylock hyprlock || swaylock || hyprlock",
+        "lock": "pidof hyprlock swaylock || ~/.config/hypr/scripts/lock.sh 2>/dev/null || hyprlock || swaylock",
         "logout": "hyprctl dispatch exit",
         "reboot": "systemctl reboot",
         "shutdown": "systemctl poweroff",

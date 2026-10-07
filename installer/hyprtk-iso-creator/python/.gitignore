@@ -1,0 +1,7 @@
+# Python build/run artifacts (pip builds the package in place)
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/

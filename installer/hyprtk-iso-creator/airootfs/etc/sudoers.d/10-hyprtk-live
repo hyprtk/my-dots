@@ -1,0 +1,5 @@
+# Live-ISO convenience: the live user may use sudo without a password.
+# This file is re-chmodded to 0440 by customize_airootfs.sh. Never ship this
+# on an installed system.
+hyprtk ALL=(ALL:ALL) NOPASSWD: ALL
+Defaults:hyprtk !authenticate

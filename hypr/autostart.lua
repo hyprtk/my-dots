@@ -20,7 +20,11 @@ hl.on("hyprland.start", function()
     -- matuwall is a one-shot picker now (C/meson, no venv/GTK/LD_PRELOAD);
     -- it is launched on demand by hypr/scripts/matuwall-toggle.sh (SUPER+W).
     hl.exec_cmd("WOB_DIR=\"${XDG_RUNTIME_DIR:-/run/user/$(id -u)}\"; rm -f \"$WOB_DIR/wobpipe\"; mkfifo -m 600 \"$WOB_DIR/wobpipe\" 2>/dev/null && { tail -f \"$WOB_DIR/wobpipe\" | wob -c ~/.config/wob/wob.ini & }")
-    hl.exec_cmd("~/hyprtk/installer/scripts/lockscreentime.sh")
+    -- Idle daemon: hypridle (Hyprland's) in preference to the old swayidle
+    -- timers. hypridle reads hypr/hypridle.conf; every lock route goes through
+    -- `loginctl lock-session` -> hypr/scripts/lock.sh. The fallback keeps idle
+    -- locking working on targets that do not package hypridle yet.
+    hl.exec_cmd("hypridle || ~/hyprtk/installer/scripts/lockscreentime.sh")
     -- Persist Hyprland's runtime log + snapshot DRM/GPU state if the compositor
     -- stalls (the idle DPMS-wake freeze). See hypr/scripts/hypr-watchdog.sh.
     hl.exec_cmd("~/.config/hypr/scripts/hypr-watchdog.sh &")

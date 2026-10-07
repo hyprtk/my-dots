@@ -22,7 +22,7 @@ Scripts now resolve **bundled-first** through `resolve_script()`
 (`~/.local/share/hyprtk-bar/scripts/`), falling back to the `~/hyprtk` dotfiles
 tree. Three surfaces reference them:
 
-- **`themer.py` constants** (`HYPRTK = ~/hyprtk`, plus rofi / swaylock / matuwall /
+- **`themer.py` constants** (`HYPRTK = ~/hyprtk`, plus rofi / matuwall /
   papirus / wallpaper paths).
 - **`config.py` defaults** (quicklinks commands, `start_command`, `updates.script`).
 - **`app.py`** (`ROFI_SYNC_SH`).
@@ -66,7 +66,7 @@ tree. Three surfaces reference them:
 | `~/.config/rofi/variants/*.rasi` (10 variants) | themer rofi page + sync-rofi-theme |
 | `~/.config/rofi/config-apps-menu.rasi` | appsmenu.sh |
 | `~/.config/rofi/config-cliphist.rasi`, `config-short.rasi` | cliphist.sh |
-| `~/.config/swaylock/config` | themer swaylock page (read/write) |
+| `~/.cache/wal/hyprlock-colors.conf` | pywal-rendered lock-screen colours (themer Lock Screen page displays them) |
 | `~/.config/matuwall/config.json` | themer matuwall page (read/write) |
 | `~/.local/share/icons/Papirus-Dark` | change-icons.sh + themer icon previews |
 | `~/.cache/wal/*` | pywal cache (colors.sh/colors.json/…), written by `wal` |
@@ -225,7 +225,7 @@ the dotfiles; the bar degrades gracefully when any of them is absent.
 |------|----------|
 | rofi `variants/` | **bundled** (`scripts/rofi/variants/`) |
 | rofi `variant.rasi` symlink + base rofi config | rofi/user responsibility (rofi is a separate app) |
-| `~/.config/swaylock/config` | dotfiles (swaylock is a separate app; themer edits if present) |
+| `~/.cache/wal/hyprlock-colors.conf` | dotfiles/wal (rendered from the pywal template; themer displays it) |
 | `~/.config/matuwall/config.json` | dotfiles (matuwall is a separate app; themer edits if present) |
 | `~/.local/share/icons/Papirus-Dark` | install.sh-managed (`papirus-icon-theme` extras) |
 | `~/.cache/theme-gui` | bar-owned (auto-generated thumbnail cache) |

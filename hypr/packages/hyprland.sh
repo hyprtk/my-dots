@@ -2,12 +2,18 @@
 # hyprtk-pkglist
 # ── hyprland ─────────────────────────────────────────────────────────
 # Core compositor + the Wayland/GTK plumbing the dotfiles rely on.
+#
+# hyprlock + hypridle are the preferred locker/idle daemon; swaylock/swayidle
+# stay as fallbacks for families that do not package the hypr* pair (Debian
+# bookworm/trixie, Ubuntu < 26.04, Fedora, Void, Alpine). The wrappers pick
+# whichever is present (hypr/scripts/lock.sh, autostart.lua), and pkg_install
+# warns non-fatally for any package a family lacks.
 _PKGDIR="$(cd "$(dirname "$0")" && pwd)"
 . "$_PKGDIR/../../installer/scripts/pkgmanager.sh"
 
 case "$HYPRTK_PM" in
 pacman)
-    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xorg-xhost
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xorg-xhost
           nwg-look mission-center curl wget imagemagick jq bc brightnessctl playerctl
           libadwaita gtk3 gtk-layer-shell gtk4 desktop-file-utils python python-pip
           python-virtualenv python-gobject wob hyprsunset)
@@ -15,14 +21,14 @@ pacman)
          gvfs-smb 7zip unzip unrar)
     ;;
 apt)
-    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist x11-xserver-utils
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist x11-xserver-utils
           nwg-look curl wget imagemagick jq bc brightnessctl playerctl
           libadwaita-1-0 libgtk-3-0 libgtk-layer-shell0 libgtk-4-1 desktop-file-utils
           python3 python3-pip python3-venv python3-gi wob hyprsunset swaylock
           gvfs-backends 7zip unzip unrar)
     ;;
 dnf)
-    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist
           xhost nwg-look curl wget2-wget ImageMagick jq bc
           brightnessctl playerctl libadwaita gtk3 gtk-layer-shell gtk4
           desktop-file-utils python3 python3-pip python3-virtualenv python3-gobject
@@ -30,7 +36,7 @@ dnf)
           gvfs-smb 7zip unzip unrar)
     ;;
 zypper)
-    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xhost nwg-look
           curl wget ImageMagick jq bc brightnessctl playerctl libadwaita-1-0
           gtk3 libgtk-layer-shell0 gtk4 desktop-file-utils python3 python3-pip
           python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs
@@ -42,14 +48,14 @@ xbps)
     # installer/scripts/hyprland-src-install.sh, wob/hyprsunset by
     # installer/scripts/srcapps-install.sh — so they are intentionally absent
     # from this native package list.
-    PKGS=(xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+    PKGS=(xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xhost nwg-look
           curl wget ImageMagick jq bc brightnessctl playerctl libadwaita
           gtk+3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
           python3-virtualenv python3-gobject swaylock gvfs gvfs-afc
           gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-smb p7zip unzip unrar)
     ;;
 apk)
-    PKGS=(hyprland xdg-desktop-portal-wlr swayidle swappy cliphist xhost nwg-look
+    PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xhost nwg-look
           curl wget imagemagick jq bc brightnessctl playerctl libadwaita gtk+3.0
           gtk-layer-shell gtk4.0 desktop-file-utils python3 py3-pip py3-virtualenv
           py3-gobject3 wob swaylock gvfs 7zip unzip unrar)

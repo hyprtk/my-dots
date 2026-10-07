@@ -55,7 +55,6 @@ BAR_CONFIG = HOME / ".config" / "hyprtk-bar" / "config.json"
 ROFI_CONFIG = HOME / ".config" / "rofi"
 ROFI_VARIANTS = SCRIPTS_DIR / "rofi" / "variants" if (SCRIPTS_DIR / "rofi" / "variants").is_dir() else ROFI_CONFIG / "variants"
 ROFI_VARIANT_LINK = ROFI_CONFIG / "variant.rasi"
-SWAYLOCK_CONFIG = HOME / ".config" / "swaylock" / "config"
 # matuwall reads ~/.config/matuwall/config.toml, a symlink to the pywal-rendered
 # ~/.cache/wal/matuwall-config.toml. Saving must write *through* the symlink (to
 # the target) and also refresh the pywal template so edits survive `wal`.
@@ -137,7 +136,7 @@ PAGES = [
     ("rofi", "\uf009", "Rofi"),             # fa-th-large
     ("bar", "\uf1fc", "Bar Themes"),        # fa-paint-brush
     ("matuwall", "\uf1c5", "Matuwall"),     # fa-file-image-o
-    ("swaylock", "\uf023", "Swaylock"),     # fa-lock
+    ("swaylock", "\uf023", "Lock Screen"),  # fa-lock
     ("icons", "\uf02d", "Icons"),           # fa-bookmark-o
     ("sddm", "\uf005", "SDDM & GRUB"),      # fa-star
 ]
@@ -151,34 +150,6 @@ _DOUBLE_CLICK_US = 400_000
 _SDDM_PREVIEW = (620, 220)
 _BATCH_SIZE = 20
 POST_ACTION_DELAY_MS = 2500
-
-# ── color helpers ─────────────────────────────────────────────────────────
-
-
-def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    h = (hex_color or "").strip().lstrip("#")
-    if len(h) == 3:
-        h = "".join(c * 2 for c in h)
-    if len(h) >= 6:
-        try:
-            return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
-        except ValueError:
-            pass
-    return 0, 0, 0
-
-
-def _hex_to_rgba(hex_color: str, alpha: float = 1.0) -> str:
-    r, g, b = _hex_to_rgb(hex_color)
-    return f"rgba({r},{g},{b},{alpha:.2f})"
-
-
-def _rgba_to_hex(red: float, green: float, blue: float, alpha: float = 1.0) -> str:
-    r, g, b = (int(round(v * 255)) for v in (red, green, blue))
-    a = int(round(alpha * 255))
-    if a < 255:
-        return f"#{r:02x}{g:02x}{b:02x}{a:02x}"
-    return f"#{r:02x}{g:02x}{b:02x}"
-
 
 def _is_valid_hex(value: str) -> bool:
     if not isinstance(value, str):
@@ -219,23 +190,6 @@ def _parse_wal_colors() -> dict[str, str]:
         if _is_valid_hex(val):
             result[key.strip()] = val
     return result
-
-
-def _read_swaylock_config() -> dict[str, str]:
-    result: dict[str, str] = {}
-    if not SWAYLOCK_CONFIG.exists():
-        return result
-    for line in SWAYLOCK_CONFIG.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, val = line.partition("=")
-        result[key.strip()] = val.strip()
-    return result
-
-
-def _write_swaylock_config(data: dict[str, str]):
-    _atomic_write(SWAYLOCK_CONFIG, "\n".join(f"{k}={v}" for k, v in data.items()) + "\n")
 
 
 def _atomic_write(path: Path, content: str):
@@ -370,67 +324,6 @@ def _update_matuwall_template(replacements: dict[tuple[str, str], str]) -> None:
         else:
             out.append(line)
     _atomic_write(MATUWALL_TEMPLATE, "\n".join(out) + "\n")
-
-
-# swaylock color key -> (pywal index, append a "44" alpha suffix).
-# Indices follow the pywal palette; the alpha suffix keeps the translucent
-# "inside"/"line"/"caps-lock" fills while the ring/text/bs-hl stay opaque.
-_SWAYLOCK_COLOR_MAP: list[tuple[str, int, bool]] = [
-    ("ring-color", 6, False), ("ring-clear-color", 4, False),
-    ("ring-wrong-color", 1, False), ("ring-ver-color", 5, False),
-    ("ring-caps-lock-color", 5, False),
-    ("inside-color", 0, True), ("inside-clear-color", 4, True),
-    ("inside-wrong-color", 1, True), ("inside-ver-color", 5, True),
-    ("inside-caps-lock-color", 5, True),
-    ("key-hl-color", 6, True),
-    ("text-color", 7, False), ("text-clear-color", 4, False),
-    ("text-ver-color", 5, False), ("text-wrong-color", 1, False),
-    ("bs-hl-color", 1, False),
-    ("line-color", 6, True), ("line-clear-color", 4, True),
-    ("line-wrong-color", 1, True), ("line-ver-color", 5, True),
-    ("line-caps-lock-color", 5, True),
-    ("caps-lock-key-hl-color", 5, True),
-    ("caps-lock-bs-hl-color", 5, True),
-    ("text-caps-lock-color", 5, False),
-]
-
-
-def sync_swaylock_from_pywal() -> bool:
-    """Write the current pywal colors into the swaylock config, in place.
-
-    Reads ``~/.cache/wal/colors`` and rewrites ``~/.config/swaylock/config``,
-    replacing only the color keys (and appending any that are missing) while
-    leaving comments, bare flags and the other settings untouched — so the lock
-    screen tracks the wallpaper palette without clobbering indicator/font/
-    effect settings. Returns True on success.
-
-    UI-independent so the bar can call it automatically on wallpaper change;
-    the Theme Manager's "Apply Pywal Colors" button uses the same path.
-    """
-    wal_colors = _read_wal_hex()
-    if len(wal_colors) < 8:
-        return False
-    if not SWAYLOCK_CONFIG.exists():
-        return False
-    replacements = {
-        key: f"{wal_colors[idx]}{'44' if keep_alpha else ''}"
-        for key, idx, keep_alpha in _SWAYLOCK_COLOR_MAP
-    }
-    seen: set[str] = set()
-    out: list[str] = []
-    for line in SWAYLOCK_CONFIG.read_text().splitlines():
-        stripped = line.strip()
-        key = stripped.split("=", 1)[0].strip() if "=" in stripped else ""
-        if key in replacements:
-            out.append(f"{key}={replacements[key]}")
-            seen.add(key)
-        else:
-            out.append(line)
-    for key, value in replacements.items():
-        if key not in seen:
-            out.append(f"{key}={value}")
-    _atomic_write(SWAYLOCK_CONFIG, "\n".join(out) + "\n")
-    return True
 
 
 # ── thumbnail cache (reuses theme-gui's cache) ────────────────────────────
@@ -610,73 +503,6 @@ def _radio_group(labels: list[tuple[str, str]]) -> dict[str, Gtk.RadioButton]:
             first = btn
         buttons[key] = btn
     return buttons
-
-
-class ColorButton(Gtk.Button):
-    """A swatch button that opens a GTK3 colour chooser dialog."""
-
-    _seq = 0
-
-    def __init__(self, hex_color: str = "#ffffff", **kwargs):
-        super().__init__(**kwargs)
-        self._color = hex_color
-        self._callback = None
-        # GTK4 has no per-widget providers, so scope the swatch rule to a unique
-        # class (a bare ``button { ... }`` would repaint every button) and use
-        # USER priority to match the bar's theme provider (app.py).
-        ColorButton._seq += 1
-        self._css_class = f"color-swatch-{ColorButton._seq}"
-        compat.add_class(self, self._css_class)
-        self._provider = Gtk.CssProvider()
-        compat.add_provider_for_display(
-            self._provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
-        )
-        self._apply_color(hex_color)
-        self.set_size_request(40, 40)
-        self.connect("clicked", self._on_clicked)
-
-    def _apply_color(self, hex_color: str):
-        h = hex_color.lstrip("#")
-        a = int(h[6:8], 16) / 255 if len(h) == 8 else 1.0
-        r, g, b = _hex_to_rgb(hex_color)
-        css = (
-            f"button.{self._css_class} {{ background: rgba({r},{g},{b},{a:.2f}); "
-            f"border-radius: 10px; min-width: 32px; min-height: 32px; padding: 0; }}"
-        )
-        self._provider.load_from_data(css.encode())
-        self.queue_draw()
-
-    def get_color(self) -> str:
-        return self._color
-
-    def set_color(self, hex_color: str):
-        self._color = hex_color
-        self._apply_color(hex_color)
-
-    def connect_color_changed(self, callback):
-        self._callback = callback
-
-    def _on_clicked(self, *_args):
-        parent = compat.toplevel(self)
-        dialog = Gtk.ColorChooserDialog(
-            title="Pick a Colour",
-            transient_for=parent if isinstance(parent, Gtk.Window) else None,
-        )
-        dialog.set_use_alpha(True)
-        rgba = Gdk.RGBA()
-        rgba.parse(self._color)
-        dialog.set_rgba(rgba)
-        dialog.connect("response", self._on_response)
-        compat.show(dialog)
-
-    def _on_response(self, dialog, response):
-        if response == Gtk.ResponseType.OK:
-            rgba = dialog.get_rgba()
-            hex_str = _rgba_to_hex(rgba.red, rgba.green, rgba.blue, rgba.alpha)
-            self.set_color(hex_str)
-            if self._callback:
-                self._callback(hex_str)
-        compat.destroy(dialog)
 
 
 def _add_entry_row(parent: Gtk.Box, label: str) -> Gtk.Entry:
@@ -2186,180 +2012,43 @@ class ThemerDialog(Popup):
                 out[(section, key)] = rendered
         return out
 
-    # ── swaylock ──────────────────────────────────────────────────
+    # ── lock screen ───────────────────────────────────────────────
 
     def _build_swaylock_page(self, box: Gtk.Box, scroller: Gtk.ScrolledWindow | None = None) -> None:
-        _add_section_title(box, "Pywal Mode")
+        _add_section_title(box, "Hyprlock")
         desc = Gtk.Label(
-            label="Copy pywal-generated colors to swaylock config. This syncs "
-                  "the lock screen with your current wallpaper palette.",
+            label="hyprlock is themed from your wallpaper automatically: pywal "
+                  "renders the lock colours to ~/.cache/wal/hyprlock-colors.conf "
+                  "on every change, and ~/.config/hypr/hyprlock.conf sources "
+                  "them. Press the button to refresh them now.",
             xalign=0, wrap=True,
         )
         compat.pack_start(box, desc, False, False, 0)
-        apply_wal_btn = Gtk.Button(label="Apply Pywal Colors")
-        compat.add_class(apply_wal_btn, "settings-apply")
-        apply_wal_btn.connect("clicked", self._apply_swaylock_pywal)
-        compat.pack_start(box, apply_wal_btn, False, False, 0)
+        refresh_btn = Gtk.Button(label="Re-apply Pywal Theme")
+        compat.add_class(refresh_btn, "settings-apply")
+        refresh_btn.connect("clicked", self._reapply_lock_theme)
+        compat.pack_start(box, refresh_btn, False, False, 0)
 
-        _add_section_title(box, "Manual Color Editor")
-        load_btn = Gtk.Button(label="Load Current Pywal Colors")
-        load_btn.connect("clicked", self._load_swaylock_pywal)
-        compat.pack_start(box, load_btn, False, False, 0)
+        _add_section_title(box, "Current Colors")
+        self._lock_colors = Gtk.Label(label=self._lock_colors_text(), xalign=0, wrap=True)
+        compat.add_class(self._lock_colors, "mc-unavailable")
+        compat.pack_start(box, self._lock_colors, False, False, 0)
 
-        manual_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
-        self._preview = SwaylockPreview()
-        compat.pack_start(manual_row, self._preview, False, False, 0)
+    def _lock_colors_text(self) -> str:
+        path = Path("~/.cache/wal/hyprlock-colors.conf").expanduser()
+        if not path.exists():
+            return "No pywal colours rendered yet — pick a wallpaper first."
+        lines = [ln.strip() for ln in path.read_text().splitlines()
+                 if ln.strip().startswith("$lock_")]
+        return "\n".join(lines) if lines else "No pywal colours rendered yet."
 
-        self._color_buttons: dict[str, ColorButton] = {}
-        fields = [
-            ("ring-color", "Ring (idle)"),
-            ("ring-clear-color", "Ring (clear)"),
-            ("ring-wrong-color", "Ring (wrong)"),
-            ("ring-ver-color", "Ring (verifying)"),
-            ("ring-caps-lock-color", "Ring (caps lock)"),
-            ("inside-color", "Inside (idle)"),
-            ("inside-clear-color", "Inside (clear)"),
-            ("inside-wrong-color", "Inside (wrong)"),
-            ("inside-ver-color", "Inside (verifying)"),
-            ("key-hl-color", "Key highlight"),
-            ("text-color", "Text"),
-            ("bs-hl-color", "Backspace highlight"),
-        ]
-        mid = len(fields) // 2
-        for group in (fields[:mid], fields[mid:]):
-            grid = Gtk.Grid()
-            grid.set_column_spacing(10)
-            grid.set_row_spacing(6)
-            for i, (key, label) in enumerate(group):
-                lbl = Gtk.Label(label=label, xalign=0)
-                lbl.set_size_request(130, -1)
-                grid.attach(lbl, 0, i, 1, 1)
-                cb = ColorButton()
-                cb.connect_color_changed(lambda c, k=key: self._on_swaylock_color(k, c))
-                self._color_buttons[key] = cb
-                grid.attach(cb, 1, i, 1, 1)
-            compat.pack_start(manual_row, grid, False, False, 0)
-
-        compat.pack_start(box, manual_row, False, False, 0)
-
-        save_btn = Gtk.Button(label="Save Manual Config")
-        save_btn.connect("clicked", self._save_swaylock_manual)
-        compat.pack_start(box, save_btn, False, False, 0)
-
-        _add_section_title(box, "Indicator Settings")
-        self._sl_radius = _add_entry_row(box, "Indicator Radius")
-        self._sl_thickness = _add_entry_row(box, "Indicator Thickness")
-        self._sl_fade = _add_entry_row(box, "Fade-in (seconds)")
-        self._sl_effect = _add_entry_row(box, "Effect (e.g. effect-pixelate=5)")
-        save_settings_btn = Gtk.Button(label="Save Settings")
-        save_settings_btn.connect("clicked", self._save_swaylock_settings)
-        compat.pack_start(box, save_settings_btn, False, False, 0)
-
-        self._load_swaylock()
-
-    def _load_swaylock(self):
-        config = _read_swaylock_config()
-        wal_colors = _read_wal_hex()
-        if len(wal_colors) >= 8:
-            wal_map = {
-                "ring-color": wal_colors[6],
-                "ring-clear-color": wal_colors[4],
-                "ring-wrong-color": wal_colors[1],
-                "ring-ver-color": wal_colors[5],
-                "ring-caps-lock-color": wal_colors[5],
-                "inside-color": wal_colors[0],
-                "inside-clear-color": wal_colors[4],
-                "inside-wrong-color": wal_colors[1],
-                "inside-ver-color": wal_colors[5],
-                "key-hl-color": wal_colors[6],
-                "text-color": wal_colors[7],
-                "bs-hl-color": wal_colors[1],
-            }
-            config.update(wal_map)
-        preview_colors = {}
-        for key, cb in self._color_buttons.items():
-            val = config.get(key, "#ffffff")
-            if not val.startswith("#"):
-                val = f"#{val}"
-            cb.set_color(val)
-            preview_colors[key] = val
-        self._preview.update_colors(preview_colors)
-
-        self._sl_radius.set_text(config.get("indicator-radius", "200"))
-        self._sl_thickness.set_text(config.get("indicator-thickness", "20"))
-        self._sl_fade.set_text(config.get("fade-in", "1"))
+    def _reapply_lock_theme(self, _btn):
         try:
-            r = int(config.get("indicator-radius", "200"))
-        except ValueError:
-            r = 200
-        try:
-            t = int(config.get("indicator-thickness", "20"))
-        except ValueError:
-            t = 20
-        self._preview.set_dimensions(r, t)
-        for key in config:
-            if key.startswith("effect-"):
-                self._sl_effect.set_text(f"{key}={config[key]}")
-                break
-
-    def _on_swaylock_color(self, key: str, hex_val: str):
-        self._preview.update_colors({key: hex_val})
-
-    def _load_swaylock_pywal(self, btn):
-        wal_colors = _read_wal_hex()
-        if len(wal_colors) < 8:
-            self._toast("Pywal colors file incomplete")
+            subprocess.Popen([_wal_binary(), "-R", "-q"], start_new_session=True)
+        except (OSError, subprocess.SubprocessError):
+            self._toast("Could not run wal")
             return
-        wal_map = {
-            "ring-color": wal_colors[6],
-            "ring-clear-color": wal_colors[4],
-            "ring-wrong-color": wal_colors[1],
-            "ring-ver-color": wal_colors[5],
-            "ring-caps-lock-color": wal_colors[5],
-            "inside-color": wal_colors[0],
-            "inside-clear-color": wal_colors[4],
-            "inside-wrong-color": wal_colors[1],
-            "inside-ver-color": wal_colors[5],
-            "key-hl-color": wal_colors[6],
-            "text-color": wal_colors[7],
-            "bs-hl-color": wal_colors[1],
-        }
-        preview_colors = {}
-        for key, cb in self._color_buttons.items():
-            val = wal_map.get(key, "#ffffff")
-            cb.set_color(f"#{val}")
-            preview_colors[key] = f"#{val}"
-        self._preview.update_colors(preview_colors)
-        self._toast("Loaded pywal colors")
-
-    def _apply_swaylock_pywal(self, btn):
-        if sync_swaylock_from_pywal():
-            self._load_swaylock()
-            self._toast("Swaylock colors applied and saved")
-        else:
-            self._toast("Pywal colors file incomplete")
-
-    def _save_swaylock_manual(self, btn):
-        config = _read_swaylock_config()
-        for key, cb in self._color_buttons.items():
-            config[key] = cb.get_color().lstrip("#")
-        _write_swaylock_config(config)
-        self._toast("Swaylock colors saved")
-
-    def _save_swaylock_settings(self, btn):
-        config = _read_swaylock_config()
-        config["indicator-radius"] = self._sl_radius.get_text()
-        config["indicator-thickness"] = self._sl_thickness.get_text()
-        config["fade-in"] = self._sl_fade.get_text()
-        for key in list(config.keys()):
-            if key.startswith("effect-"):
-                del config[key]
-        effect = self._sl_effect.get_text().strip()
-        if "=" in effect:
-            k, _, v = effect.partition("=")
-            config[k] = v
-        _write_swaylock_config(config)
-        self._toast("Swaylock settings saved")
+        self._toast("Re-applying pywal theme")
 
     # ── icons ─────────────────────────────────────────────────────
 
@@ -2625,72 +2314,6 @@ class ThemerDialog(Popup):
         super().hide_popup()
 
 
-class SwaylockPreview(Gtk.DrawingArea):
-    """Live preview of the swaylock indicator wheel using Cairo."""
-
-    def __init__(self):
-        super().__init__()
-        self.set_size_request(200, 200)
-        self.set_vexpand(False)
-        self.set_halign(Gtk.Align.CENTER)
-        self._colors = {
-            "ring-color": "#ffffff",
-            "inside-color": "#000000",
-            "key-hl-color": "#22d3ee",
-            "text-color": "#ffffff",
-            "bs-hl-color": "#ff0000",
-        }
-        self._indicator_radius = 100
-        self._indicator_thickness = 18
-        compat.set_draw_func(self, self._draw)
-
-    def update_colors(self, colors: dict[str, str]):
-        self._colors.update(colors)
-        self.queue_draw()
-
-    def set_dimensions(self, radius: int, thickness: int):
-        self._indicator_radius = radius
-        self._indicator_thickness = thickness
-        self.queue_draw()
-
-    def _draw(self, _area, cr):
-        import cairo
-
-        width, height = compat.allocated_width(self), compat.allocated_height(self)
-        cx, cy = width / 2, height / 2
-        radius = min(self._indicator_radius, min(width, height) / 2 - 8)
-
-        r, g, b = _hex_to_rgb(self._colors.get("ring-color", "#ffffff"))
-        cr.set_source_rgb(r / 255, g / 255, b / 255)
-        cr.arc(cx, cy, radius, 0, 2 * 3.14159)
-        cr.set_line_width(self._indicator_thickness * 0.9)
-        cr.stroke()
-
-        r, g, b = _hex_to_rgb(self._colors.get("inside-color", "#000000"))
-        cr.set_source_rgb(r / 255, g / 255, b / 255)
-        cr.arc(cx, cy, radius * 0.72, 0, 2 * 3.14159)
-        cr.fill()
-
-        dot_r = radius * 0.08
-        r, g, b = _hex_to_rgb(self._colors.get("key-hl-color", "#22d3ee"))
-        cr.set_source_rgb(r / 255, g / 255, b / 255)
-        cr.arc(cx, cy - radius * 0.91, dot_r, 0, 2 * 3.14159)
-        cr.fill()
-
-        r, g, b = _hex_to_rgb(self._colors.get("bs-hl-color", "#ff0000"))
-        cr.set_source_rgb(r / 255, g / 255, b / 255)
-        cr.arc(cx, cy + radius * 0.91, dot_r, 0, 2 * 3.14159)
-        cr.fill()
-
-        r, g, b = _hex_to_rgb(self._colors.get("text-color", "#ffffff"))
-        cr.set_source_rgb(r / 255, g / 255, b / 255)
-        cr.select_font_face("sans-serif", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
-        cr.set_font_size(radius * 0.35)
-        ext = cr.text_extents("Password")
-        cr.move_to(cx - ext.width / 2, cy + ext.height / 3)
-        cr.show_text("Password")
-
-
 # ── icon helpers (ported from theme-gui) ──────────────────────────────────
 
 _PREVIEW_ICONS = [
@@ -2747,16 +2370,3 @@ def _run_papirus_folders(*args: str) -> bool:
     except (OSError, subprocess.SubprocessError) as exc:
         log.warning("papirus-folders failed: %s", exc)
         return False
-
-
-def _read_wal_hex() -> list[str]:
-    """Return the 16 pywal colors (no '#') from ~/.cache/wal/colors."""
-    src = WAL_CACHE / "colors"
-    if not src.exists():
-        return []
-    result = []
-    for line in src.read_text().splitlines():
-        line = line.strip()
-        if line.startswith("#") and len(line) == 7:
-            result.append(line[1:].upper())
-    return result

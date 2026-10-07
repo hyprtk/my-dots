@@ -3,6 +3,39 @@
 All notable changes to hyprtk-bar are documented in this file.
 Dates are in YYYY-MM-DD format.
 
+## [0.4.9] - 2026-10-07
+
+### Fixed
+
+- **GTK 4.24 box-model workaround for the start menu.** GTK 4.24 stopped
+  counting CSS `padding` and `border` in a widget's preferred size (it parses
+  them but ignores them from style providers), so every padded menu row/pill/
+  panel collapsed to its bare content height. `menu/theme.py` now appends
+  `assets/gtk4-workaround.css` when `Gtk.get_minor_version() >= 24`, which
+  recreates the spacing from the properties that still work — `min-height`
+  (vertical), child `margin` (inner insets), and longhand `margin` (outer gaps)
+  — plus `outline` for the panel/selection borders. The sheet is version-gated
+  so it disables itself automatically once GTK restores the box model. Covers
+  all four layouts (whisker / win7 / win11 / plasma).
+- **The bar itself gets the same workaround** (`assets/bar-gtk4-workaround.css`,
+  appended by `app.py` under GTK >= 4.24) so the taskbar modules/buttons keep
+  their spacing.
+
+## [0.4.8] - 2026-10-07
+
+### Changed
+
+- **The Theme Manager's lock-screen page now targets hyprlock.** It no longer
+  edits `~/.config/swaylock/config`; hyprlock is themed automatically (pywal
+  renders `~/.cache/wal/hyprlock-colors.conf`, which `hypr/hyprlock.conf`
+  sources), so the page just shows the current colours and offers a **Re-apply
+  Pywal Theme** button. The manual colour editor, the swaylock indicator
+  settings and the Cairo swaylock preview were removed.
+- **The default power-menu lock command prefers hyprlock and the dotfiles'
+  lock supervisor:** `pidof hyprlock swaylock || ~/.config/hypr/scripts/lock.sh
+  2>/dev/null || hyprlock || swaylock` (was `pidof swaylock hyprlock || swaylock
+  || hyprlock`).
+
 ## [0.4.7] - 2026-10-01
 
 ### Added

@@ -22,8 +22,8 @@ app.
   Themes can also come from an imported waybar theme or a manual color block.
 - **Theme Manager** — a built-in panel (opened from the bar's wallpaper glyph)
   for the wallpaper, pywal palette, rofi variant, bar themes, **Matuwall**
-  picker config, swaylock colours, icon theme and SDDM/GRUB — everything applied
-  live from one place.
+  picker config, lock screen (hyprlock), icon theme and SDDM/GRUB — everything
+  applied live from one place.
 - **Task list** — pinned and running applications grouped by class, with a
   running/active indicator, a hover preview of an app's windows, click to focus
   or minimize, middle-click to close, and launch-on-click for pinned apps.

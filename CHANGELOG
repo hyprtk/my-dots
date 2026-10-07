@@ -3,6 +3,46 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [Unreleased] - 2026-10-07
+
+### Changed
+
+- **`hyprlock`/`hypridle` are now the default screen locker / idle daemon**
+  (swaylock/swayidle stay as fallbacks). `hypr/scripts/lock.sh` prefers hyprlock
+  (and requires its config, else falls back to swaylock), `hypr/autostart.lua`
+  starts `hypridle` (falling back to `installer/scripts/lockscreentime.sh`), and
+  new `hypr/hyprlock.conf` + `hypr/hypridle.conf` ship the configs. The package
+  lists, `1-install.sh`, the verify scripts and the ISO package list were
+  updated; `swaylock-effects`/`swayidle` remain for targets that don't package
+  the `hypr*` pair.
+- **hyprtk-bar** (re-vendored): the Theme Manager's lock-screen page now targets
+  hyprlock, and the default power-menu lock command prefers hyprlock / the
+  `lock.sh` supervisor. The bar README/CHANGELOG were refreshed and the lock
+  screen, README and distro docs were updated for hyprlock.
+- **Hyprtk-ISO-Creator** (re-vendored): `hyprlock`/`hypridle` added to the ISO
+  package list (AUR `swaylock-effects` kept as the fallback).
+
+### Fixed
+
+- **Start menu / bar spacing on GTK 4.24.** GTK 4.24 stopped counting CSS
+  `padding`/`border` in a widget's preferred size, flattening the whole menu and
+  bar (upstream bug [#8449](https://gitlab.gnome.org/GNOME/gtk/-/issues/8449)).
+  The vendored bar recreates the spacing from the properties that still work
+  (`min-height`, `margin`, `border-spacing`, `outline`), version-gated so it
+  disables itself once GTK is fixed. See the hyprtk-bar CHANGELOG.
+
+## [v1.3.23] - 2026-10-06
+
+### Added
+
+- **Vendored `Hyprtk-ISO-Creator`** into `installer/hyprtk-iso-creator/`
+  (byte-identical to its repo) and it is now installed by the Arch-family flow:
+  a GTK 4 GUI (`hyprtk-iso-creator`) over `hyprtk-iso-builder.sh` that builds the
+  live ISO, elevated through a `pkexec` helper. Skipped with a note off Arch,
+  where `mkarchiso` is unavailable. The installed app copies the builder and its
+  profile assets into `~/.local/share/hyprtk-iso-creator/repo/` so it does not
+  depend on the checkout.
+
 ## [v1.3.22] - 2026-10-06
 
 ### Changed

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyprtk-isocreator"
+dynamic = ["version"]
+description = "A GTK 4 front end for the Hyprtk ISO builder"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[project.scripts]
+hyprtk-iso-creator = "hyprtk_isocreator.gui:main"
+hyprtk-iso-creator-helper = "hyprtk_isocreator.helper:main"
+
+[tool.setuptools]
+packages = ["hyprtk_isocreator"]
+
+[tool.setuptools.dynamic]
+version = { attr = "hyprtk_isocreator.__version__" }

@@ -1,0 +1,392 @@
+#!/bin/bash
+###############################################################################
+# hyprtk-deploy — install the running hyprtk live system to a disk.
+#
+# Live-to-disk clone (hyprtk-iso Wayfinder map, ticket "Design the live-to-disk
+# deploy script"):
+#   * GPT target: 1 MiB bios_grub + 1 GiB FAT32 ESP + ext4 root + 4 GiB swapfile
+#   * rsync the live root (keeping /usr, /etc, /etc/skel, /var/lib/pacman)
+#   * chroot: UUID fstab, stock initramfs, GRUB (UEFI + BIOS), identity files
+#   * removes the live-only user, autologin and passwordless-sudo drop-in
+#
+# Run from the live session (TTY, or the desktop entry). Needs root.
+###############################################################################
+set -euo pipefail
+
+SWAP_SIZE="4G"
+ESP_SIZE="1GiB"
+DEFAULT_HOSTNAME="hyprtk"
+DEFAULT_LOCALE="en_US.UTF-8"
+MNT="/mnt"
+
+# ── Root ───────────────────────────────────────────────────────────────────
+if [ "$(id -u)" -ne 0 ]; then
+    exec sudo -E bash "$(readlink -f "$0")" "$@"
+fi
+
+LIVE_USER="${SUDO_USER:-hyprtk}"
+LIVE_HOME="$(getent passwd "$LIVE_USER" 2>/dev/null | cut -d: -f6)"
+[ -n "$LIVE_HOME" ] || LIVE_HOME="/root"
+LOG="$LIVE_HOME/hyprtk-deploy.log"
+: > "$LOG"
+
+# ── gum ────────────────────────────────────────────────────────────────────
+GUM=""
+for c in "$(command -v gum 2>/dev/null || true)" \
+         /usr/local/bin/gum \
+         /etc/skel/hyprtk/installer/standalone/gum; do
+    if [ -n "$c" ] && [ -x "$c" ]; then GUM="$c"; break; fi
+done
+
+MAGENTA='\033[35m'; CYAN='\033[0;36m'; WHITE='\033[0;37m'
+RED='\033[1;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
+
+log()  { printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*" >> "$LOG"; }
+info() { printf "${CYAN}  → ${WHITE}%s${NC}\n" "$*"; log "$*"; }
+ok()   { printf "${CYAN}  ✓ ${WHITE}%s${NC}\n" "$*"; log "OK: $*"; }
+warn() { printf "${YELLOW}  ! ${WHITE}%s${NC}\n" "$*"; log "WARN: $*"; }
+die()  { printf "${RED}  ✗ ${WHITE}%s${NC}\n" "$*" >&2; log "FATAL: $*"; exit 1; }
+
+box() {
+    if [ -n "$GUM" ]; then
+        "$GUM" style --border double --border-foreground 5 --align center \
+            --padding "1 3" --margin "1 0" "$@"
+    else
+        printf '\n=== %s ===\n' "$*"
+    fi
+}
+title() { printf "\n${MAGENTA}── %s ──${NC}\n" "$*"; log "STEP: $*"; }
+confirm() {
+    if [ -n "$GUM" ]; then "$GUM" confirm --prompt.foreground=5 "$1"; else
+        read -r -p "$1 [y/N] " _a; [[ "$_a" =~ ^[Yy] ]]; fi
+}
+ask() { # placeholder, default
+    if [ -n "$GUM" ]; then "$GUM" input --value "${2:-}" --placeholder "$1"; else
+        read -r -p "$1 [${2:-}] " _a; printf '%s' "${_a:-$2}"; fi
+}
+askpw() { # placeholder
+    if [ -n "$GUM" ]; then "$GUM" input --password --placeholder "$1"; else
+        read -r -s -p "$1: " _a; echo >&2; printf '%s' "$_a"; fi
+}
+spin() { # title, shell-command
+    if [ -n "$GUM" ]; then
+        "$GUM" spin --spinner dot --title "$1" -- bash -c "$2 >> '$LOG' 2>&1"
+    else
+        info "$1"; bash -c "$2 >> '$LOG' 2>&1"
+    fi
+}
+
+# ── Non-interactive overrides ──────────────────────────────────────────────
+# Supplying --target (with --yes) runs the whole install without prompts, which
+# is how it is driven in CI/VM tests. Passwords via flags are visible in the
+# process list; prefer the interactive prompts on a real machine.
+OPT_TARGET=""; OPT_USER=""; OPT_HOSTNAME=""; OPT_TZ=""; OPT_LOCALE=""; OPT_KEYMAP=""
+OPT_ROOTPW=""; OPT_USERPW=""; OPT_YES=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --target)        OPT_TARGET="${2:?}"; shift ;;
+        --user)          OPT_USER="${2:?}"; shift ;;
+        --hostname)      OPT_HOSTNAME="${2:?}"; shift ;;
+        --timezone)      OPT_TZ="${2:?}"; shift ;;
+        --locale)        OPT_LOCALE="${2:?}"; shift ;;
+        --keymap)        OPT_KEYMAP="${2:?}"; shift ;;
+        --root-password) OPT_ROOTPW="${2:?}"; shift ;;
+        --user-password) OPT_USERPW="${2:?}"; shift ;;
+        -y|--yes)        OPT_YES=1 ;;
+        -h|--help)       sed -n '2,18p' "$0"; exit 0 ;;
+        *) die "unknown option: $1" ;;
+    esac
+    shift
+done
+export OPT_TARGET OPT_USER OPT_HOSTNAME OPT_TZ OPT_LOCALE OPT_KEYMAP OPT_ROOTPW OPT_USERPW OPT_YES
+
+# ── Preconditions ──────────────────────────────────────────────────────────
+[ -d /run/archiso ] || die "This does not look like the hyprtk live medium."
+for cmd in rsync arch-chroot genfstab sgdisk mkfs.fat mkfs.ext4 grub-install; do
+    command -v "$cmd" >/dev/null 2>&1 || die "missing required tool: $cmd"
+done
+
+LIVE_SRC="$(findmnt -no SOURCE /run/archiso/bootmnt 2>/dev/null || true)"
+LIVE_DISK=""
+if [ -n "$LIVE_SRC" ]; then
+    LIVE_DISK="$(lsblk -no PKNAME "$LIVE_SRC" 2>/dev/null || true)"
+    [ -n "$LIVE_DISK" ] && LIVE_DISK="/dev/$LIVE_DISK"
+fi
+log "live medium: ${LIVE_SRC:-unknown} (disk ${LIVE_DISK:-unknown})"
+
+# ── Target selection ───────────────────────────────────────────────────────
+title "Select the target disk"
+if [ -n "$OPT_TARGET" ]; then
+    TARGET="$OPT_TARGET"
+else
+    mapfile -t DISKS < <(lsblk -dpno NAME,SIZE,MODEL,TRAN 2>/dev/null | awk -v live="$LIVE_DISK" 'NF && $1 != live')
+    [ "${#DISKS[@]}" -gt 0 ] || die "No candidate target disks found."
+    for d in "${DISKS[@]}"; do printf '    %s\n' "$d"; done
+
+    if [ -n "$GUM" ]; then
+        CHOICE="$("$GUM" choose --height=12 --cursor.foreground=5 "${DISKS[@]}")"
+    else
+        read -r -p "Target disk (e.g. /dev/sda): " CHOICE
+    fi
+    [ -n "$CHOICE" ] || { echo "Aborted."; exit 0; }
+    TARGET="$(awk '{print $1}' <<< "$CHOICE")"
+fi
+[ -b "$TARGET" ] || die "not a block device: $TARGET"
+[ "$TARGET" != "$LIVE_DISK" ] || die "refusing to install onto the live medium ($TARGET)."
+
+TARGET_SIZE="$(lsblk -dpno SIZE "$TARGET")"
+box "THIS WILL ERASE $TARGET" \
+    "$TARGET  ($TARGET_SIZE)" \
+    "All data on this disk will be destroyed."
+if [ "$OPT_YES" -eq 0 ]; then
+    if [ -n "$GUM" ]; then
+        TYPED="$("$GUM" input --placeholder "type  $TARGET  to confirm")"
+    else
+        read -r -p "Type $TARGET to confirm: " TYPED
+    fi
+    [ "$TYPED" = "$TARGET" ] || die "confirmation did not match."
+fi
+
+# ── Identity ───────────────────────────────────────────────────────────────
+title "Target identity"
+HOSTNAME_IN="${OPT_HOSTNAME:-$(ask 'Hostname' "$DEFAULT_HOSTNAME")}"
+NEWUSER="${OPT_USER:-$(ask 'Username' "$LIVE_USER")}"
+TZ_DEF="$(timedatectl show -p Timezone --value 2>/dev/null || echo UTC)"
+TZ_IN="${OPT_TZ:-$(ask 'Timezone' "$TZ_DEF")}"
+LOCALE_IN="${OPT_LOCALE:-$(ask 'Locale' "$DEFAULT_LOCALE")}"
+KEYMAP_DEF="$(localectl status 2>/dev/null | awk -F': ' '/VC Keymap/{print $2}'; true)"
+KEYMAP_IN="${OPT_KEYMAP:-$(ask 'Console keymap' "${KEYMAP_DEF:-us}")}"
+ROOTPW="${OPT_ROOTPW:-$(askpw 'Root password')}"
+USERPW="${OPT_USERPW:-$(askpw "Password for $NEWUSER")}"
+[ -n "$ROOTPW" ] && [ -n "$USERPW" ] || die "passwords may not be empty."
+[ -n "$NEWUSER" ] || die "username may not be empty."
+
+box "READY TO INSTALL" \
+    "Target:   $TARGET" \
+    "Hostname: $HOSTNAME_IN" \
+    "User:     $NEWUSER" \
+    "Timezone: $TZ_IN" \
+    "Locale:   $LOCALE_IN"
+if [ "$OPT_YES" -eq 0 ]; then
+    confirm "Begin installation?" || { echo "Aborted."; exit 0; }
+fi
+
+# Detach anything under $MNT (including the chroot bind mounts). Recursive
+# unmount can fail on nested/busy mounts, so fall back to a lazy detach.
+unmount_target() {
+    swapoff "$MNT/swapfile" 2>/dev/null || true
+    local i
+    for i in 1 2 3; do
+        umount -R "$MNT" 2>/dev/null && break
+        umount -Rl "$MNT" 2>/dev/null || true
+        sleep 1
+    done
+    return 0
+}
+
+cleanup_fail() {
+    printf "${RED}  ✗ installation failed — see %s${NC}\n" "$LOG" >&2
+    log "FATAL: unmounting and aborting"
+    unmount_target
+    exit 1
+}
+trap cleanup_fail ERR
+
+# ── Partition ──────────────────────────────────────────────────────────────
+title "Partitioning $TARGET"
+# Clear any stale mounts from an interrupted earlier attempt.
+unmount_target
+spin "Creating the GPT partition table..." \
+    "sgdisk --zap-all '$TARGET' && \
+     sgdisk -n 1:0:+1MiB    -t 1:ef02 -c 1:bios_grub '$TARGET' && \
+     sgdisk -n 2:0:+$ESP_SIZE -t 2:ef00 -c 2:ESP      '$TARGET' && \
+     sgdisk -n 3:0:0        -t 3:8300 -c 3:root       '$TARGET' && \
+     partprobe '$TARGET' && sleep 2"
+
+part() {
+    if [[ "$TARGET" =~ [0-9]$ ]]; then printf '%sp%s' "$TARGET" "$1"; else printf '%s%s' "$TARGET" "$1"; fi
+}
+P_ESP="$(part 2)"
+P_ROOT="$(part 3)"
+sleep 1
+spin "Formatting ESP (FAT32)..."  "mkfs.fat -F32 -n ESP '$P_ESP'"
+spin "Formatting root (ext4)..." "mkfs.ext4 -L hyprtk -F '$P_ROOT'"
+
+# ── Mount ──────────────────────────────────────────────────────────────────
+title "Mounting the target"
+mkdir -p "$MNT"
+mount "$P_ROOT" "$MNT"
+mkdir -p "$MNT/boot/efi"
+mount "$P_ESP" "$MNT/boot/efi"
+
+# ── Clone ──────────────────────────────────────────────────────────────────
+title "Cloning the live system (this takes a while)"
+spin "rsync live root -> $TARGET..." \
+    "rsync -aAXH --info=progress2 \
+        --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/run \
+        --exclude=/tmp --exclude=$MNT --exclude=/media --exclude=/lost+found \
+        --exclude=/var/tmp --exclude='/var/cache/pacman/pkg' --exclude='/var/log/*' \
+        --exclude='/home/*' --exclude=/etc/machine-id --exclude=/etc/fstab \
+        --exclude=/etc/sudoers.d/10-hyprtk-live \
+        --exclude=/etc/sddm.conf.d/10-hyprtk.conf \
+        --exclude=/hyprtk-deploy.log \
+        / $MNT/"
+ok "live system cloned"
+
+# ── fstab / swap ───────────────────────────────────────────────────────────
+title "Configuring fstab and swap"
+genfstab -U "$MNT" >> "$MNT/etc/fstab"
+# The live medium IS the bootloader read path; never inherit its swap entry.
+sed -i '/\/run\/archiso/d' "$MNT/etc/fstab"
+# Swapfile created directly (not through spin: spin appends `>> log`, which
+# would override the command's own trailing redirection and swallow this line).
+info "Creating a $SWAP_SIZE swapfile..."
+rm -f "$MNT/swapfile"
+fallocate -l "$SWAP_SIZE" "$MNT/swapfile"
+chmod 600 "$MNT/swapfile"
+mkswap "$MNT/swapfile" >> "$LOG" 2>&1
+printf '/swapfile none swap defaults 0 0\n' >> "$MNT/etc/fstab"
+ok "swapfile created"
+
+# ── Chroot preparation ─────────────────────────────────────────────────────
+title "Preparing the chroot"
+# /dev /proc /sys /run were excluded from the clone, so recreate the empty
+# mount points (and the other excluded top-level dirs) the chroot and boot need.
+# arch-chroot mounts the API filesystems itself.
+mkdir -p "$MNT"/dev "$MNT"/proc "$MNT"/sys "$MNT"/run \
+         "$MNT"/tmp "$MNT"/mnt "$MNT"/media "$MNT"/var/tmp "$MNT"/lost+found
+
+# The live system keeps its kernel on the ISO's own boot medium (not in the
+# squashfs /boot) and its mkinitcpio presets are archiso-specific, so the clone
+# has no kernel and `mkinitcpio -P` would build the wrong initramfs. Rebuild a
+# stock boot setup:
+#   * restore /boot/vmlinuz-linux from the kernel module tree
+#   * drop the archiso preset/config and install the stock linux preset
+for kdir in "$MNT"/usr/lib/modules/*/; do
+    [ -d "$kdir" ] || continue
+    kver="$(basename "$kdir")"
+    if [ -f "$kdir/vmlinuz" ]; then
+        cp -f "$kdir/vmlinuz" "$MNT/boot/vmlinuz-linux"
+        ok "restored /boot/vmlinuz-linux (kernel $kver)"
+    fi
+done
+[ -f "$MNT/boot/vmlinuz-linux" ] || warn "no kernel found under /usr/lib/modules - the system may not boot"
+rm -f "$MNT/etc/mkinitcpio.conf.d/archiso.conf"
+rmdir "$MNT/etc/mkinitcpio.conf.d" 2>/dev/null || true
+mkdir -p "$MNT/etc/mkinitcpio.d"
+cat > "$MNT/etc/mkinitcpio.d/linux.preset" <<'PRESET'
+# mkinitcpio preset file for the 'linux' package
+ALL_config="/etc/mkinitcpio.conf"
+ALL_kver="/boot/vmlinuz-linux"
+PRESETS=('default' 'fallback')
+default_image="/boot/initramfs-linux.img"
+fallback_image="/boot/initramfs-linux-fallback.img"
+fallback_options="-S autodetect"
+PRESET
+spin "Regenerating the initramfs..." "arch-chroot '$MNT' mkinitcpio -P"
+
+# ── Bootloader ─────────────────────────────────────────────────────────────
+title "Installing the bootloader (GRUB, UEFI + BIOS)"
+uefi_ok=0; bios_ok=0
+# On a machine with no EFI firmware the normal UEFI install fails at the NVRAM
+# step; retry with --no-nvram (writes the EFI files, skips efibootmgr).
+if spin "GRUB/UEFI..." \
+        "arch-chroot '$MNT' grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck"; then
+    uefi_ok=1
+elif spin "GRUB/UEFI (no NVRAM)..." \
+        "arch-chroot '$MNT' grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --no-nvram --recheck"; then
+    uefi_ok=1
+else
+    warn "GRUB UEFI install failed (continuing)"
+fi
+if spin "GRUB/BIOS..." \
+        "arch-chroot '$MNT' grub-install --target=i386-pc --recheck '$TARGET'"; then
+    bios_ok=1
+else
+    warn "GRUB BIOS install failed (continuing)"
+fi
+if [ "$uefi_ok" -eq 0 ] && [ "$bios_ok" -eq 0 ]; then
+    die "GRUB installation failed for both UEFI and BIOS"
+fi
+spin "Generating grub.cfg..." "arch-chroot '$MNT' grub-mkconfig -o /boot/grub/grub.cfg"
+
+# ── Identity ───────────────────────────────────────────────────────────────
+title "Writing system identity"
+arch-chroot "$MNT" ln -sf "/usr/share/zoneinfo/$TZ_IN" /etc/localtime
+arch-chroot "$MNT" hwclock --systohc
+printf '%s UTF-8\n' "$LOCALE_IN" > "$MNT/etc/locale.gen"
+arch-chroot "$MNT" locale-gen >/dev/null 2>&1
+printf 'LANG=%s\n' "$LOCALE_IN" > "$MNT/etc/locale.conf"
+printf 'KEYMAP=%s\n' "$KEYMAP_IN" > "$MNT/etc/vconsole.conf"
+printf '%s\n' "$HOSTNAME_IN" > "$MNT/etc/hostname"
+{
+    echo "127.0.0.1 localhost"
+    echo "::1       localhost"
+    printf '127.0.1.1 %s.localdomain %s\n' "$HOSTNAME_IN" "$HOSTNAME_IN"
+} > "$MNT/etc/hosts"
+arch-chroot "$MNT" systemd-machine-id-setup >/dev/null 2>&1 || true
+
+title "Creating the user"
+# Remove the live account and anything that would collide with the target name
+# (installing *as* the live user, e.g. 'hyprtk', is common).
+for _u in "$LIVE_USER" "$NEWUSER"; do
+    if arch-chroot "$MNT" id "$_u" >/dev/null 2>&1; then
+        arch-chroot "$MNT" userdel -r "$_u" >/dev/null 2>&1 \
+            || arch-chroot "$MNT" userdel "$_u" >/dev/null 2>&1 || true
+    fi
+done
+if arch-chroot "$MNT" getent group "$NEWUSER" >/dev/null 2>&1; then
+    arch-chroot "$MNT" groupdel "$NEWUSER" >/dev/null 2>&1 || true
+fi
+arch-chroot "$MNT" useradd -m -G wheel -s /bin/zsh "$NEWUSER"
+printf '%s:%s\n' "$NEWUSER" "$USERPW" | arch-chroot "$MNT" chpasswd
+printf 'root:%s\n' "$ROOTPW" | arch-chroot "$MNT" chpasswd
+rm -f "$MNT/etc/sudoers.d/10-hyprtk-live"
+printf '%%wheel ALL=(ALL:ALL) ALL\n' > "$MNT/etc/sudoers.d/10-wheel"
+chmod 0440 "$MNT/etc/sudoers.d/10-wheel"
+
+# Seed the pywal cache from the live user (already generated at ISO build time)
+# so the first boot is themed even if the bar/wal provisioning below cannot run
+# (e.g. no network). Hyprland hard-errors when ~/.cache/wal is missing.
+if [ -d "/home/$LIVE_USER/.cache/wal" ]; then
+    mkdir -p "$MNT/home/$NEWUSER/.cache"
+    cp -a "/home/$LIVE_USER/.cache/wal" "$MNT/home/$NEWUSER/.cache/" 2>/dev/null || true
+    if [ -f "/home/$LIVE_USER/.cache/current-wallpaper.png" ]; then
+        cp -f "/home/$LIVE_USER/.cache/current-wallpaper.png" "$MNT/home/$NEWUSER/.cache/" 2>/dev/null || true
+    fi
+    arch-chroot "$MNT" chown -R "$NEWUSER" "/home/$NEWUSER/.cache" 2>/dev/null || true
+fi
+
+# Provision the bar + pywal cache now, so the first graphical login is already
+# themed: Hyprland reads ~/.cache/wal at startup and errors out if it is missing,
+# while the hyprtk-first-run unit only fires after the session is up.
+title "Provisioning $NEWUSER's desktop"
+if arch-chroot "$MNT" runuser -u "$NEWUSER" -- env \
+        HOME="/home/$NEWUSER" USER="$NEWUSER" LOGNAME="$NEWUSER" \
+        PATH="/home/$NEWUSER/.local/bin:/usr/local/bin:/usr/bin" \
+        /usr/local/bin/hyprtk-first-run >> "$LOG" 2>&1; then
+    ok "desktop provisioned for $NEWUSER"
+else
+    warn "desktop provisioning failed; $NEWUSER will retry on first login"
+fi
+
+title "Enabling services"
+for svc in NetworkManager bluetooth sddm systemd-timesyncd; do
+    arch-chroot "$MNT" systemctl enable "$svc.service" >/dev/null 2>&1 || true
+done
+arch-chroot "$MNT" systemctl set-default graphical.target >/dev/null 2>&1 || true
+
+# ── Finish ─────────────────────────────────────────────────────────────────
+trap - ERR
+cd /
+for fs in dev proc sys run; do umount -R "$MNT/$fs" 2>/dev/null || true; done
+umount -R "$MNT" 2>/dev/null || true
+
+box "INSTALLATION COMPLETE" \
+    "hyprtk is installed on $TARGET" \
+    "" \
+    "Hostname: $HOSTNAME_IN" \
+    "User:     $NEWUSER" \
+    "" \
+    "Remove the live medium and reboot."
+log "installation complete on $TARGET"

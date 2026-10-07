@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from .colors import (  # noqa: E402
     contrast_fg as _contrast_fg,
@@ -15,10 +16,35 @@ from .colors import (  # noqa: E402
     rgba,
     safe_css_color,
 )
-from .config import load_pywal_colors  # noqa: E402
+from .config import INSTALL_DIR, load_pywal_colors  # noqa: E402
 from .theme_import import parse_palette  # noqa: E402
 
 log = logging.getLogger("hyprtk_bar.theme")
+
+BAR_WORKAROUND_CSS = os.path.join(str(INSTALL_DIR), "assets", "bar-gtk4-workaround.css")
+
+
+def needs_boxmodel_workaround() -> bool:
+    """True when GTK ignores CSS padding/border in a widget's preferred size.
+
+    GTK 4.24 regressed the CSS box model (padding/border are parsed but no
+    longer contribute to layout). When that is the case the bar appends
+    assets/bar-gtk4-workaround.css, which recreates the module paddings from
+    margin/min-height. Version-gated so it disables itself once GTK is fixed.
+    """
+    try:
+        from gi.repository import Gtk
+        return (Gtk.get_major_version(), Gtk.get_minor_version()) >= (4, 24)
+    except Exception:
+        return False
+
+
+def bar_workaround_css() -> str:
+    try:
+        with open(BAR_WORKAROUND_CSS, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
 
 
 # Per-module glyph colors, drawn from the pywal palette so each module icon has

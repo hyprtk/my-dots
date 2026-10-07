@@ -75,7 +75,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | **Screenshots** | grim & slurp |
 | **Screen recording** | wf-recorder |
 | **Clipboard** | cliphist |
-| **Screen lock** | swaylock-effects |
+| **Screen lock** | hyprlock (swaylock-effects fallback) |
 | **Logout** | hyprlogout |
 | **Files** | Thunar |
 | **Icons** | Papirus (recolored to match the theme) |
@@ -118,7 +118,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | `Super + Shift + W` | Random wallpaper |
 | `Super + Ctrl + W` | Wallpaper list (rofi) |
 
-All theming (bar theme, pywal, rofi, icons, swaylock, SDDM/GRUB) is changed from
+All theming (bar theme, pywal, rofi, icons, lock screen, SDDM/GRUB) is changed from
 **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar.
 
 ### Media & system
@@ -141,7 +141,7 @@ All theming (bar theme, pywal, rofi, icons, swaylock, SDDM/GRUB) is changed from
 
 ## Applications
 
-All system theming (wallpaper, pywal, rofi, icons, swaylock, SDDM/GRUB) now lives in **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar. The **start menu** and **arc menu** are both built into **hyprtk-bar** — no separate apps:
+All system theming (wallpaper, pywal, rofi, icons, lock screen, SDDM/GRUB) now lives in **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar. The **start menu** and **arc menu** are both built into **hyprtk-bar** — no separate apps:
 
 | Feature | What it does | Open with |
 | --- | --- | --- |

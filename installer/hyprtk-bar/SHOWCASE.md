@@ -88,7 +88,7 @@ placed (free or snapped into a row/column) and themed from the
 ## Theme manager
 
 The theming dialogue (click the wallpaper glyph): wallpaper picker, pywal
-palette, rofi variants, bar themes, matuwall, swaylock, icons, and SDDM & GRUB.
+palette, rofi variants, bar themes, matuwall, lock screen, icons, and SDDM & GRUB.
 
 ![Theme manager](assets/screenshots/theme-manager.png)
 

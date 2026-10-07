@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install hyprtk to disk
+Comment=Deploy this live hyprtk system to a disk
+Exec=alacritty -e /usr/local/bin/hyprtk-deploy
+Icon=drive-harddisk
+Terminal=false
+Categories=System;Utility;
+Keywords=install;deploy;disk;hyprtk;

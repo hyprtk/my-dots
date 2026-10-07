@@ -1926,8 +1926,8 @@ class MenuWindow(Gtk.Window):
         if action in POWER_CONFIRM and not self._confirm_power(action):
             return
         # Power commands are the USER'S OWN config strings and legitimately use
-        # shell operators (default lock is `pidof swaylock hyprlock ||
-        # swaylock || hyprlock`), so run them through one explicit `sh -c`.
+        # shell operators (the default lock prefers the hypr/scripts/lock.sh
+        # supervisor, then hyprlock/swaylock), so run them through one `sh -c`.
         # This is trusted input (the user's config), NOT an untrusted surface.
         _spawn_argv(["/bin/sh", "-c", command])
         self.hide_menu()

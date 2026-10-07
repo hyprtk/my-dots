@@ -76,10 +76,10 @@ lock_held() {
     flock -n "$LOCKFILE" true 2>/dev/null && return 1 || return 0
 }
 
-# Is any lockscreen client alive? (swaylock is the hyprtk default; hyprlock is
-# accepted for variants.)
+# Is any lockscreen client alive? (hyprlock is the hyprtk default; swaylock is
+# accepted for the fallback path.)
 lock_client_alive() {
-    pgrep -x swaylock >/dev/null 2>&1 || pgrep -x hyprlock >/dev/null 2>&1
+    pgrep -x hyprlock >/dev/null 2>&1 || pgrep -x swaylock >/dev/null 2>&1
 }
 
 # 1. Mirror Hyprland's runtime log into persistent storage.
@@ -111,7 +111,7 @@ snapshot() {
         echo "hypr pid: $pid"
         echo "sig:      $sig"
         echo "locked:   $(lock_held && echo yes || echo no)"
-        echo "lockpids: $(pgrep -x swaylock 2>/dev/null | tr '\n' ' ')"
+        echo "lockpids: $({ pgrep -x hyprlock; pgrep -x swaylock; } 2>/dev/null | tr '\n' ' ')"
     } > "$dir/summary.txt"
 
     [ -n "$pid" ] && {
@@ -158,7 +158,7 @@ while :; do
     if timeout "$TIMEOUT" hyprctl -j activeworkspace >/dev/null 2>&1; then
         fails=0
         # Compositor responsive: the lock client must still be alive. The
-        # threshold debounces the brief gap while lock.sh restarts swaylock
+        # threshold debounces the brief gap while lock.sh restarts the locker
         # (1s backoff / settle), so only a real death is snapshotted.
         if lock_held && ! lock_client_alive; then
             lock_fails=$((lock_fails + 1))

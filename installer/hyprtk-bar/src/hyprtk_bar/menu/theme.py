@@ -29,6 +29,30 @@ from . import config as cfg
 # hops from __file__.
 BASE_DIR = str(INSTALL_DIR)
 STYLE_CSS = os.path.join(BASE_DIR, "assets", "style.css")
+WORKAROUND_CSS = os.path.join(BASE_DIR, "assets", "gtk4-workaround.css")
+
+
+def needs_boxmodel_workaround() -> bool:
+    """True when GTK ignores CSS padding/border in a widget's preferred size.
+
+    GTK 4.24 regressed the CSS box model: `padding` and `border` are parsed but
+    no longer contribute to layout, so padded rows/pills/panels collapse (only
+    `margin`/`min-height`/`border-spacing` still work). When that is the case we
+    append assets/gtk4-workaround.css to recreate the spacing. The check is
+    version-based so the sheet disables itself once GTK is fixed.
+    """
+    try:
+        return (Gtk.get_major_version(), Gtk.get_minor_version()) >= (4, 24)
+    except Exception:
+        return False
+
+
+def _read_asset(path: str) -> str:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return ""
 
 
 LAYOUT_ICONS = {
@@ -213,6 +237,8 @@ def build_css():
         parts.append(f.read())
     parts.append(_tokens_to_css(_palette_to_tokens(palette, pywal)))
     parts.append(layout_css(active_layout()))
+    if needs_boxmodel_workaround():
+        parts.append(_read_asset(WORKAROUND_CSS))
     return "\n".join(parts)
 
 

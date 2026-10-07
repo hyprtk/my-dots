@@ -33,7 +33,7 @@ The bar's dependencies split into three layers:
 | `GLib-2.0`         | proc / GObject                 |
 | `Pango-1.0`        | font + glyph sizing            |
 | `GdkPixbuf-2.0`    | themer image handling          |
-| `cairo`            | graphs + swaylock preview      |
+| `cairo`            | graphs + popup regions         |
 
 ### Subprocess tools
 

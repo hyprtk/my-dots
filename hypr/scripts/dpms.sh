@@ -1,7 +1,8 @@
 #!/bin/bash
 # ── dpms.sh — log a DPMS transition, then dispatch it ───────────────────────
-# The idle monitor-off path (swayidle → hyprctl dpms off/on, see
-# installer/scripts/lockscreentime.sh) is where the compositor has been seen to
+# The idle monitor-off path (hypridle/swayidle → hyprctl dpms off/on, see
+# hypr/hypridle.conf and installer/scripts/lockscreentime.sh) is where the
+# compositor has been seen to
 # freeze on wake. Timestamp every transition to a persistent log so a freeze
 # can be correlated with the exact DPMS event that preceded it.
 #

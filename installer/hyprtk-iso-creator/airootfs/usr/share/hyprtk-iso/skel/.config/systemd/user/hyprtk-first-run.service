@@ -1,0 +1,13 @@
+[Unit]
+Description=hyprtk first-run user setup (bar + pywal)
+Documentation=https://github.com/hyprtk/dotfiles
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hyprtk-first-run
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

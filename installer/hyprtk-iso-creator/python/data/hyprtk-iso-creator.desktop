@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Hyprtk ISO Creator
+GenericName=ISO Builder
+Comment=Build a live Arch Linux ISO with the hyprtk desktop preinstalled
+Exec=hyprtk-iso-creator
+Icon=hyprtk-iso-creator
+Terminal=false
+Categories=Utility;System;
+Keywords=iso;arch;archiso;hyprtk;live;
+StartupNotify=true

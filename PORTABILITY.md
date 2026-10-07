@@ -228,8 +228,9 @@ dotfiles cannot fix the hang itself, but they keep the session **recoverable**:
 - `hypr/misc.lua` sets `misc.allow_session_lock_restore = true`, so a replacement
   lockscreen can take over a session that is still locked after the lock client
   died (Hyprland's default refuses it, which needs a reboot);
-- the logout menu locks through `hypr/scripts/lock.sh`, which restarts swaylock
-  after an abnormal exit instead of leaving the session locked.
+- the logout menu locks through `hypr/scripts/lock.sh`, which restarts the
+  locker (hyprlock, or swaylock) after an abnormal exit instead of leaving the
+  session locked.
 
 ### Wallpaper daemon (awww)
 `installer/scripts/awww-install.sh` (called by `1-install.sh` before the wrapper)

@@ -1,0 +1,41 @@
+# AUR packages baked into the live ISO.
+#
+# Built on the *host* at ISO-build time (as the invoking user, never root) with
+# `makepkg --nodeps`, then installed into the chroot by customize_airootfs.sh.
+# The build is best-effort and non-fatal: anything that fails to build is
+# reported and simply left out — the ISO still gets produced.
+#
+# `--nodeps` means the host must already have each package's makedepends
+# (base-devel plus e.g. meson/wayland headers for swaylock-effects). Run the
+# builder with --no-aur to skip this stage entirely.
+#
+# One package per line. Blank lines and lines starting with # are ignored.
+
+## Theme-critical (referenced by the shipped configs)
+# swaylock-effects is the fallback locker; hyprlock (official repo) is the default.
+swaylock-effects
+bibata-cursor-theme
+sddm-theme-sugar-candy-git
+papirus-folders
+tumbler-extra-thumbnailers
+
+## Desktop conveniences
+trizen
+pacseek
+pfetch
+
+## waypaper and its AUR dependencies (deps must be listed first — the chroot
+## installs them one at a time in this order)
+python-screeninfo
+python-imageio-ffmpeg
+waypaper
+
+## Heavier optional apps — uncomment to bake in (large ISO / long build)
+#brave-bin
+#github-desktop-bin
+#sublime-text-4
+#pamac-all
+#libpamac-full
+#pamac-cli
+#hyprviz-bin
+#hyprquickframe-git

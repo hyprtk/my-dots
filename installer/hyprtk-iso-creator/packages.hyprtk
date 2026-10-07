@@ -1,0 +1,191 @@
+# hyprtk desktop packages baked into the live ISO.
+# Official Arch repos only (groups such as `xfce4` are allowed).
+# AUR-only extras live in aur-packages.txt and are built separately.
+# The builder verifies every name against the sync databases and drops
+# anything it cannot resolve, so a stale entry here cannot break the build.
+
+## Shell / basics
+zsh
+git
+gum
+fzf
+curl
+wget
+jq
+bc
+nano
+neovim
+vim
+micro
+ranger
+starship
+fastfetch
+btop
+eza
+desktop-file-utils
+xdg-utils
+xdg-user-dirs
+xdg-user-dirs-gtk
+unzip
+7zip
+unrar
+
+## Display server / compositor / greeter
+hyprland
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-wlr
+xdg-desktop-portal-gtk
+sddm
+weston
+hyprpicker
+hyprsunset
+hyprlock
+hypridle
+# fallback locker/idle daemon; hyprlock/hypridle (above) are the default and
+# the dotfiles' lock.sh/autostart prefer them.
+swayidle
+# swaylock comes from the AUR swaylock-effects package (see aur-packages.txt);
+# installing the repo swaylock too would conflict on /usr/bin/swaylock.
+swappy
+cliphist
+wl-clipboard
+grim
+slurp
+wf-recorder
+wob
+awww
+
+## GTK / Qt / theming stack
+gtk3
+gtk4
+gtk-layer-shell
+gtk4-layer-shell
+gdk-pixbuf2
+pango
+cairo
+gobject-introspection-runtime
+libadwaita
+nwg-look
+qt5ct
+qt5-wayland
+qt6ct
+qt6-wayland
+papirus-icon-theme
+matugen
+imagemagick
+libnotify
+polkit
+polkit-gnome
+gnome-keyring
+
+## Python (hyprtk-bar venv + bundled pywal16)
+python
+python-pip
+python-virtualenv
+python-gobject
+python-cairo
+python-psutil
+python-rich
+python-click
+# Baked so the bar's venv finds dbus-next in --system-site-packages and pip
+# never needs the network: first login (hyprtk-first-run) is fully offline.
+python-dbus-next
+
+## Graphics / portability (all three drivers so the ISO boots anywhere)
+mesa
+vulkan-intel
+vulkan-radeon
+libva
+vdpauinfo
+libvdpau
+xf86-video-intel
+xf86-video-amdgpu
+xf86-video-nouveau
+corectrl
+meson
+ninja
+scdoc
+
+## Audio / media
+pipewire
+pipewire-pulse
+pipewire-alsa
+wireplumber
+alsa-utils
+pamixer
+pavucontrol
+playerctl
+ffmpeg
+mpv
+vlc
+parole
+xclip
+brightnessctl
+
+## Network / sharing
+networkmanager
+network-manager-applet
+freerdp
+gvfs
+gvfs-afc
+gvfs-dnssd
+gvfs-goa
+gvfs-gphoto2
+gvfs-mtp
+gvfs-nfs
+gvfs-onedrive
+gvfs-smb
+gvfs-wsdd
+ntfs-3g
+samba
+nss-mdns
+libusb
+blueman
+bluez
+bluez-utils
+
+## Printing / scanning
+cups
+cups-pdf
+cups-filters
+cups-browsed
+system-config-printer
+ipp-usb
+colord
+logrotate
+thunar-shares-plugin
+
+## Desktop apps / tools
+xfce4
+xfce4-goodies
+xfce4-power-manager
+xfce4-terminal
+thunar
+mousepad
+alacritty
+kitty
+rofi
+chromium
+file-roller
+gparted
+gnome-disk-utility
+timeshift
+cockpit
+pacman-contrib
+os-prober
+tumbler
+mission-center
+pcp
+pcp-gui
+
+## Fonts
+fontconfig
+font-manager
+noto-fonts
+noto-fonts-emoji
+ttf-dejavu
+ttf-fira-sans
+ttf-fira-code
+ttf-firacode-nerd
+otf-font-awesome
+awesome-terminal-fonts
