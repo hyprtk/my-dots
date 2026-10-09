@@ -1,7 +1,7 @@
 # Portability
 
 hyprtk targets **Hyprland sessions on any Linux distribution**. It is not
-cross-compositor — the dotfiles, keybindings and hyprtk-bar all drive Hyprland
+cross-compositor — the dotfiles, keybindings and hyprtk-bar-qt all drive Hyprland
 through `hyprctl` and the Hyprland event socket, so they will not run under
 GNOME/KDE/X11/sway.
 
@@ -92,9 +92,9 @@ no package at all and **build it from source** (see the gotcha below).
 | SDDM + Sugar-Candy theme | ✅ | ✅ SDDM (theme AUR) | ✅ SDDM (theme AUR) | ✅ SDDM (theme AUR) | ✅ SDDM | ✅ SDDM | ✅ SDDM | ✅ SDDM |
 | pywal16 (`wal`) | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled | ✅ bundled |
 | Wallpaper daemon (`awww`) | ✅ AUR | ✅ source² | ✅ source² | ✅ source² | ✅ `swww` | ✅ `swww` (3.24+) | ⚠ manual | ✅ flake |
-| hyprtk-bar | ✅ | ✅ | ✅ | ✅ | ✅ | ✅* | ✅ | ✅ |
+| hyprtk-bar-qt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅* | ✅ | ✅ |
 
-`✅*` = hyprtk-bar supports Alpine from edge (gtk-layer-shell ≥ 0.9).<br>
+`✅*` = hyprtk-bar-qt supports Alpine from edge (gtk-layer-shell ≥ 0.9).<br>
 `¹` = Ubuntu: the installer adds the `cppiber/hyprland` PPA so Hyprland ≥ 0.55
 (the Lua config) is installed; see the Hyprland gotcha below.<br>
 `²` = built from source by `awww-install.sh`; needs a Rust toolchain (rustup when
@@ -140,7 +140,7 @@ and `thunar-shares-plugin` are Arch-only. A wrong name is isolated by
 adding a package.
 
 ### gtk-layer-shell age
-hyprtk-bar needs gtk-layer-shell ≥ 0.9. Families below that floor (Debian ≤ 12,
+hyprtk-bar-qt needs gtk-layer-shell ≥ 0.9. Families below that floor (Debian ≤ 12,
 Ubuntu ≤ 24.04, Fedora ≤ 40, openSUSE Leap 15.x, Alpine ≤ 3.20) need a newer
 release or a source build; the bar's own installer warns.
 
@@ -444,7 +444,7 @@ because the dotfiles' matuwall launch hard-codes that Arch path. Verified with
 real builds in containers: **Linux Mint 22.3**, **Alpine** and **Fedora** all
 install all four; the `LD_PRELOAD` symlink resolves on multiarch
 (`x86_64-linux-gnu`) and Fedora (`lib64`) layouts.
-2. Add the matrix to CI (mirroring hyprtk-bar's `.github/workflows/install-matrix.yml`)
+2. Add the matrix to CI (mirroring hyprtk-bar-qt's `.github/workflows/install-matrix.yml`)
    so the per-family lists are validated on every push without a VM.
 3. Gentoo/NixOS: provide an ebuild set / Nix expression so those families are
    first-class instead of "listed for manual install".

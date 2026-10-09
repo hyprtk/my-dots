@@ -60,6 +60,11 @@ gtk3
 gtk4
 gtk-layer-shell
 gtk4-layer-shell
+# Quickshell bar (hyprtk-bar-qt) + its Qt6 QML modules
+quickshell
+qt6-base
+qt6-declarative
+qt6-svg
 gdk-pixbuf2
 pango
 cairo
@@ -78,7 +83,7 @@ polkit
 polkit-gnome
 gnome-keyring
 
-## Python (hyprtk-bar venv + bundled pywal16)
+## Python (hyprtk-bar-qt venv + bundled pywal16)
 python
 python-pip
 python-virtualenv

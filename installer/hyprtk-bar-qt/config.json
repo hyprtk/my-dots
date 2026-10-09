@@ -1,0 +1,595 @@
+{
+  "position": "top",
+  "height": 38,
+  "gap_in": 0,
+  "gap_out": 0,
+  "radius": 12,
+  "opacity": 0.76,
+  "width": "75%",
+  "align": "center",
+  "use_pywal": true,
+  "monitors": "primary",
+  "theme": {
+    "source": "pywal",
+    "theme_name": "hyprtk-pywal",
+    "background": "#1e1e2e",
+    "foreground": "#e5e7eb",
+    "accent": "#c084fc",
+    "hover": "rgba(255,255,255,0.08)",
+    "running": "#7aa2f7",
+    "border_color": "",
+    "border_animation": true
+  },
+  "animations": {
+    "mode": "high",
+    "speed": 15
+  },
+  "font": {
+    "family": "",
+    "size": 12,
+    "icon_size": 0
+  },
+  "layout": {
+    "left": [
+      "start_button",
+      "quicklinks",
+      "tasklist",
+      "window"
+    ],
+    "center": [
+      "workspaces"
+    ],
+    "right": [
+      "updates",
+      "sysmon",
+      "kbstate",
+      "clock",
+      "notifications",
+      "tray",
+      "quicksettings"
+    ]
+  },
+  "themer": {
+    "enabled": true,
+    "wallpaper_dir": ""
+  },
+  "quicklinks": {
+    "enabled": true,
+    "glyph_font": "Symbols Nerd Font",
+    "glyph_color": "accent",
+    "icon_size": 0,
+    "links": [
+      {
+        "id": "apps",
+        "label": "Apps menu",
+        "icon": "",
+        "command": "~/.local/share/hyprtk-bar-qt/scripts/appsmenu.sh",
+        "command_right": "",
+        "command_middle": ""
+      },
+      {
+        "id": "terminal",
+        "label": "Alacritty",
+        "icon": "",
+        "command": "alacritty",
+        "command_right": "",
+        "command_middle": ""
+      },
+      {
+        "id": "files",
+        "label": "Thunar File Manager",
+        "icon": "",
+        "command": "thunar",
+        "command_right": "",
+        "command_middle": ""
+      },
+      {
+        "id": "web",
+        "label": "Brave",
+        "icon": "",
+        "command": "brave",
+        "command_right": "",
+        "command_middle": ""
+      },
+      {
+        "id": "wallpaper",
+        "label": "Theme Manager",
+        "icon": "",
+        "command": "",
+        "command_right": "~/.local/share/hyprtk-bar-qt/scripts/updatewal-awww.sh",
+        "command_middle": ""
+      },
+      {
+        "id": "cliphist",
+        "label": "Clipboard history",
+        "icon": "",
+        "command": "",
+        "command_right": "",
+        "command_middle": ""
+      }
+    ]
+  },
+  "center": {
+    "start_button": true,
+    "start_icon": "view-grid-symbolic",
+    "start_glyph": "",
+    "start_command": "~/.local/share/hyprtk-bar/scripts/hyprtk-bar-menu-toggle.sh",
+    "pinned": []
+  },
+  "workspaces": {
+    "enabled": true,
+    "show_empty": true,
+    "max": 5
+  },
+  "clock": {
+    "enabled": true,
+    "format": "%H:%M",
+    "date_format": "%a %d %b",
+    "calendar": true
+  },
+  "sysmon": {
+    "enabled": true,
+    "interval": 2,
+    "disk_path": "/",
+    "monitor": true,
+    "data_points": 60,
+    "network_iface": "auto",
+    "pages": [
+      "cpu",
+      "memory",
+      "disks",
+      "network",
+      "gpu",
+      "apps"
+    ]
+  },
+  "updates": {
+    "enabled": true,
+    "interval": 60,
+    "script": "~/.local/share/hyprtk-bar-qt/scripts/updates.sh",
+    "install_command": ""
+  },
+  "window": {
+    "enabled": true,
+    "max_length": 60,
+    "width": 250
+  },
+  "tray": {
+    "enabled": true,
+    "icon_size": 20,
+    "reset_nm_applet": true
+  },
+  "quicksettings": {
+    "enabled": true
+  },
+  "notifications": {
+    "enabled": true,
+    "max_stored": 50,
+    "default_timeout": 5000
+  },
+  "arcmenu": {
+    "enabled": false,
+    "position": "bottom-left",
+    "shape": "circle",
+    "transparent": false,
+    "follow_bar": true,
+    "use_pywal": true,
+    "margin": 24,
+    "radius": 140,
+    "fab_size": 56,
+    "item_size": 48,
+    "animation_time": 300,
+    "fab_icon": "view-grid-symbolic",
+    "fab_glyph": "",
+    "glyph_size": 0,
+    "fab_color": "#C084FC",
+    "item_color": "#22D3EE",
+    "close_on_unfocus": false,
+    "close_on_click": true,
+    "items": [
+      {
+        "glyph": "",
+        "command": "firefox",
+        "tooltip": "Firefox",
+        "action": ""
+      },
+      {
+        "glyph": "",
+        "command": "alacritty",
+        "tooltip": "Terminal",
+        "action": ""
+      },
+      {
+        "glyph": "",
+        "command": "thunar",
+        "tooltip": "Files",
+        "action": ""
+      },
+      {
+        "glyph": "",
+        "action": "settings",
+        "tooltip": "Settings",
+        "command": ""
+      }
+    ]
+  },
+  "menu": {
+    "enabled": true,
+    "position": "auto",
+    "align": "left",
+    "follow_bar": true,
+    "gap_in": 0,
+    "gap_out": 0,
+    "layout": "whisker",
+    "width": 920,
+    "height": 580,
+    "sidebar_width": 180,
+    "recents_width": 264,
+    "show_recents": true,
+    "max_recents": 10,
+    "favorites": [],
+    "recents": [],
+    "power": {
+      "lock": "pidof swaylock hyprlock || swaylock || hyprlock",
+      "logout": "hyprctl dispatch exit",
+      "reboot": "systemctl reboot",
+      "shutdown": "systemctl poweroff",
+      "suspend": "systemctl suspend",
+      "hibernate": "systemctl hibernate"
+    }
+  },
+  "widgets": {
+    "enabled": true,
+    "transparent": false,
+    "border": true,
+    "clock": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 2000,
+      "margin_y": 816,
+      "width": 220,
+      "height": 0,
+      "style": "digital",
+      "theme": "pywal",
+      "font": "",
+      "scale": 1,
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 18,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "time_format": "%H:%M",
+      "date_format": "%A, %d %B",
+      "show_date": true,
+      "show_seconds": false,
+      "dial_count": 1,
+      "ring_thickness": 6,
+      "snap_group": "g1",
+      "snap_axis": "vertical",
+      "snap_order": 4,
+      "refresh_seconds": 10,
+      "drives_max": 4,
+      "fps": 60,
+      "bars": 48,
+      "forecast_days": 4,
+      "refresh_minutes": 30,
+      "sensitivity": 1
+    },
+    "weather": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 50,
+      "margin_y": 855,
+      "width": 280,
+      "height": 0,
+      "city": "Milton Keynes",
+      "units": "metric",
+      "refresh_minutes": 15,
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 18,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "show_icon": true,
+      "show_temp": true,
+      "show_condition": true,
+      "show_feels_like": true,
+      "show_humidity": true,
+      "show_wind": true,
+      "show_forecast": true,
+      "forecast_days": 7,
+      "snap_group": "",
+      "snap_axis": "horizontal",
+      "snap_order": 0,
+      "scale": 1,
+      "refresh_seconds": 10,
+      "drives_max": 4,
+      "fps": 60,
+      "bars": 48,
+      "ring_thickness": 6,
+      "dial_count": 1,
+      "sensitivity": 1
+    },
+    "visualizer": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 1687,
+      "margin_y": 923,
+      "width": 420,
+      "height": 120,
+      "style": "glow",
+      "bars": 48,
+      "sensitivity": 1,
+      "smoothing": 0.6,
+      "color_mode": "pywal",
+      "color": "#C084FC",
+      "gradient_from": "#C084FC",
+      "gradient_to": "#C084FC",
+      "peak_dots": true,
+      "orientation": "horizontal",
+      "fps": 60,
+      "source": "cava",
+      "cava_binary": "cava",
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 12,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "snap_group": "",
+      "scale": 1,
+      "refresh_seconds": 10,
+      "drives_max": 4,
+      "forecast_days": 4,
+      "refresh_minutes": 30,
+      "ring_thickness": 6,
+      "dial_count": 1,
+      "snap_order": 0,
+      "snap_axis": "horizontal"
+    },
+    "disk": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 2000,
+      "margin_y": 410,
+      "width": 300,
+      "height": 0,
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 18,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "scale": 1,
+      "snap_group": "g1",
+      "snap_axis": "vertical",
+      "snap_order": 2,
+      "show_bar": true,
+      "show_rates": true,
+      "drives_max": 3,
+      "refresh_seconds": 2,
+      "fps": 60,
+      "bars": 48,
+      "forecast_days": 4,
+      "refresh_minutes": 30,
+      "ring_thickness": 6,
+      "dial_count": 1,
+      "sensitivity": 1
+    },
+    "network": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 2000,
+      "margin_y": 621,
+      "width": 300,
+      "height": 0,
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 18,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "scale": 1,
+      "snap_group": "g1",
+      "snap_axis": "vertical",
+      "snap_order": 3,
+      "interface": "auto",
+      "show_ip": true,
+      "show_rates": true,
+      "show_graph": true,
+      "refresh_seconds": 1,
+      "drives_max": 4,
+      "fps": 60,
+      "bars": 48,
+      "forecast_days": 4,
+      "refresh_minutes": 30,
+      "ring_thickness": 6,
+      "dial_count": 1,
+      "sensitivity": 1
+    },
+    "resources": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 2000,
+      "margin_y": 196,
+      "width": 280,
+      "height": 0,
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 18,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "scale": 1,
+      "snap_group": "g1",
+      "snap_axis": "vertical",
+      "snap_order": 1,
+      "show_cpu": true,
+      "show_cores": false,
+      "show_ram": true,
+      "show_swap": true,
+      "show_temp": true,
+      "show_load": true,
+      "refresh_seconds": 1,
+      "drives_max": 4,
+      "fps": 60,
+      "bars": 48,
+      "forecast_days": 4,
+      "refresh_minutes": 30,
+      "ring_thickness": 6,
+      "dial_count": 1,
+      "sensitivity": 1
+    },
+    "sysinfo": {
+      "enabled": true,
+      "layer": "bottom",
+      "position": "free",
+      "margin_x": 3411,
+      "margin_y": 0,
+      "width": 320,
+      "height": 0,
+      "opacity": 0.75,
+      "radius": 16,
+      "padding": 18,
+      "background": "",
+      "foreground": "",
+      "accent": "",
+      "scale": 1,
+      "snap_group": "g1",
+      "snap_axis": "vertical",
+      "snap_order": 0,
+      "show_host": true,
+      "show_os": true,
+      "show_kernel": true,
+      "show_uptime": true,
+      "show_cpu": true,
+      "show_gpu": true,
+      "show_memory": true,
+      "show_disks": true,
+      "refresh_seconds": 10,
+      "drives_max": 4,
+      "fps": 60,
+      "bars": 48,
+      "forecast_days": 4,
+      "refresh_minutes": 30,
+      "ring_thickness": 6,
+      "dial_count": 1,
+      "sensitivity": 1
+    }
+  },
+  "clockFormat": "ddd HH:mm:ss",
+  "fontFamily": "Noto Sans",
+  "fontSize": 12,
+  "animationDuration": 140,
+  "layoutLeft": [
+    "start_button",
+    "quicklinks",
+    "workspaces",
+    "tasklist",
+    "window"
+  ],
+  "layoutCenter": [],
+  "layoutRight": [
+    "updates",
+    "net",
+    "tray",
+    "kbstate",
+    "notifications",
+    "clock",
+    "sysmon",
+    "arcmenu",
+    "themer",
+    "settings",
+    "quicksettings"
+  ],
+  "themeSource": "pywal",
+  "themeName": "",
+  "themeBackground": "",
+  "themeForeground": "",
+  "themeAccent": "",
+  "quicklinksLinks": [
+    {
+      "glyph": "",
+      "command": "alacritty",
+      "alt": "thunar",
+      "tooltip": "Terminal"
+    },
+    {
+      "glyph": "",
+      "command": "thunar",
+      "tooltip": "Files"
+    },
+    {
+      "glyph": "",
+      "command": "firefox",
+      "tooltip": "Browser"
+    },
+    {
+      "glyph": "",
+      "action": "themer",
+      "tooltip": "Wallpaper"
+    },
+    {
+      "glyph": "",
+      "action": "clipboard",
+      "tooltip": "Clipboard history"
+    }
+  ],
+  "arcMenuPosition": "top-right",
+  "arcMenuItems": [
+    {
+      "glyph": "",
+      "command": "alacritty",
+      "tooltip": "Terminal"
+    },
+    {
+      "glyph": "",
+      "command": "thunar",
+      "tooltip": "Files"
+    },
+    {
+      "glyph": "",
+      "command": "firefox",
+      "tooltip": "Browser"
+    },
+    {
+      "glyph": "",
+      "action": "settings",
+      "tooltip": "Settings"
+    }
+  ],
+  "menuPower": {
+    "lock": "pidof hyprlock swaylock || ~/.config/hypr/scripts/lock.sh 2>/dev/null || hyprlock || swaylock",
+    "logout": "hyprctl dispatch exit",
+    "reboot": "systemctl reboot",
+    "shutdown": "systemctl poweroff",
+    "suspend": "systemctl suspend",
+    "hibernate": "systemctl hibernate"
+  },
+  "sysmonInterval": 1,
+  "sysmonDataPoints": 60,
+  "sysmonDiskPath": "/",
+  "sysmonNetworkIface": "auto",
+  "sysmonPages": [
+    "cpu",
+    "memory",
+    "disks",
+    "network",
+    "gpu",
+    "apps"
+  ],
+  "uiAnimations": true,
+  "border_width": 2,
+  "media": {
+    "text_width": 180,
+    "max_length": 48
+  }
+}

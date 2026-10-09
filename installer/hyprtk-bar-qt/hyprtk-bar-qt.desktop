@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=hyprtk-bar-qt
+Comment=HYPRTK taskbar for Hyprland (Quickshell/QML)
+Exec=/home/hyprtk/.local/bin/hyprtk-bar-qt
+Icon=com.gitlab.jnuutinen.minimalmenu
+Terminal=false
+Categories=Utility;
+X-GNOME-Autostart-enabled=true
+Path=
+StartupNotify=false

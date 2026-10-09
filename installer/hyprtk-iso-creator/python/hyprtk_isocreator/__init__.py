@@ -1,3 +1,3 @@
-"""hyprtk-isocreator — a GTK 4 front end for the Hyprtk ISO builder."""
+"""hyprtk-isocreator — a Qt (PySide6) front end for the Hyprtk ISO builder."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

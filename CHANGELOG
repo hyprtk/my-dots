@@ -3,6 +3,28 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [Unreleased] - 2026-10-09
+
+### Changed
+
+- **The taskbar is now `hyprtk-bar-qt` (Quickshell/QML); the GTK `hyprtk-bar`
+  has been fully swapped out.** `installer/hyprtk-bar-qt/` is the new vendored,
+  self-contained app (shipped `vendor/pywal16` + `wal` launcher, Quickshell/Qt6
+  `DEPS`/`EXTRAS`, `--no-deps/--no-extras/--wal-only/--uninstall`); the old
+  `installer/hyprtk-bar/` tree is removed. `1-install.sh`, `hypr/autostart.lua`,
+  `hypr/keybindings.lua` (menu/arc/clipboard/widget-move + appsmenu/updatewal),
+  the zshrc `apps` alias, and the vendored `config.json` all point at bar-qt.
+- **Dependencies**: the distro package lists (all families + the RebornOS
+  overlay) add `quickshell` + Qt6; GTK packages stay for the GTK theming tools.
+  The verify `_bar_names`/`verify-install-links`/dry-run venv paths and the
+  `package-audit-html` components now track `installer/hyprtk-bar-qt/`.
+- **Config consumers**: `hyprtk-usb` and `Hyprtk-ISO-Creator` read the bar-qt
+  config (`~/.config/hyprtk-bar-qt/config.json`) first, GTK config as fallback;
+  the ISO `customize_airootfs.sh`/`hyprtk-first-run` and `packages.hyprtk`
+  target bar-qt (+ Quickshell/Qt6).
+- Bundled pywal16 now comes from bar-qt, so `wal` is provisioned by the bar-qt
+  installer (`--wal-only`) early in `1-install.sh`.
+
 ## [Unreleased] - 2026-10-07
 
 ### Changed

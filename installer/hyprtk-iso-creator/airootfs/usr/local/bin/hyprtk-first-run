@@ -15,20 +15,20 @@ STAMP="$HOME/.local/share/hyprtk/.first-run-done"
 
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 
-# 1. hyprtk-bar (bundled pywal16 comes with it). System deps are already on the
+# 1. hyprtk-bar-qt (bundled pywal16 comes with it). System deps are already on the
 #    ISO, so --no-deps is correct here.
 #    Gate on the installed venv, not on the ~/.local/bin launcher: ~/.local/bin
 #    is a symlink into the vendored repo, so a stale launcher (e.g. one left on
 #    the build host) can exist and be executable while the venv behind it is
 #    gone. Checking the launcher made first-run skip the install entirely.
-BAR_VENV="$HOME/.local/share/hyprtk-bar/venv"
+BAR_VENV="$HOME/.local/share/hyprtk-bar-qt/venv"
 if [ ! -x "$BAR_VENV/bin/python3" ]; then
     # Clear any stale launchers so the reinstall starts clean.
-    rm -f "$HOME/.local/bin/hyprtk-bar" "$HOME/.local/bin/wal"
-    rm -f "$HOME"/.local/bin/hyprtk-bar-*-toggle.sh
-    bash "$REPO/installer/hyprtk-bar/scripts/fix-imagemagick-policy.sh" >/dev/null 2>&1 || true
-    bash "$REPO/installer/hyprtk-bar/install.sh" --no-deps \
-        || echo "hyprtk-first-run: hyprtk-bar install did not finish" >&2
+    rm -f "$HOME/.local/bin/hyprtk-bar-qt" "$HOME/.local/bin/wal"
+    rm -f "$HOME"/.local/bin/hyprtk-bar-qt-*
+    bash "$REPO/installer/hyprtk-bar-qt/scripts/fix-imagemagick-policy.sh" >/dev/null 2>&1 || true
+    bash "$REPO/installer/hyprtk-bar-qt/install.sh" --no-deps \
+        || echo "hyprtk-first-run: hyprtk-bar-qt install did not finish" >&2
 fi
 
 # 2. First palette from the default wallpaper.

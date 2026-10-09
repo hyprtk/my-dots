@@ -49,14 +49,16 @@ def _read_json(path: str) -> dict:
 def load_palette() -> Palette:
     """Resolve the palette from the running hyprtk-bar theme.
 
-    The bar records its active theme in ~/.config/hyprtk-bar/config.json
+    The bar records its active theme in ~/.config/hyprtk-bar-qt/config.json
     (source, theme_name, manual colours, opacity); for the common ``pywal``
     source the live wallpaper palette is used. Mirrors the bar's own
     resolve_palette(), so the app matches the desktop.
     """
     home = os.path.expanduser("~")
     p = Palette()
-    bar = _read_json(os.path.join(home, ".config", "hyprtk-bar", "config.json"))
+    bar = _read_json(os.path.join(home, ".config", "hyprtk-bar-qt", "config.json"))
+    if not bar:  # fall back to a GTK-bar install
+        bar = _read_json(os.path.join(home, ".config", "hyprtk-bar", "config.json"))
     theme = bar.get("theme") or {}
     source = str(theme.get("source") or "pywal")
     wal = _read_json(os.path.join(home, ".cache", "wal", "colors.json"))

@@ -21,7 +21,7 @@ This will work on most flavours of Arch.
 
 ## Hyprland
 
-- Status Bar: hyprtk-bar
+- Status Bar: hyprtk-bar-qt
 - Screenshots: grim & slurp
 - Clipboard Manager: cliphist
 - Logout: hyprlogout
@@ -41,7 +41,7 @@ Hyprland: Included is a pywal16 configuration that changes the color scheme base
 
 See also the .zshrc and the key bindings on Hyprland and XFCE for more alias definitions.
 
-System theming (wallpaper, pywal, rofi, icons, lock screen, SDDM/GRUB) now lives in **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar. Bar themes ship with the bar; import or add your own from the Theme Manager's **Bar Themes** page.
+System theming (wallpaper, pywal, rofi, icons, lock screen, SDDM/GRUB) now lives in **hyprtk-bar-qt**'s Theme Manager, opened from the wallpaper glyph in the bar. Bar themes ship with the bar; import or add your own from the Theme Manager's **Bar Themes** page.
 
 ## Getting started
 

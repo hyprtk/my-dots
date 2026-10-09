@@ -7,7 +7,7 @@
 #   2. install host-built AUR packages and matuwall
 #   3. create the live user (home seeded from /etc/skel, which already contains
 #      ~/hyprtk + the ~/.config symlinks for the preconfigured desktop)
-#   4. run the one-time user setup (hyprtk-bar + pywal) so the ISO boots ready
+#   4. run the one-time user setup (hyprtk-bar-qt + pywal) so the ISO boots ready
 #   5. enable the services and default to graphical.target (SDDM autologin)
 set -euo pipefail
 
@@ -96,19 +96,19 @@ fi
 # ── 4. One-time user setup (baked, so the live session is preconfigured) ───
 # ImageMagick's policy must allow the TXT coder or pywal silently produces no
 # palette. This touches a system file, so run it as root first.
-if [ -x /etc/skel/hyprtk/installer/hyprtk-bar/scripts/fix-imagemagick-policy.sh ]; then
-    bash /etc/skel/hyprtk/installer/hyprtk-bar/scripts/fix-imagemagick-policy.sh >/dev/null 2>&1 || true
+if [ -x /etc/skel/hyprtk/installer/hyprtk-bar-qt/scripts/fix-imagemagick-policy.sh ]; then
+    bash /etc/skel/hyprtk/installer/hyprtk-bar-qt/scripts/fix-imagemagick-policy.sh >/dev/null 2>&1 || true
 fi
 
-log "running first-login setup for $LIVE_USER (hyprtk-bar + pywal)"
+log "running first-login setup for $LIVE_USER (hyprtk-bar-qt + pywal)"
 runuser -u "$LIVE_USER" -- env \
     HOME="$LIVE_HOME" USER="$LIVE_USER" LOGNAME="$LIVE_USER" \
     PATH="$LIVE_HOME/.local/bin:/usr/local/bin:/usr/bin" \
     bash -c '
         set -u
         cd "$HOME" || exit 0
-        bash "$HOME/hyprtk/installer/hyprtk-bar/install.sh" --no-deps \
-            || echo "[customize] WARN: hyprtk-bar install did not finish"
+        bash "$HOME/hyprtk/installer/hyprtk-bar-qt/install.sh" --no-deps \
+            || echo "[customize] WARN: hyprtk-bar-qt install did not finish"
         command -v wal >/dev/null 2>&1 \
             && wal -n -i "$HOME/hyprtk/assets/Wallpapers/default.png" >/dev/null 2>&1 || true
         cp -f "$HOME/hyprtk/assets/Wallpapers/default.png" \

@@ -51,7 +51,7 @@ screen recordings are saved by default to your ~/videos/Recordings directory
   - *Hyprland* configuration files are in `~/.config/hypr/`.
     Read all the files with the editor of your choice.
     More keybindings are included in the config.
-  - *hyprtk-bar* is the taskbar (right-click for bar settings / theme).
+  - *hyprtk-bar-qt* is the taskbar (right-click for bar settings / theme).
     Notifications use its built-in center (bell button).
   - *rofi* is documented through man pages - `man rofi`.
   - *Multimedia keys* - may not work for every keyboard

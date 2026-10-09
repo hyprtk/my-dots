@@ -54,7 +54,7 @@ without waiting for a full `mkarchiso` run.
 
 ## GUI
 
-There is a GTK 4 front end (`python/`, launcher `hyprtk-iso-creator`) — a short
+There is a Qt (PySide6) front end (`python/`, launcher `hyprtk-iso-creator`) — a short
 wizard over this same builder: choose the source, name/label and output
 locations, toggle the extras, review, then watch the builder's **live output**
 as the ISO is assembled. It runs unprivileged; only the builder (which needs
@@ -146,8 +146,8 @@ sudo mkfs.ext4 -L hyprtk-persist "${DEV}3"     # nvme/mmcblk use "${DEV}p3"
 hyprtk-iso-builder.sh      # the builder
 packages.hyprtk            # official packages baked into the ISO
 aur-packages.txt           # AUR extras, built on the host
-install.sh                 # installs the optional GTK 4 GUI
-python/                    # the GTK 4 front end (hyprtk_isocreator)
+install.sh                 # installs the optional Qt (PySide6) GUI
+python/                    # the Qt (PySide6) front end (hyprtk_isocreator)
 airootfs/                  # overlay merged onto the releng profile
   etc/sddm.conf.d/         # autologin + Wayland greeter
   etc/sudoers.d/           # live-user passwordless sudo

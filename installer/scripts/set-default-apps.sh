@@ -2,7 +2,7 @@
 # ── Register the suite's preferred apps with XDG ─────────────────────────────
 # The dotfiles install alacritty, thunar and brave, but a fresh distro still
 # points XDG at its own defaults (seen on Fedora: kitty as the inode/directory
-# handler, firefox as the browser). hyprtk-bar's quick links resolve the
+# handler, firefox as the browser). hyprtk-bar-qt's quick links resolve the
 # "System default" apps from exactly those settings, so without this they show
 # the distro's apps instead of the suite's. User-level; best-effort.
 #

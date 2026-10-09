@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Launch the hyprtk-bar-qt QML shell via Quickshell.
+set -euo pipefail
+
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+done
+here="$(cd -P "$(dirname "$src")" && pwd)"
+root="$(cd "$here/.." && pwd)"
+
+# The Qt bar has its own config; migrate it from the GTK bar's config on first
+# run (a full copy, with any Qt-only overrides re-applied) so an existing setup
+# carries over before the two diverge.
+python3 "$root/backend/hyprtk_bar_qt/paths.py" >/dev/null 2>&1 || true
+
+exec qs -p "$root" "$@"

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hyprtk-bar-qt"
+dynamic = ["version"]
+description = "hyprtk bar — Qt/QML (Quickshell) rewrite: QML presentation + Python logic"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-2.0-only" }
+# The backend is deliberately toolkit-free; the QML shell runs under Quickshell
+# (a system Qt6/QML package), so there is no PySide dependency here.
+dependencies = []
+
+[tool.setuptools]
+package-dir = { "" = "backend" }
+packages = ["hyprtk_bar_qt"]
+
+[tool.setuptools.dynamic]
+version = { attr = "hyprtk_bar_qt.__version__" }

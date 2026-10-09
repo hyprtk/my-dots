@@ -5,10 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hyprtk-isocreator"
 dynamic = ["version"]
-description = "A GTK 4 front end for the Hyprtk ISO builder"
+description = "A Qt (PySide6) front end for the Hyprtk ISO builder"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+
+[project.optional-dependencies]
+# Distro installs provide Qt via the system packages (the installer uses a
+# --system-site-packages venv); pip users can opt in with
+# `pip install hyprtk-isocreator[gui]`.
+gui = ["PySide6>=6.6"]
 
 [project.scripts]
 hyprtk-iso-creator = "hyprtk_isocreator.gui:main"

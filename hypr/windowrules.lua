@@ -43,32 +43,6 @@ hl.window_rule({
     float = false,
 })
 
--- hyprtk-bar settings window (floating) — the CSS popup-box already draws the
--- 2px animated border; disable Hyprland's own compositor border so only one
--- border shows (mirrors the layer-shell dialogs which have no compositor border).
-hl.window_rule({
-    name = "windowrule-bar-settings",
-    match = {
-        title = "(^(hyprtk-bar settings)$)",
-    },
-    float = true,
-    center = true,
-    size = "620 580",
-    border_size = 0,
-})
-
--- hyprtk-bar About window (floating) — themed popup-box border, no compositor border.
-hl.window_rule({
-    name = "windowrule-bar-about",
-    match = {
-        title = "(^(hyprtk-bar about)$)",
-    },
-    float = true,
-    center = true,
-    size = "360 260",
-    border_size = 0,
-})
-
 -- Specific to launching floating terminal windows
 hl.window_rule({
     name = "windowrule-6",

@@ -18,13 +18,13 @@ A single installer for a fully themed **Hyprland (Wayland)** desktop on **any Li
 
 ## What is this?
 
-A curated, consistent desktop configuration that replaces the default look and feel of your Linux desktop with a polished Hyprland setup. One wallpaper drives every colour on screen via **pywal16** (bundled) — hyprtk-bar, rofi, the app menu, the lock screen and even your icons all stay in sync.
+A curated, consistent desktop configuration that replaces the default look and feel of your Linux desktop with a polished Hyprland setup. One wallpaper drives every colour on screen via **pywal16** (bundled) — hyprtk-bar-qt, rofi, the app menu, the lock screen and even your icons all stay in sync.
 
 - **Wayland first** — Hyprland with a floating/split hybrid workflow
 - **Xorg fallback** — XFCE stays installed as a safety net
 - **Auto-detected distro** — the installer detects your OS and package manager (pacman/apt/dnf/zypper/xbps/apk) and applies the right tweaks
 - **No manual colour config** — pywal generates a full palette from your wallpaper
-- **No AUR dependency for pywal** — pywal16 is bundled inside hyprtk-bar (`vendor/pywal16`), so colours work out of the box
+- **No AUR dependency for pywal** — pywal16 is bundled inside hyprtk-bar-qt (`vendor/pywal16`), so colours work out of the box
 
 ## Install
 
@@ -67,7 +67,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | **Terminal** | Alacritty + starship prompt |
 | **Editor** | Neovim (Vim fallback) |
 | **App launcher** | Rofi (plus the in-bar start menu) |
-| **Status bar** | hyprtk-bar — GTK4 pywal-themed taskbar with built-in menus |
+| **Status bar** | hyprtk-bar-qt — GTK4 pywal-themed taskbar with built-in menus |
 | **Desktop widgets** | Clock, weather, audio visualizer, hard disks, network, CPU/RAM and system info — free-floating surfaces you drag into place and snap into groups, themed by pywal |
 | **Theming** | pywal16 (bundled), live, from your wallpaper |
 | **Wallpaper** | Matuwall film-strip picker + rofi list + random (awww daemon, installed automatically) |
@@ -119,7 +119,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | `Super + Ctrl + W` | Wallpaper list (rofi) |
 
 All theming (bar theme, pywal, rofi, icons, lock screen, SDDM/GRUB) is changed from
-**hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar.
+**hyprtk-bar-qt**'s Theme Manager, opened from the wallpaper glyph in the bar.
 
 ### Media & system
 
@@ -141,7 +141,7 @@ All theming (bar theme, pywal, rofi, icons, lock screen, SDDM/GRUB) is changed f
 
 ## Applications
 
-All system theming (wallpaper, pywal, rofi, icons, lock screen, SDDM/GRUB) now lives in **hyprtk-bar**'s Theme Manager, opened from the wallpaper glyph in the bar. The **start menu** and **arc menu** are both built into **hyprtk-bar** — no separate apps:
+All system theming (wallpaper, pywal, rofi, icons, lock screen, SDDM/GRUB) now lives in **hyprtk-bar-qt**'s Theme Manager, opened from the wallpaper glyph in the bar. The **start menu** and **arc menu** are both built into **hyprtk-bar-qt** — no separate apps:
 
 | Feature | What it does | Open with |
 | --- | --- | --- |

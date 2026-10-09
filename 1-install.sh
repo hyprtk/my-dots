@@ -732,13 +732,13 @@ if type grudupdater >/dev/null 2>&1; then
     _spin "Running grub updater..." "grudupdater" "$LOG_FILE"
 fi
 
-# ── Pywal16 (bundled in hyprtk-bar) ───────────────────────────────────────
-# pywal16 is vendored inside hyprtk-bar (vendor/pywal16) and exposed as `wal`
+# ── Pywal16 (bundled in hyprtk-bar-qt) ────────────────────────────────────
+# pywal16 is vendored inside hyprtk-bar-qt (vendor/pywal16) and exposed as `wal`
 # by the bar's installer — no separate AUR/PyPI download. It is provisioned
 # here, early, because the pywal init steps below (and the dotfiles' wal
 # templates) run before the full bar install near the end of this script.
 _step "Installing Pywal16 (bundled)"
-_spin "Provisioning bundled pywal16..." "bash $SCRIPT_DIR/installer/hyprtk-bar/install.sh --wal-only" "$LOG_FILE"
+_spin "Provisioning bundled pywal16..." "bash $SCRIPT_DIR/installer/hyprtk-bar-qt/install.sh --wal-only" "$LOG_FILE"
 _ok "pywal16 ready (bundled wal)"
 
 # ── Icons root ────────────────────────────────────────────────────────────
@@ -763,7 +763,7 @@ _ok "Icons installed for root"
 # wallpaper via awww, and letting pywal also set it can block forever.
 _step "Initiating Pywal16"
 _spin "Allowing pywal's ImageMagick TXT coder (if restricted)..." \
-    "bash $SCRIPT_DIR/installer/hyprtk-bar/scripts/fix-imagemagick-policy.sh" \
+    "bash $SCRIPT_DIR/installer/hyprtk-bar-qt/scripts/fix-imagemagick-policy.sh" \
     "$LOG_FILE"
 _spin "Initializing pywal16..." "wal -n -i $SCRIPT_DIR/assets/Wallpapers/default.png" "$LOG_FILE"
 _ok "pywal16 initiated"
@@ -1023,9 +1023,9 @@ else
         _ok "Standalone apps installed"
 
         # ── hyprtk-bar ──────────────────────────────────────────────
-        _step "Installing hyprtk-bar"
-        _spin "Installing hyprtk-bar..." "bash $SCRIPT_DIR/installer/hyprtk-bar/install.sh" "$LOG_FILE"
-        _ok "hyprtk-bar installed (autostarted by autostart.lua; owns the notification daemon; hosts the arc menu overlay)"
+        _step "Installing hyprtk-bar-qt"
+        _spin "Installing hyprtk-bar-qt..." "bash $SCRIPT_DIR/installer/hyprtk-bar-qt/install.sh" "$LOG_FILE"
+        _ok "hyprtk-bar-qt installed (autostarted by autostart.lua; owns the notification daemon; hosts the arc menu overlay)"
 
         # ── hyprtk-usb (GUI) ────────────────────────────────────────
         _step "Installing hyprtk-usb"
@@ -1066,7 +1066,7 @@ else
 
         # ── Bar sudo access (passwordless) ──────────────────────────
         _step "Configuring Bar Sudo Access"
-        echo -e "${CYAN}  → ${WHITE}Installing hyprtk-bar sudoers (passwordless sudo)${NC}"
+        echo -e "${CYAN}  → ${WHITE}Installing hyprtk-bar-qt sudoers (passwordless sudo)${NC}"
         if sudo bash "$SCRIPT_DIR/installer/scripts/setup-sudoers.sh"; then
             _ok "Bar passwordless sudo configured"
         else

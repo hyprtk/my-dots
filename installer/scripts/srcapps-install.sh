@@ -14,6 +14,7 @@
 #   hyprpicker        hyprwm/hyprpicker (cmake)        → colour picker (Alpine)
 #   hyprsunset        hyprwm/hyprsunset (cmake)        → gamma/brightness (Void)
 #   wob               francma/wob (meson)              → volume/brightness overlay (Void)
+#   quickshell        quickshell-mirror/quickshell (cmake) → hyprtk-bar-qt (the bar)
 #
 # hyprpicker/hyprsunset are NOT packaged on Alpine/Void, and neither are the
 # Hyprland libraries they link (hyprutils, hyprlang, hyprwayland-scanner,
@@ -41,6 +42,7 @@ CLIPHIST_GIT="https://github.com/sentriz/cliphist.git"
 IPPUSB_GIT="https://github.com/OpenPrinting/ipp-usb.git"
 WOB_VER="0.15.1"
 WOB_GIT="https://github.com/francma/wob.git"
+QUICKSHELL_GIT="https://github.com/quickshell-mirror/quickshell.git"
 
 say() { echo "srcapps: $*"; }
 
@@ -160,6 +162,16 @@ build_meson() {
     rm -rf "$tmp"
     return 1
 }
+
+
+# Quickshell build deps (hyprtk-bar-qt is a Quickshell/Qt6 app; only built where
+# the distro does not package quickshell — Arch ships it).
+declare -A QS_DEPS
+QS_DEPS[apt]="git build-essential cmake ninja-build pkg-config qt6-base-dev qt6-declarative-dev libqt6svg6-dev libcli11-dev libjemalloc-dev libdrm-dev libwayland-dev wayland-protocols libxcb1-dev"
+QS_DEPS[dnf]="git gcc-c++ cmake ninja-build pkgconf-pkg-config qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtsvg-devel cli11-devel jemalloc-devel libdrm-devel wayland-devel wayland-protocols-devel libxcb-devel"
+QS_DEPS[zypper]="git gcc-c++ cmake ninja pkg-config qt6-base-devel qt6-declarative-devel qt6-svg-devel cli11-devel jemalloc-devel libdrm-devel wayland-devel wayland-protocols-devel libxcb-devel"
+QS_DEPS[xbps]="git base-devel cmake ninja pkg-config qt6-base-devel qt6-declarative-devel qt6-svg-devel cli11 jemalloc-devel libdrm-devel wayland-devel wayland-protocols libxcb-devel"
+QS_DEPS[apk]="git build-base cmake ninja pkgconf qt6-qtbase-dev qt6-qtdeclarative-dev qt6-qtsvg-dev cli11 jemalloc-dev libdrm-dev wayland-dev wayland-protocols libxcb-dev"
 
 # ── Apps ────────────────────────────────────────────────────────────────────
 install_gtk4_layer_shell() {
@@ -395,6 +407,32 @@ install_starship() {
     return 1
 }
 
+
+have_quickshell() { have qs || have quickshell; }
+
+# The bar (hyprtk-bar-qt) runs on Quickshell. Arch packages it; elsewhere build
+# the Qt6/CMake project from source. Heavy — best-effort, warns on failure.
+install_quickshell() {
+    if have_quickshell; then say "quickshell: already present"; return 0; fi
+    [ -n "${QS_DEPS[$HYPRTK_PM]:-}" ] && pkg_install ${QS_DEPS[$HYPRTK_PM]} || true
+    if ! have cmake || ! have ninja || ! have git; then
+        say "quickshell: cmake/ninja/git unavailable — hyprtk-bar-qt cannot run" >&2
+        return 1
+    fi
+    say "quickshell: building from source (hyprtk-bar-qt needs it)"
+    local tmp; tmp="$(mktemp -d)" || return 1
+    if git clone --depth=1 "$QUICKSHELL_GIT" "$tmp/quickshell" >/dev/null 2>&1 \
+       && ( cd "$tmp/quickshell" \
+            && cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+                 -DCMAKE_INSTALL_PREFIX=/usr -DDISTRIBUTOR=hyprtk >/dev/null 2>&1 \
+            && cmake --build build -j"$(nproc 2>/dev/null || echo 2)" >/dev/null 2>&1 \
+            && hyprtk_run_root cmake --install build >/dev/null 2>&1 ); then
+        hyprtk_run_root ldconfig >/dev/null 2>&1 || true
+        rm -rf "$tmp"; say "quickshell: installed"; return 0
+    fi
+    rm -rf "$tmp"; say "quickshell: build failed — install quickshell manually" >&2; return 1
+}
+
 # ── Main ────────────────────────────────────────────────────────────────────
 FAILED=0
 install_gtk4_layer_shell || FAILED=$((FAILED + 1))
@@ -407,6 +445,7 @@ install_ippusb            || FAILED=$((FAILED + 1))
 install_hyprpicker        || FAILED=$((FAILED + 1))
 install_hyprsunset        || FAILED=$((FAILED + 1))
 install_wob               || FAILED=$((FAILED + 1))
+install_quickshell        || FAILED=$((FAILED + 1))
 
 if [ "$FAILED" -ne 0 ]; then
     say "$FAILED app(s) could not be built — the rest of the install continues"

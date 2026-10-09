@@ -12,7 +12,7 @@ pacman)
           ttf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd exa
           python-pip python-psutil python-rich python-click xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp
-          pcp-gui gtk4-layer-shell hyprpicker)
+          pcp-gui gtk4-layer-shell hyprpicker quickshell)
     AUR=(bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
          tumbler-extra-thumbnailers)
     ;;
@@ -20,31 +20,31 @@ apt)
     PKGS=(sddm blueman fzf font-manager fonts-font-awesome fonts-fira-code eza
           python3-pip python3-psutil python3-rich python3-click python3-venv
           xdg-desktop-portal-gtk xdg-user-dirs xdg-user-dirs-gtk os-prober
-          policykit-1-gnome gnome-keyring gtk4-layer-shell hyprpicker)
+          policykit-1-gnome gnome-keyring gtk4-layer-shell hyprpicker quickshell)
     ;;
 dnf)
     PKGS=(sddm blueman fzf font-manager fontawesome-fonts fira-code-fonts eza
           python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
-          gtk4-layer-shell hyprpicker)
+          gtk4-layer-shell hyprpicker quickshell)
     ;;
 zypper)
     PKGS=(sddm blueman fzf font-manager fontawesome-fonts fira-code-fonts eza
           python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
-          gtk4-layer-shell hyprpicker)
+          gtk4-layer-shell hyprpicker quickshell)
     ;;
 xbps)
     PKGS=(sddm blueman fzf font-manager font-awesome fira-code eza python3-pip
           python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
-          gtk4-layer-shell hyprpicker)
+          gtk4-layer-shell hyprpicker quickshell)
     ;;
 apk)
     PKGS=(sddm blueman fzf font-manager font-awesome fira-code eza py3-pip
           py3-psutil py3-rich py3-click xdg-desktop-portal-gtk xdg-user-dirs
           xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring gtk4-layer-shell
-          hyprpicker)
+          hyprpicker quickshell)
     ;;
 esac
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ── hyprtk-system-kill ────────────────────────────────────────────────────
-# Passwordless sudo helper for hyprtk-bar's system monitor: terminate a
+# Passwordless sudo helper for hyprtk-bar-qt's system monitor: terminate a
 # SYSTEM-owned process (root or another user) on behalf of the desktop user.
 #
 # The bar's monitor calls this via `sudo -n` for pids it cannot kill directly

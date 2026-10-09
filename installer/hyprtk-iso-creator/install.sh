@@ -1,11 +1,11 @@
 #!/bin/bash
 # ── Hyprtk ISO Creator GUI installer ──────────────────────────────────────
-# Installs the GTK front end for the Hyprtk ISO builder. The builder itself is
-# the bash script at the repo root; this only installs the GUI (and its pkexec
-# helper) that drives it.
+# Installs the Qt (PySide6) front end for the Hyprtk ISO builder. The builder
+# itself is the bash script at the repo root; this only installs the GUI (and
+# its pkexec helper) that drives it.
 #
 # The app builds a venv with system site-packages (so it can see the distro's
-# PyGObject + GTK 4), pip-installs python/ into it, links the launchers into
+# PySide6 + Qt 6), pip-installs python/ into it, links the launchers into
 # ~/.local/bin, copies the builder + its profile assets into the state dir (so
 # the installed app is self-contained and does not depend on this checkout
 # surviving), and drops a desktop entry + icon.

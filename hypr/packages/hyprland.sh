@@ -16,7 +16,7 @@ pacman)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xorg-xhost
           nwg-look mission-center curl wget imagemagick jq bc brightnessctl playerctl
           libadwaita gtk3 gtk-layer-shell gtk4 desktop-file-utils python python-pip
-          python-virtualenv python-gobject wob hyprsunset)
+          python-virtualenv python-gobject wob hyprsunset quickshell qt6-base qt6-declarative qt6-svg)
     AUR=(awww swaylock-effects gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
          gvfs-smb 7zip unzip unrar)
     ;;
@@ -24,7 +24,7 @@ apt)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist x11-xserver-utils
           nwg-look curl wget imagemagick jq bc brightnessctl playerctl
           libadwaita-1-0 libgtk-3-0 libgtk-layer-shell0 libgtk-4-1 desktop-file-utils
-          python3 python3-pip python3-venv python3-gi wob hyprsunset swaylock
+          python3 python3-pip python3-venv python3-gi wob hyprsunset swaylock quickshell qt6-base-dev qt6-declarative-dev libqt6svg6-dev
           gvfs-backends 7zip unzip unrar)
     ;;
 dnf)
@@ -32,14 +32,14 @@ dnf)
           xhost nwg-look curl wget2-wget ImageMagick jq bc
           brightnessctl playerctl libadwaita gtk3 gtk-layer-shell gtk4
           desktop-file-utils python3 python3-pip python3-virtualenv python3-gobject
-          wob hyprsunset swaylock gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
+          wob hyprsunset swaylock quickshell qt6-qtbase qt6-qtdeclarative qt6-qtsvg gvfs-afc gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-nfs
           gvfs-smb 7zip unzip unrar)
     ;;
 zypper)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xhost nwg-look
           curl wget ImageMagick jq bc brightnessctl playerctl libadwaita-1-0
           gtk3 libgtk-layer-shell0 gtk4 desktop-file-utils python3 python3-pip
-          python3-virtualenv python3-gobject wob hyprsunset swaylock gvfs
+          python3-virtualenv python3-gobject wob hyprsunset swaylock quickshell libQt6Core6 libQt6Qml6 libQt6Quick6 libQt6Svg6 gvfs
           gvfs-backends p7zip unzip unrar)
     ;;
 xbps)
@@ -51,14 +51,14 @@ xbps)
     PKGS=(xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xhost nwg-look
           curl wget ImageMagick jq bc brightnessctl playerctl libadwaita
           gtk+3 gtk-layer-shell gtk4 desktop-file-utils python3 python3-pip
-          python3-virtualenv python3-gobject swaylock gvfs gvfs-afc
+          python3-virtualenv python3-gobject quickshell qt6-base qt6-declarative qt6-svg swaylock gvfs gvfs-afc
           gvfs-goa gvfs-gphoto2 gvfs-mtp gvfs-smb p7zip unzip unrar)
     ;;
 apk)
     PKGS=(hyprland xdg-desktop-portal-wlr swayidle hyprlock hypridle swappy cliphist xhost nwg-look
           curl wget imagemagick jq bc brightnessctl playerctl libadwaita gtk+3.0
           gtk-layer-shell gtk4.0 desktop-file-utils python3 py3-pip py3-virtualenv
-          py3-gobject3 wob swaylock gvfs 7zip unzip unrar)
+          py3-gobject3 wob swaylock quickshell qt6-qtbase qt6-qtdeclarative qt6-qtsvg gvfs 7zip unzip unrar)
     ;;
 esac
 

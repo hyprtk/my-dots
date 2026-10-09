@@ -6,8 +6,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("awww-daemon &")
     -- hyprsunset gamma provides screen brightness on monitors without a backlight
     hl.exec_cmd("hyprsunset --identity &")
-    -- hyprtk-bar owns org.freedesktop.Notifications (built-in notification center)
-    hl.exec_cmd("~/.local/bin/hyprtk-bar &")
+    -- hyprtk-bar-qt owns org.freedesktop.Notifications (built-in notification center)
+    hl.exec_cmd("~/.local/bin/hyprtk-bar-qt &")
     -- Cursor theme/size come from XCURSOR_THEME/XCURSOR_SIZE (see
     -- environment.lua). Do NOT call `hyprctl setcursor` here: it runs
     -- hyprcursor's GSettings/dconf lookup on the compositor's main thread, which

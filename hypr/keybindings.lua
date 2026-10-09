@@ -6,7 +6,7 @@
 local mainMod = "SUPER"
 
 hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("alacritty"))
-hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-menu-toggle.sh"))
+hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-qt-menu-toggle"))
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + M", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("thunar"))
@@ -14,7 +14,7 @@ hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("brave"))
 hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("chromium"))
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"), { description = "Toggle split" })
 hl.bind(mainMod .. " + K", hl.dsp.layout("swapsplit"), { description = "Swapsplit" })
-hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/.local/share/hyprtk-bar/scripts/appsmenu.sh"))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("~/.local/share/hyprtk-bar-qt/scripts/appsmenu.sh"))
 hl.bind(mainMod .. " + X", hl.dsp.exit())
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
@@ -48,12 +48,12 @@ end)
 --##                                                                       ###
 
 hl.bind(mainMod .. " + CTRL + Q", hl.dsp.exec_cmd("~/hyprtk/configs/hyprlogout/logout.sh"))
-hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("~/.local/share/hyprtk-bar/scripts/updatewal-awww.sh"))
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("~/.local/share/hyprtk-bar-qt/scripts/updatewal-awww.sh"))
 hl.bind(mainMod .. " + CTRL + W", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/wallpaper-awww.sh"))
-hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("~/.local/share/hyprtk-bar/scripts/appsmenu.sh"))
+hl.bind(mainMod .. " + CTRL + RETURN", hl.dsp.exec_cmd("~/.local/share/hyprtk-bar-qt/scripts/appsmenu.sh"))
 hl.bind(mainMod .. " + CTRL + F", hl.dsp.exec_cmd("~/hyprtk/installer/scripts/filemanager.sh"))
-hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-clipboard-toggle.sh"))
-hl.bind(mainMod .. " + CTRL + M", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-arc-toggle.sh"))
+hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-qt-clipboard-toggle"))
+hl.bind(mainMod .. " + CTRL + M", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-qt-arc-toggle"))
 hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("~/hyprtk/hypr/scripts/wf-record-start.sh"))
 hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("~/hyprtk/hypr/scripts/wf-record-stop.sh"))
 hl.bind(mainMod .. " + ALT + P", hl.dsp.exec_cmd("~/hyprtk/hypr/scripts/wf-record-stop.sh"))
@@ -85,12 +85,12 @@ hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
 -- Window drag stays on Super + left mouse; the desktop-widget move is on
 -- Super + Shift + left mouse. The widget gesture is compositor-side (the
--- press/release binds run hyprtk-bar-widget-move.sh, which tells the bar to
+-- press/release binds run hyprtk-bar-qt-widget-move, which tells the bar to
 -- move the widget under the cursor) because a layer-shell surface never sees
 -- the Super modifier in GTK.
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag())
-hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-widget-move.sh start"))
-hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-widget-move.sh stop"), { release = true })
+hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-qt-widget-move start"))
+hl.bind(mainMod .. " + SHIFT + mouse:272", hl.dsp.exec_cmd("~/.local/bin/hyprtk-bar-qt-widget-move stop"), { release = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize())
 
 hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.resize({ x = 100, y = 0, relative = true }))
