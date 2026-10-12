@@ -1,12 +1,14 @@
 // A small pill toggle matching the hyprtk look (no QtQuick.Controls styling).
 import QtQuick
+import "../theme"
+import "../config"
 
 Item {
     id: root
 
     property bool checked: false
-    property color onColor: "#c084fc"
-    property color offColor: "#22d3ee"
+    property color onColor: Theme.accent
+    property color offColor: Theme.accent2
 
     signal toggled(bool value)
 
@@ -20,7 +22,7 @@ Item {
         color: root.checked
             ? root.onColor
             : Qt.rgba(root.offColor.r, root.offColor.g, root.offColor.b, 0.35)
-        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on color { ColorAnimation { duration: Config.animationDuration } }
 
         Rectangle {
             id: knob
@@ -29,8 +31,8 @@ Item {
             radius: width / 2
             y: 3
             x: root.checked ? parent.width - width - 3 : 3
-            color: "#ffffff"
-            Behavior on x { NumberAnimation { duration: 120 } }
+            color: Theme.foreground
+            Behavior on x { NumberAnimation { duration: Config.animationDuration } }
         }
     }
 

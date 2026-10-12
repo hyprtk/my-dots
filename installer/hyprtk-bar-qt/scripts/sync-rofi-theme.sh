@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # sync-rofi-theme.sh — link the rofi variant to match the current hyprtk-bar theme
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 #
@@ -27,7 +28,7 @@ except Exception:
     d = {}
 print(d.get('theme', {}).get('source', ''))
 PY
-)
+) || true
     theme_name=$(python3 - "$bar_config" 2>/dev/null <<'PY'
 import json, sys
 try:
@@ -36,7 +37,7 @@ except Exception:
     d = {}
 print(d.get('theme', {}).get('theme_name', ''))
 PY
-)
+) || true
     if [ "$source" = "pywal" ]; then
         theme="hyprtk-pywal"
     elif [ -n "$theme_name" ]; then

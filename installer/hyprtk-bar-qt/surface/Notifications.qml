@@ -8,6 +8,7 @@ import QtQuick.Layouts
 import Quickshell
 import "../theme"
 import "../data"
+import "../components"
 
 PanelWindow {
     id: toasts
@@ -42,8 +43,16 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.opacity)
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacity)
+        border.width: BarConfig.borderWidth
+        border.color: Theme.accent
+        SequentialAnimation on border.color {
+            running: Chrome.animated
+            loops: Animation.Infinite
+            ColorAnimation { to: Theme.accent2; duration: Chrome.periodMs; easing.type: Easing.InOutSine }
+            ColorAnimation { to: Theme.accent; duration: Chrome.periodMs; easing.type: Easing.InOutSine }
+        }
 
         ColumnLayout {
             id: column
@@ -88,7 +97,7 @@ PanelWindow {
                             Text {
                                 text: toast.modelData.appName || "Notification"
                                 color: Theme.dim
-                                font.pixelSize: 10
+                                font.pixelSize: BarConfig.scaled(10)
                                 elide: Text.ElideRight
                                 Layout.fillWidth: true
                                 visible: text.length > 0
@@ -123,15 +132,12 @@ PanelWindow {
                                 Item { Layout.fillWidth: true }
                                 Repeater {
                                     model: toast.modelData.actions || []
-                                    delegate: Rectangle {
+                                    delegate: ChipButton {
                                         required property var modelData
-                                        implicitWidth: taText.implicitWidth + 18
-                                        implicitHeight: 24
-                                        radius: 6
-                                        color: taHover.hovered ? Theme.alpha(Theme.accent2, 0.3) : Theme.alpha(Theme.accent, 0.25)
-                                        Text { id: taText; anchors.centerIn: parent; text: modelData.text || ""; color: Theme.foreground; font.pixelSize: 11 }
-                                        HoverHandler { id: taHover }
-                                        TapHandler { onTapped: modelData.invoke() }
+                                        label: modelData.text || ""
+                                        baseColor: Theme.alpha(Theme.accent, 0.25)
+                                        hoverColor: Theme.alpha(Theme.accent2, 0.3)
+                                        onTapped: modelData.invoke()
                                     }
                                 }
                             }
@@ -141,7 +147,7 @@ PanelWindow {
                             Layout.alignment: Qt.AlignTop
                             text: "\u00d7"
                             color: Theme.dim
-                            font.pixelSize: 13
+                            font.pixelSize: BarConfig.scaled(13)
                             MouseArea {
                                 anchors.fill: parent
                                 anchors.margins: -4

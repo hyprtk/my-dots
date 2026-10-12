@@ -39,6 +39,7 @@ except ImportError:  # run as a script (python3 monitor_data.py)
 DIMM_CACHE = QT_CACHE / "dimm.json"
 GPU_CACHE = QT_CACHE / "gpu.json"
 GPU_TTL = 24 * 3600
+DIMM_TTL = GPU_TTL
 
 _GPU_VENDORS = {"1002": "AMD", "10de": "NVIDIA", "8086": "Intel"}
 
@@ -213,8 +214,15 @@ def _thread_count() -> int:
     return count
 
 
+_HWMON_TTL = 2.0
+_HWMON_CACHE: dict = {"value": None, "t": 0.0}
+
+
 def hwmon_temps() -> dict[str, float]:
     """All hwmon temps as {label: celsius}."""
+    now = time.monotonic()
+    if _HWMON_CACHE["value"] is not None and now - _HWMON_CACHE["t"] < _HWMON_TTL:
+        return _HWMON_CACHE["value"]
     temps: dict[str, float] = {}
     try:
         for hw in HWMON.iterdir():
@@ -235,6 +243,8 @@ def hwmon_temps() -> dict[str, float]:
                 temps[label] = value
     except OSError:
         pass
+    _HWMON_CACHE["value"] = temps
+    _HWMON_CACHE["t"] = now
     return temps
 
 
@@ -1148,16 +1158,28 @@ def _read_pid_cpu(pid: int):
     return comm, ticks
 
 
-def _read_pid_rss(pid: int) -> int:
-    """Resident set size in kB."""
+def _read_pid_status(pid: int) -> tuple[int, int | None]:
+    """(VmRSS in kB, real UID) from a single /proc/<pid>/status read."""
+    rss = 0
+    uid = None
     try:
         with open(f"/proc/{pid}/status") as f:
             for line in f:
                 if line.startswith("VmRSS:"):
-                    return int(line.split()[1])
-    except (OSError, ValueError, IndexError):
+                    try:
+                        rss = int(line.split()[1])
+                    except (ValueError, IndexError):
+                        pass
+                elif line.startswith("Uid:"):
+                    parts = line.split()
+                    if len(parts) > 1:
+                        try:
+                            uid = int(parts[1])
+                        except ValueError:
+                            uid = None
+    except OSError:
         pass
-    return 0
+    return rss, uid
 
 
 def _read_pid_uid(pid: int) -> int | None:
@@ -1190,7 +1212,8 @@ def _window_pids() -> set[int]:
         ).stdout
         data = json.loads(out)
         return {int(w["pid"]) for w in data if isinstance(w, dict) and w.get("pid")}
-    except Exception:
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError,
+            KeyError, TypeError, ValueError):
         return set()
 
 
@@ -1259,13 +1282,14 @@ def top_processes(n: int | None = None, window_pids: set[int] | None = None) -> 
         cpu = 100.0 * ncpu * (ticks - first[1]) / delta if first is not None else 0.0
         if cpu < 0.0:
             cpu = 0.0
+        rss_kb, uid = _read_pid_status(pid)
         rows.append(
             {
                 "pid": pid,
                 "name": comm,
                 "cpu": cpu,
-                "mem": _read_pid_rss(pid) * _KB / _GB,
-                "uid": _read_pid_uid(pid),
+                "mem": rss_kb * _KB / _GB,
+                "uid": uid,
                 "cmdline": _read_pid_cmdline(pid),
                 "is_app": pid in window_pids,
             }
@@ -1329,10 +1353,7 @@ def parse_dmidecode(text: str) -> list[dict]:
 
 
 def _dimm_cache_fresh() -> bool:
-    try:
-        return time.time() - DIMM_CACHE.stat().st_mtime < DIMM_TTL
-    except OSError:
-        return False
+    return _cache_fresh(DIMM_CACHE, DIMM_TTL)
 
 
 def _dimm_read_cache() -> list[dict] | None:

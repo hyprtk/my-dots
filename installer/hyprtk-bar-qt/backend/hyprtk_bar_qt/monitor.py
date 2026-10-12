@@ -59,7 +59,7 @@ class MonitorSampler:
     def _fetch_static(self) -> None:
         try:
             info = monitor_data.gpu_static(use_cache=False)
-        except Exception:
+        except (OSError, ValueError, TypeError, KeyError):
             info = None
         if info:
             with self._static_lock:

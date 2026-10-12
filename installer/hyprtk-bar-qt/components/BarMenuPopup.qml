@@ -7,6 +7,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import "../theme"
+import "../config"
 import "../data"
 
 PopupWindow {
@@ -16,6 +17,12 @@ PopupWindow {
 
     visible: PopupMenu.show && PopupMenu.items.length > 0 && PopupMenu.target !== null
     color: "transparent"
+
+    property real reveal: 0
+    readonly property int animMs: Config.uiAnimations ? Config.animationDuration : 0
+    Behavior on reveal { NumberAnimation { duration: menu.animMs; easing.type: Easing.OutCubic } }
+    onVisibleChanged: menu.reveal = visible ? 1 : 0
+
     implicitWidth: col.implicitWidth + 8
     implicitHeight: col.implicitHeight + 8
     grabFocus: true
@@ -35,10 +42,12 @@ PopupWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 8
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.96, Theme.opacity))
+        radius: Theme.radiusPopup
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         border.width: 1
         border.color: Theme.alpha(Theme.accent2, 0.25)
+        opacity: menu.reveal
+        transform: Translate { y: (1 - menu.reveal) * -8 }
 
         ColumnLayout {
             id: col
@@ -62,9 +71,11 @@ PopupWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
                         anchors.leftMargin: 10
+                        anchors.right: parent.right
+                        anchors.rightMargin: 10
                         text: row.modelData.label
                         color: Theme.foreground
-                        font.pixelSize: 12
+                        font.pixelSize: BarConfig.scaled(12)
                     }
 
                     HoverHandler { id: rowHover }

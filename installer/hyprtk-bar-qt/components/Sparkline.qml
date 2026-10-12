@@ -3,14 +3,15 @@
 // Mirrors the GTK bar's single-series HistoryGraph: newest value at the right
 // edge, history scrolling left, optional fixed scale (0 = autoscale).
 import QtQuick
+import "../theme"
 
 Canvas {
     id: root
 
     property var values: []
-    property color color: "#7aa2f7"
+    property color color: Theme.accent
     property real scale: 0        // 0 = autoscale to the max observed value
-    property int maxPoints: 40
+    property int maxPoints: 0
     property real inset: 2
     property real strokeWidth: 1.5
 
@@ -32,7 +33,7 @@ Canvas {
         const pad = root.inset;
         const xw = width - pad * 2;
         const yh = height - pad * 2;
-        const slot = Math.max(1, root.maxPoints - 1);
+        const slot = Math.max(1, (root.maxPoints > 0 ? root.maxPoints : vals.length) - 1);
         const sc = root.scale > 0 ? root.scale
                                   : Math.max(1e-6, Math.max.apply(null, vals));
 

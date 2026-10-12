@@ -58,7 +58,7 @@ def _arm_parent_death() -> None:
     try:
         libc = ctypes.CDLL("libc.so.6", use_errno=True)
         libc.prctl(1, signal.SIGTERM, 0, 0, 0)  # PR_SET_PDEATHSIG
-    except Exception:
+    except (OSError, AttributeError):
         pass
 
 

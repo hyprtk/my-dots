@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
@@ -90,6 +93,16 @@ class MonitorSampler(unittest.TestCase):
         self.assertIn("apps", out)
         self.assertIn("uid", out)
         self.assertIsInstance(out["apps"], list)
+
+
+class DimmCache(unittest.TestCase):
+    def test_use_cache_returns_nonempty_list(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "dimm.json"
+            slots = [{"locator": "DIMM_A1", "populated": True, "size_gb": 16.0}]
+            path.write_text(json.dumps(slots))
+            with mock.patch.object(monitor_data, "DIMM_CACHE", path):
+                self.assertEqual(monitor_data.dimm_slots(use_cache=True), slots)
 
 
 class DimmCli(unittest.TestCase):

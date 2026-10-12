@@ -19,7 +19,10 @@ WALL_DIR="$HOME/Pictures/Wallpapers"
 # ----------------------------------------------------- 
 # Select random wallpaper and create color scheme
 # ----------------------------------------------------- 
-"$WAL" -q -i "$WALL_DIR"
+if ! "$WAL" -q -i "$WALL_DIR"; then
+    notify-send "Wallpaper update failed" "pywal could not build a color scheme"
+    exit 1
+fi
 
 # ----------------------------------------------------- 
 # Read the selected wallpaper path from pywal's JSON.

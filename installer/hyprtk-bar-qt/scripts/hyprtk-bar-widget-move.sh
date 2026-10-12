@@ -12,6 +12,9 @@ runtime="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 fifo="$runtime/hyprtk-bar-qt-widget-move.fifo"
 
 if [ -p "$fifo" ]; then
-    printf '%s\n' "$action" > "$fifo" 2>/dev/null || true
+    if exec 3<>"$fifo"; then
+        printf '%s\n' "$action" >&3 2>/dev/null || true
+        exec 3>&-
+    fi
 fi
 exit 0

@@ -26,7 +26,7 @@ CheckBox {
         y: parent.height / 2 - height / 2
         radius: width / 2
         color: "transparent"
-        border.width: 1.5
+        border.width: 1
         border.color: root.checked ? Theme.accent : Theme.alpha(Theme.accent2, 0.5)
 
         Rectangle {

@@ -12,7 +12,7 @@ import argparse
 import json
 import os
 import re
-import sys
+import tempfile
 from pathlib import Path
 
 HOME = Path.home()
@@ -56,6 +56,10 @@ def read() -> dict:
 
 
 def set_value(key: str, value: str) -> bool:
+    if "\n" in key or "\r" in key or "=" in key:
+        return False
+    if "\n" in value or "\r" in value:
+        return False
     kind, path = detect()
     if path is None or not path.is_file():
         return False
@@ -77,8 +81,12 @@ def set_value(key: str, value: str) -> bool:
     if not found:
         out.append(f"{key}={value}")
     try:
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text("\n".join(out) + "\n")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".config.", suffix=".tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("\n".join(out) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(tmp, path)
         return True
     except OSError:
@@ -150,8 +158,12 @@ def sync_swaylock() -> bool:
         if key not in seen:
             out.append(f"{key}={value}")
     try:
-        tmp = SWAYLOCK.with_suffix(SWAYLOCK.suffix + ".tmp")
-        tmp.write_text("\n".join(out) + "\n")
+        SWAYLOCK.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(SWAYLOCK.parent), prefix=".swaylock.", suffix=".tmp")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write("\n".join(out) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(tmp, SWAYLOCK)
         return True
     except OSError:

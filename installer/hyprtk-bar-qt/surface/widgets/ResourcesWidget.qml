@@ -54,17 +54,11 @@ WidgetFrame {
             Text { text: m.label; color: win.widgetForeground; opacity: 0.9; font.pixelSize: Math.round(12 * win.effScale); Layout.fillWidth: true }
             Text { text: m.value; color: win.widgetAccent; font.bold: true; font.pixelSize: Math.round(13 * win.effScale) }
         }
-        Rectangle {
-            Layout.fillWidth: true
+        MeterBar {
             height: Math.round(6 * win.effScale)
-            radius: height / 2
-            color: Qt.rgba(win.widgetForeground.r, win.widgetForeground.g, win.widgetForeground.b, 0.15)
-            Rectangle {
-                width: parent.width * m.fraction
-                height: parent.height
-                radius: parent.radius
-                color: win.widgetAccent
-            }
+            fraction: m.fraction
+            trackColor: Qt.rgba(win.widgetForeground.r, win.widgetForeground.g, win.widgetForeground.b, 0.15)
+            fillColor: win.widgetAccent
         }
     }
 

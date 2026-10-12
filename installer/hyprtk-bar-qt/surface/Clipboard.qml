@@ -140,8 +140,8 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.96, Theme.opacity))
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         border.width: BarConfig.borderWidth
         border.color: Theme.accent
         SequentialAnimation on border.color {
@@ -160,32 +160,27 @@ PanelWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "Clipboard"; color: Theme.accent; font.bold: true; font.pixelSize: 15; Layout.fillWidth: true }
-                Rectangle {
-                    implicitWidth: clearText.implicitWidth + 18
+                Text { text: "Clipboard"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(15); Layout.fillWidth: true }
+                ChipButton {
                     implicitHeight: 26
-                    radius: 6
-                    color: clip.clearArmed ? Theme.alpha(Theme.err, 0.5)
-                        : (clearHover.hovered ? Theme.alpha(Theme.accent2, 0.25) : Theme.alpha(Theme.accent2, 0.12))
-                    Text { id: clearText; anchors.centerIn: parent; text: clip.clearArmed ? "Confirm?" : "Clear all"; color: Theme.foreground; font.pixelSize: 11 }
-                    HoverHandler { id: clearHover }
-                    TapHandler {
-                        onTapped: {
-                            if (!clip.clearArmed) {
-                                clip.clearArmed = true;
-                                clearReset.restart();
-                            } else {
-                                clearReset.stop();
-                                clip.clearArmed = false;
-                                clip.doWipe();
-                            }
+                    label: clip.clearArmed ? "Confirm?" : "Clear all"
+                    baseColor: clip.clearArmed ? Theme.alpha(Theme.err, 0.5) : Theme.alpha(Theme.accent2, 0.12)
+                    hoverColor: Theme.alpha(Theme.accent2, 0.25)
+                    onTapped: {
+                        if (!clip.clearArmed) {
+                            clip.clearArmed = true;
+                            clearReset.restart();
+                        } else {
+                            clearReset.stop();
+                            clip.clearArmed = false;
+                            clip.doWipe();
                         }
                     }
                 }
                 Text {
                     text: "\u00d7"
                     color: Theme.dim
-                    font.pixelSize: 18
+                    font.pixelSize: BarConfig.scaled(18)
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -207,7 +202,7 @@ PanelWindow {
                 visible: clip.filtered().length === 0
                 text: clip.entries.length === 0 ? "Clipboard is empty" : "No matches"
                 color: Theme.dim
-                font.pixelSize: 12
+                font.pixelSize: BarConfig.scaled(12)
                 topPadding: 12
             }
 
@@ -233,19 +228,19 @@ PanelWindow {
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 8
-                                anchors.rightMargin: 4
+                                anchors.rightMargin: 8
                                 spacing: 8
                                 Text {
                                     text: row.modelData.info || ""
                                     color: row.modelData.image ? Theme.warn : Theme.foreground
-                                    font.pixelSize: 11
+                                    font.pixelSize: BarConfig.scaled(11)
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                 }
                                 Text {
                                     text: "\u2715"
                                     color: Theme.dim
-                                    font.pixelSize: 12
+                                    font.pixelSize: BarConfig.scaled(12)
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor

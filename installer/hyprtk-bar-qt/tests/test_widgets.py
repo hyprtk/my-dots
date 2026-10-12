@@ -119,6 +119,20 @@ class SnapLayout(unittest.TestCase):
         self.assertEqual(out["a"]["h"], 150)
         self.assertEqual(out["b"]["y"], 10 + 150 + widgets_layout.SNAP_GAP)
 
+    def test_non_numeric_config_values_fall_back(self) -> None:
+        cfg = {
+            "a": {"snap_group": "g", "snap_axis": "horizontal", "snap_order": 0,
+                   "width": "bogus", "height": "nope", "margin_x": "x", "margin_y": "y",
+                   "position": "free"},
+            "b": {"snap_group": "g", "snap_axis": "horizontal", "snap_order": 1,
+                   "width": None, "height": None, "position": "free"},
+        }
+        out = widgets_layout.layout(cfg)
+        self.assertEqual(out["a"]["x"], 40)
+        self.assertEqual(out["a"]["y"], 40)
+        self.assertEqual(out["a"]["w"], 200)
+        self.assertEqual(out["a"]["h"], 120)
+
     def test_per_member_scale_fills_cell(self) -> None:
         # The cell is the largest natural member; smaller members scale up
         # (clamped to SNAP_SCALE_MAX), larger members scale down — as GTK.

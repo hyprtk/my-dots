@@ -96,6 +96,10 @@ Singleton {
                 root._ingest(o);
             }
         }
+        onExited: (code, status) => {
+            if (code !== 0)
+                root.ready = false;
+        }
     }
 
     // DIMM slots: cached read is instant; --fetch may prompt via pkexec.
@@ -113,6 +117,10 @@ Singleton {
                 root.dimmLoaded = root.dimmSlots.length > 0;
                 root.dimmStatus = root.dimmSlots.length ? "" : "DIMM info unavailable \u2014 click refresh";
             }
+        }
+        onExited: (code, status) => {
+            if (code !== 0)
+                root.dimmStatus = "DIMM info unavailable \u2014 click refresh";
         }
     }
 

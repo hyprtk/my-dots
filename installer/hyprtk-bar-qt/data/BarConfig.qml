@@ -80,6 +80,12 @@ Singleton {
         const s = root.font.size;
         return (typeof s === "number" && s > 0) ? s : fallback;
     }
+    // A size relative to the 12px design base, scaled by the configured font
+    // size so panels keep their hierarchy while following font.size.
+    function scaled(n, fallback) {
+        const base = fontSize(fallback || 12);
+        return Math.max(1, Math.round((n || 0) * base / 12));
+    }
 
     // Module-icon pixel size: `font.icon_size` verbatim when > 0, else scaled
     // from the base font (mirrors the GTK bar's icon_size_for()).

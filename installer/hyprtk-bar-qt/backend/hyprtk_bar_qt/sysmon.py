@@ -18,10 +18,13 @@ import time
 
 def _cpu_times() -> tuple[int, int]:
     """Return (idle_jiffies, total_jiffies) from /proc/stat."""
-    with open("/proc/stat") as f:
-        parts = f.readline().split()
-    vals = [int(x) for x in parts[1:]]
-    idle = vals[3] + (vals[4] if len(vals) > 4 else 0)
+    try:
+        with open("/proc/stat") as f:
+            parts = f.readline().split()
+        vals = [int(x) for x in parts[1:]]
+        idle = vals[3] + (vals[4] if len(vals) > 4 else 0)
+    except (OSError, ValueError, IndexError):
+        return 0, 0
     return idle, sum(vals)
 
 
@@ -37,13 +40,16 @@ def cpu_fraction(prev: tuple[int, int], cur: tuple[int, int]) -> float:
 def mem_fraction() -> float:
     """Fraction (0..1) of RAM in use (used = total - available)."""
     info: dict[str, int] = {}
-    with open("/proc/meminfo") as f:
-        for line in f:
-            key, _, rest = line.partition(":")
-            try:
-                info[key.strip()] = int(rest.strip().split()[0])
-            except (ValueError, IndexError):
-                continue
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                key, _, rest = line.partition(":")
+                try:
+                    info[key.strip()] = int(rest.strip().split()[0])
+                except (ValueError, IndexError):
+                    continue
+    except OSError:
+        return 0.0
     total = info.get("MemTotal", 0)
     avail = info.get("MemAvailable", info.get("MemFree", 0))
     if total <= 0:
@@ -54,21 +60,24 @@ def mem_fraction() -> float:
 def _net_bytes() -> tuple[int, int]:
     """Total (rx, tx) bytes across non-loopback interfaces from /proc/net/dev."""
     rx = tx = 0
-    with open("/proc/net/dev") as f:
-        for line in f:
-            if ":" not in line:
-                continue
-            iface, _, rest = line.partition(":")
-            if iface.strip() == "lo":
-                continue
-            fields = rest.split()
-            if len(fields) < 9:
-                continue
-            try:
-                rx += int(fields[0])
-                tx += int(fields[8])
-            except ValueError:
-                continue
+    try:
+        with open("/proc/net/dev") as f:
+            for line in f:
+                if ":" not in line:
+                    continue
+                iface, _, rest = line.partition(":")
+                if iface.strip() == "lo":
+                    continue
+                fields = rest.split()
+                if len(fields) < 9:
+                    continue
+                try:
+                    rx += int(fields[0])
+                    tx += int(fields[8])
+                except ValueError:
+                    continue
+    except OSError:
+        return 0, 0
     return rx, tx
 
 

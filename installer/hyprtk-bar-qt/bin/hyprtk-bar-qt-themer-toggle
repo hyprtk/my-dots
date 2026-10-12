@@ -12,7 +12,7 @@ here="$(cd -P "$(dirname "$src")" && pwd)"
 root="$(cd "$here/.." && pwd)"
 # Prefer the *running* instance's root: the bar may be run from a dev
 # checkout rather than this install dir, and `qs ipc -p` matches by path.
-running="$(pgrep -a qs 2>/dev/null | sed -n 's/.* -p \([^ ]*hyprtk-bar-qt[^ ]*\).*/\1/p' | head -1)"
+running="$(pgrep -a qs 2>/dev/null | sed -n 's/.* -p \([^ ]*hyprtk-bar-qt[^ ]*\).*/\1/p' | head -1 || true)"
 [ -n "$running" ] && root="$running"
 
 exec qs -p "$root" ipc call themer toggle

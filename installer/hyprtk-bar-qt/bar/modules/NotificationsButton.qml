@@ -49,7 +49,7 @@ Item {
             id: badgeText
             anchors.centerIn: parent
             text: NotifyData.unread > 9 ? "9+" : String(NotifyData.unread)
-            color: "#000000"
+            color: Theme.onAccent
             font.pixelSize: 9
         }
     }

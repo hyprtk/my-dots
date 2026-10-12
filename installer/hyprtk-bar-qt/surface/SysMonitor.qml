@@ -101,10 +101,16 @@ PanelWindow {
     property string appsMsg: ""
     property bool confirmOpen: false
     property bool confirmForce: false
+    property string appsCacheKey: ""
+    property var appsCacheSrc: null
+    property var appsCache: []
 
     function bucketRows(key) {
+        const src = MonitorData.sample;
+        if (key === win.appsCacheKey && src === win.appsCacheSrc)
+            return win.appsCache;
         const u = MonitorData.uid;
-        return (MonitorData.apps || []).filter(r => {
+        const rows = (MonitorData.apps || []).filter(r => {
             if (key === "user-apps")
                 return r.uid === u && r.is_app;
             if (key === "system-apps")
@@ -113,6 +119,10 @@ PanelWindow {
                 return r.uid === u;
             return r.uid !== u;
         }).slice(0, 250);
+        win.appsCacheKey = key;
+        win.appsCacheSrc = src;
+        win.appsCache = rows;
+        return rows;
     }
     function fmtMem(gb) {
         if (!gb || gb <= 0)
@@ -195,8 +205,8 @@ PanelWindow {
         spacing: 2
         RowLayout {
             Layout.fillWidth: true
-            Text { text: gcard.title; color: Theme.dim; font.pixelSize: 11; Layout.fillWidth: true }
-            Text { text: gcard.value; color: Theme.foreground; font.pixelSize: 11 }
+            Text { text: gcard.title; color: Theme.dim; font.pixelSize: BarConfig.scaled(11); Layout.fillWidth: true }
+            Text { text: gcard.value; color: Theme.foreground; font.pixelSize: BarConfig.scaled(11)}
         }
         Sparkline {
             Layout.fillWidth: true
@@ -214,9 +224,9 @@ PanelWindow {
         property string label: ""
         property string value: ""
         spacing: 6
-        Text { text: ro.glyph; color: Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: 12 }
-        Text { text: ro.label; color: Theme.dim; font.pixelSize: 11; Layout.fillWidth: true }
-        Text { text: ro.value; color: Theme.foreground; font.pixelSize: 11 }
+        Text { text: ro.glyph; color: Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(12)}
+        Text { text: ro.label; color: Theme.dim; font.pixelSize: BarConfig.scaled(11); Layout.fillWidth: true }
+        Text { text: ro.value; color: Theme.foreground; font.pixelSize: BarConfig.scaled(11)}
     }
 
     component SideButton: Rectangle {
@@ -234,10 +244,10 @@ PanelWindow {
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 10
-            anchors.rightMargin: 8
+            anchors.rightMargin: 10
             spacing: 8
-            Text { text: sb.glyph; color: sb.active ? "#000000" : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: 13 }
-            Text { text: sb.label; color: sb.active ? "#000000" : Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true }
+            Text { text: sb.glyph; color: sb.active ? Theme.onAccent : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+            Text { text: sb.label; color: sb.active ? Theme.onAccent : Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
         }
         HoverHandler { id: hov }
         MouseArea {
@@ -253,23 +263,16 @@ PanelWindow {
         property real pct: 0
         Layout.fillWidth: true
         spacing: 8
-        Text { text: "Core " + cr.core; color: Theme.dim; font.pixelSize: 10; Layout.preferredWidth: 52 }
-        Rectangle {
-            Layout.fillWidth: true
+        Text { text: "Core " + cr.core; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 52 }
+        MeterBar {
             height: 6
-            radius: 3
-            color: Theme.alpha(Theme.dim, 0.25)
-            Rectangle {
-                width: parent.width * Math.min(Math.max(cr.pct / 100, 0), 1)
-                height: parent.height
-                radius: 3
-                color: win.levelColor(cr.pct)
-            }
+            fraction: cr.pct / 100
+            fillColor: win.levelColor(cr.pct)
         }
         Text {
             text: Math.round(cr.pct) + "%"
             color: Theme.foreground
-            font.pixelSize: 10
+            font.pixelSize: BarConfig.scaled(10)
             Layout.preferredWidth: 34
             horizontalAlignment: Text.AlignRight
         }
@@ -298,30 +301,23 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 5
-                Text { text: dc.drive.glyph || ""; color: Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: 12 }
-                Text { text: dc.drive.type_label || ""; color: Theme.foreground; font.pixelSize: 10; Layout.fillWidth: true }
-                Text { text: dc.drive.size_b > 0 ? MonitorData.fmtBytes(dc.drive.size_b) : "\u2014"; color: Theme.dim; font.pixelSize: 10 }
+                Text { text: dc.drive.glyph || ""; color: Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(12)}
+                Text { text: dc.drive.type_label || ""; color: Theme.foreground; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true }
+                Text { text: dc.drive.size_b > 0 ? MonitorData.fmtBytes(dc.drive.size_b) : "\u2014"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
             }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 5
-                Rectangle {
-                    Layout.fillWidth: true
+                MeterBar {
                     height: 5
-                    radius: 3
-                    color: Theme.alpha(Theme.dim, 0.25)
-                    Rectangle {
-                        width: parent.width * Math.min(Math.max(dc.usedPct / 100, 0), 1)
-                        height: parent.height
-                        radius: 3
-                        color: win.levelColor(dc.usedPct)
-                    }
+                    fraction: dc.usedPct / 100
+                    fillColor: win.levelColor(dc.usedPct)
                 }
                 Text {
                     text: dc.drive.mounted ? MonitorData.fmtBytes(dc.drive.free_b) + " free"
                         : (dc.drive.size_b === 0 ? "No media" : "not mounted")
                     color: Theme.dim
-                    font.pixelSize: 9
+                    font.pixelSize: BarConfig.scaled(9)
                 }
             }
         }
@@ -352,21 +348,21 @@ PanelWindow {
             Text {
                 text: ar.entry.name || ""
                 color: Theme.foreground
-                font.pixelSize: 11
+                font.pixelSize: BarConfig.scaled(11)
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }
             Text {
                 text: (ar.entry.cpu || 0).toFixed(1) + "%"
                 color: Theme.dim
-                font.pixelSize: 11
+                font.pixelSize: BarConfig.scaled(11)
                 Layout.preferredWidth: 64
                 horizontalAlignment: Text.AlignRight
             }
             Text {
                 text: win.fmtMem(ar.entry.mem || 0)
                 color: Theme.dim
-                font.pixelSize: 11
+                font.pixelSize: BarConfig.scaled(11)
                 Layout.preferredWidth: 80
                 horizontalAlignment: Text.AlignRight
             }
@@ -397,19 +393,19 @@ PanelWindow {
                     text: "\uefc5"
                     color: dcard.slot.populated ? Theme.accent : Theme.dim
                     font.family: BarConfig.glyphFont
-                    font.pixelSize: 13
+                    font.pixelSize: BarConfig.scaled(13)
                 }
                 Text {
                     text: dcard.slot.populated ? Math.round(dcard.slot.size_gb || 0) + " GB" : "Empty"
                     color: dcard.slot.populated ? Theme.foreground : Theme.dim
-                    font.pixelSize: 11
+                    font.pixelSize: BarConfig.scaled(11)
                 }
             }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: dcard.slot.locator || ""
                 color: Theme.dim
-                font.pixelSize: 9
+                font.pixelSize: BarConfig.scaled(9)
             }
         }
     }
@@ -427,7 +423,7 @@ PanelWindow {
             anchors.centerIn: parent
             text: ab.label
             color: Theme.foreground
-            font.pixelSize: 11
+            font.pixelSize: BarConfig.scaled(11)
         }
         HoverHandler { id: abHover }
         TapHandler { onTapped: ab.clicked() }
@@ -438,20 +434,20 @@ PanelWindow {
         property var iface: ({})
         Layout.fillWidth: true
         spacing: 10
-        Text { text: ir.iface.glyph || ""; color: Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: 13 }
-        Text { text: ir.iface.name || ""; color: Theme.foreground; font.pixelSize: 11; Layout.preferredWidth: 80 }
-        Text { text: ir.iface.type || ""; color: Theme.dim; font.pixelSize: 11; Layout.preferredWidth: 80 }
-        Text { text: ir.iface.ip || "\u2014"; color: Theme.foreground; font.pixelSize: 11; Layout.fillWidth: true }
-        Text { text: "\uf063"; color: Theme.accent2; font.family: BarConfig.glyphFont; font.pixelSize: 10 }
-        Text { text: MonitorData.fmtRate(ir.iface.down_bps || 0); color: Theme.foreground; font.pixelSize: 11 }
-        Text { text: "\uf062"; color: Theme.warn; font.family: BarConfig.glyphFont; font.pixelSize: 10 }
-        Text { text: MonitorData.fmtRate(ir.iface.up_bps || 0); color: Theme.foreground; font.pixelSize: 11 }
+        Text { text: ir.iface.glyph || ""; color: Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+        Text { text: ir.iface.name || ""; color: Theme.foreground; font.pixelSize: BarConfig.scaled(11); Layout.preferredWidth: 80 }
+        Text { text: ir.iface.type || ""; color: Theme.dim; font.pixelSize: BarConfig.scaled(11); Layout.preferredWidth: 80 }
+        Text { text: ir.iface.ip || "\u2014"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(11); Layout.fillWidth: true }
+        Text { text: "\uf063"; color: Theme.accent2; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(10)}
+        Text { text: MonitorData.fmtRate(ir.iface.down_bps || 0); color: Theme.foreground; font.pixelSize: BarConfig.scaled(11)}
+        Text { text: "\uf062"; color: Theme.warn; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(10)}
+        Text { text: MonitorData.fmtRate(ir.iface.up_bps || 0); color: Theme.foreground; font.pixelSize: BarConfig.scaled(11)}
     }
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.96, Theme.opacity))
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         border.width: BarConfig.borderWidth
         border.color: Theme.accent
         SequentialAnimation on border.color {
@@ -471,11 +467,11 @@ PanelWindow {
             // ── header ─────────────────────────────────────────────────
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "System Monitor"; color: Theme.accent; font.bold: true; font.pixelSize: 16; Layout.fillWidth: true }
+                Text { text: "System Monitor"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(16); Layout.fillWidth: true }
                 Text {
                     text: "\u00d7"
                     color: Theme.dim
-                    font.pixelSize: 18
+                    font.pixelSize: BarConfig.scaled(18)
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -556,7 +552,7 @@ PanelWindow {
                                 Readout { glyph: "\uf2c9"; label: "CPU temperature"; value: MonitorData.cpu.temp_c !== undefined && MonitorData.cpu.temp_c !== null ? Math.round(MonitorData.cpu.temp_c) + "\u00b0C" : "--" }
                                 Readout { glyph: "\uf2db"; label: "Model"; value: win.stat(MonitorData.cpu.model || "--") }
                             }
-                            Text { text: "Cores / Threads"; color: Theme.dim; font.pixelSize: 11 }
+                            Text { text: "Cores / Threads"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                             GridLayout {
                                 Layout.fillWidth: true
                                 columns: 2
@@ -616,12 +612,12 @@ PanelWindow {
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.topMargin: 4
-                                Text { text: "Memory Slots"; color: Theme.dim; font.pixelSize: 11; Layout.fillWidth: true }
+                                Text { text: "Memory Slots"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11); Layout.fillWidth: true }
                                 Text {
                                     visible: MonitorData.dimmLoaded
                                     text: MonitorData.dimmPopulated() + " populated \u00b7 " + Math.round(MonitorData.dimmTotalGb()) + " GB"
                                     color: Theme.foreground
-                                    font.pixelSize: 11
+                                    font.pixelSize: BarConfig.scaled(11)
                                 }
                                 ActionButton { label: "Refresh"; onClicked: MonitorData.loadDimm(true) }
                             }
@@ -629,7 +625,7 @@ PanelWindow {
                                 visible: MonitorData.dimmStatus.length > 0
                                 text: MonitorData.dimmStatus
                                 color: Theme.dim
-                                font.pixelSize: 10
+                                font.pixelSize: BarConfig.scaled(10)
                             }
                             RowLayout {
                                 Layout.fillWidth: true
@@ -695,7 +691,7 @@ PanelWindow {
                                 }
                                 Readout { glyph: "\uf0ec"; label: "Total I/O"; value: win.stat(MonitorData.fmtRate((MonitorData.disk.read_bps || 0) + (MonitorData.disk.write_bps || 0)), "--") }
                             }
-                            Text { text: "Drives"; color: Theme.dim; font.pixelSize: 11 }
+                            Text { text: "Drives"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                             GridLayout {
                                 Layout.fillWidth: true
                                 columns: 3
@@ -748,7 +744,7 @@ PanelWindow {
                                 Readout { glyph: "\uf0ab"; label: "Download"; value: win.stat(MonitorData.fmtRate(MonitorData.net.down_bps || 0), "--") }
                                 Readout { glyph: "\uf0aa"; label: "Upload"; value: win.stat(MonitorData.fmtRate(MonitorData.net.up_bps || 0), "--") }
                             }
-                            Text { text: "Interfaces"; color: Theme.dim; font.pixelSize: 11 }
+                            Text { text: "Interfaces"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                             ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 3
@@ -801,7 +797,7 @@ PanelWindow {
                                 visible: MonitorData.gpuStatic && MonitorData.gpuStatic.model
                                 text: MonitorData.gpuStatic ? (MonitorData.gpuStatic.model || "") : ""
                                 color: Theme.foreground
-                                font.pixelSize: 12
+                                font.pixelSize: BarConfig.scaled(12)
                                 font.bold: true
                             }
                             Text {
@@ -820,13 +816,13 @@ PanelWindow {
                                     return parts.join(" \u00b7 ");
                                 }
                                 color: Theme.dim
-                                font.pixelSize: 11
+                                font.pixelSize: BarConfig.scaled(11)
                             }
                             Text {
                                 visible: MonitorData.ready && !MonitorData.gpu
                                 text: "GPU monitoring unavailable"
                                 color: Theme.dim
-                                font.pixelSize: 11
+                                font.pixelSize: BarConfig.scaled(11)
                             }
                             GridLayout {
                                 Layout.fillWidth: true
@@ -875,8 +871,8 @@ PanelWindow {
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: modelData.label
-                                                color: win.appsKey === modelData.key ? "#000000" : Theme.foreground
-                                                font.pixelSize: 11
+                                                color: win.appsKey === modelData.key ? Theme.onAccent : Theme.foreground
+                                                font.pixelSize: BarConfig.scaled(11)
                                             }
                                             TapHandler {
                                                 onTapped: {
@@ -891,15 +887,15 @@ PanelWindow {
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: 8
-                                    Text { text: "Process"; color: Theme.dim; font.pixelSize: 10; Layout.fillWidth: true }
-                                    Text { text: "CPU"; color: Theme.dim; font.pixelSize: 10; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                                    Text { text: "Memory"; color: Theme.dim; font.pixelSize: 10; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                                    Text { text: "Process"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true }
+                                    Text { text: "CPU"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
+                                    Text { text: "Memory"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
                                 }
                                 Text {
                                     visible: win.bucketRows(win.appsKey).length === 0
                                     text: MonitorData.ready ? "No processes" : "Loading\u2026"
                                     color: Theme.dim
-                                    font.pixelSize: 11
+                                    font.pixelSize: BarConfig.scaled(11)
                                 }
                                 Repeater {
                                     model: win.bucketRows(win.appsKey)
@@ -917,7 +913,7 @@ PanelWindow {
                                         text: win.appsMsg.length ? win.appsMsg
                                             : (win.selPid >= 0 ? win.selName + "  (PID " + win.selPid + ")" : "Select a process")
                                         color: win.appsMsg.length ? Theme.accent : Theme.dim
-                                        font.pixelSize: 10
+                                        font.pixelSize: BarConfig.scaled(10)
                                         Layout.fillWidth: true
                                         elide: Text.ElideRight
                                     }
@@ -931,6 +927,7 @@ PanelWindow {
                             anchors.fill: parent
                             visible: win.confirmOpen
                             color: Qt.rgba(0, 0, 0, 0.45)
+                            MouseArea { anchors.fill: parent }
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: Math.min(360, parent.width - 40)
@@ -948,14 +945,14 @@ PanelWindow {
                                         Layout.fillWidth: true
                                         text: (win.confirmForce ? "Force kill " : "Kill ") + win.selName + " (PID " + win.selPid + ")?"
                                         color: Theme.foreground
-                                        font.pixelSize: 12
+                                        font.pixelSize: BarConfig.scaled(12)
                                         wrapMode: Text.WordWrap
                                     }
                                     Text {
                                         Layout.fillWidth: true
                                         text: "This will terminate the process. Unsaved work in it will be lost."
                                         color: Theme.dim
-                                        font.pixelSize: 10
+                                        font.pixelSize: BarConfig.scaled(10)
                                         wrapMode: Text.WordWrap
                                     }
                                     RowLayout {

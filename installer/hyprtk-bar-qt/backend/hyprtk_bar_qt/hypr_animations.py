@@ -150,6 +150,8 @@ def _active_border_colors() -> list[str] | None:
         data = json.loads((Path.home() / ".cache" / "wal" / "colors.json").read_text())
     except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
     colors = data.get("colors") or {}
     c1, c2 = colors.get("color11"), colors.get("color4")
     if not c1 or not c2:

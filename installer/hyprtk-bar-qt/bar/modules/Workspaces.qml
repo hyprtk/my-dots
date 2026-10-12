@@ -61,7 +61,7 @@ RowLayout {
             Text {
                 anchors.centerIn: parent
                 text: pill.modelData
-                color: pill.act ? "#000000" : Theme.foreground
+                color: pill.act ? Theme.onAccent : Theme.foreground
                 font.pixelSize: Math.max(9, BarConfig.fontSize(Theme.fontSize) - 1)
                 font.bold: true
             }

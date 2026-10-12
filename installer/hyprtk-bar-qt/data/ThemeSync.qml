@@ -58,7 +58,7 @@ Singleton {
     // Re-link rofi from the current config (start-up + after every theme write).
     function syncRofi() { syncProc.running = true; }
 
-    Process { id: setProc; onExited: (code, status) => root.syncRofi() }
+    Process { id: setProc; onExited: (code, status) => { if (code === 0) root.syncRofi(); } }
     Process { id: syncProc; command: ["bash", root.syncScript] }
 
     Component.onCompleted: root.syncRofi()

@@ -11,7 +11,16 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-from hyprtk_bar_qt import icons, lock, pywal  # noqa: E402
+from hyprtk_bar_qt import config, icons, lock, pywal  # noqa: E402
+
+
+class PywalColors(unittest.TestCase):
+    def test_non_dict_json_returns_none(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "colors.json"
+            p.write_text("[1, 2, 3]")
+            with mock.patch.object(config, "PYWAL_PATH", p):
+                self.assertIsNone(config.load_pywal_colors())
 
 
 class PywalParse(unittest.TestCase):
@@ -88,6 +97,19 @@ class LockSettings(unittest.TestCase):
             try:
                 self.assertTrue(lock.set_value("text-color", "FFFFFF"))
                 self.assertIn("text-color=FFFFFF", cfg.read_text())
+            finally:
+                lock.SWAYLOCK, lock.HYPRLOCK_CONF = old_sway, old_hypr
+
+    def test_set_value_rejects_injection(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = Path(tmp) / "config"
+            cfg.write_text("ring-color=2AACCC\n")
+            old_sway, old_hypr = lock.SWAYLOCK, lock.HYPRLOCK_CONF
+            lock.SWAYLOCK, lock.HYPRLOCK_CONF = cfg, Path(tmp) / "nope.conf"
+            try:
+                self.assertFalse(lock.set_value("ring-color", "FF0000\ninside-color=000000"))
+                self.assertFalse(lock.set_value("bad=key", "FF0000"))
+                self.assertIn("ring-color=2AACCC", cfg.read_text())
             finally:
                 lock.SWAYLOCK, lock.HYPRLOCK_CONF = old_sway, old_hypr
 

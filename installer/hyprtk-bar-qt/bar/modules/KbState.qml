@@ -20,8 +20,8 @@ RowLayout {
 
     Process {
         id: proc
-        running: true
-        command: ["python3", "-u", root.backend, "--interval", "0.5"]
+        running: root.visible
+        command: ["python3", "-u", root.backend, "--interval", "2"]
         stdout: SplitParser {
             onRead: line => {
                 try {

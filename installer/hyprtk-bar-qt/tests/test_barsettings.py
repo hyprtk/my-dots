@@ -46,6 +46,11 @@ class Apply(unittest.TestCase):
             self.assertTrue(barsettings.apply({"opacity": 0.8}, path))
             self.assertEqual(json.loads(path.read_text())["opacity"], 0.8)
 
+    def test_apply_rejects_non_dict(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.json"
+            self.assertFalse(barsettings.apply([1, 2], path))
+
 
 if __name__ == "__main__":
     unittest.main()

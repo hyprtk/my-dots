@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.41.0 — unreleased
+
+Full review pass: bugs, security, performance and look & feel consistency.
+
+- **Fix**: the DIMM slot cache raised `NameError` (`DIMM_TTL`) on every cached
+  read; added the constant and a regression test.
+- **Fix**: `Sparkline` plotted up to 60 history points across a fixed 40 slots
+  (line ran past the right edge); it now tracks the value count.
+- **Fix**: quick-settings volume/mic/brightness sliders desynced from the real
+  value after a drag; state is re-applied on refresh and on each reader.
+- **Fix**: the SysMonitor kill-confirm scrim let clicks fall through to the
+  process list; it now swallows input.
+- **Fix**: start-menu default pins/recommended never resolved (case mismatch);
+  `byId` is now case-insensitive.
+- **Fix**: backend `Process` failures (dimm read, main streamer, theme/rofi sync,
+  start-menu writes) are surfaced instead of leaving stale UI.
+- **Security**: swaylock config writes reject newline/`=` injection and write
+  atomically via `mkstemp`; theme import rejects `.`/`..` names and confines
+  `@import` to `$HOME`; non-dict JSON is rejected in config/bar-settings.
+- **Perf**: `/sys/class/hwmon` walk TTL-cached; `top_processes` reads
+  `/proc/<pid>/status` once; KbState poll slowed to 2 s and gated on visibility;
+  drag cursor poll relaxed; About's processes start lazily.
+- **Robustness**: `/proc` read failures no longer kill the sysmon streamer;
+  timeouts added to the rofi picker and clipboard helpers; broad excepts narrowed.
+- **Look & feel**: shared `Theme` tokens (panel opacity, radii, `onAccent`/
+  `onDanger`, interaction/border alphas, scrim); unified panel/menu opacity,
+  radii, borders and insets; hardcoded colours → theme tokens; panel fonts follow
+  the configured size while keeping their hierarchy; unified motion; new
+  `MeterBar`/`ChipButton` components; `TButton`/`TTextField` reuse.
+- **Shell/install**: the widget-move FIFO no longer blocks with no reader;
+  `install.sh` stages subtrees before swapping (no half-deleted tree), guards
+  empty vars, builds package lists as arrays and writes a safe desktop `Exec`.
+
 ## 0.40.0 — unreleased
 
 Bar opacity ↔ widgets linking.

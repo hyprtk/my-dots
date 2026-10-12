@@ -68,8 +68,8 @@ def copy_entry(cid: str, image: str | None) -> bool:
         args = ["wl-copy", "--type", "image/" + image] if image else ["wl-copy"]
         copy = subprocess.Popen(args, stdin=decode.stdout)
         decode.stdout.close()
-        decode.wait()
-        return copy.wait() == 0
+        decode.wait(timeout=8)
+        return copy.wait(timeout=8) == 0
     except (OSError, subprocess.SubprocessError):
         return False
 
@@ -77,8 +77,8 @@ def copy_entry(cid: str, image: str | None) -> bool:
 def delete_entry(cid: str) -> bool:
     try:
         proc = subprocess.Popen(["cliphist", "delete"], stdin=subprocess.PIPE)
-        proc.communicate((str(cid) + "\n").encode("utf-8"))
-        return proc.wait() == 0
+        proc.communicate((str(cid) + "\n").encode("utf-8"), timeout=8)
+        return proc.wait(timeout=8) == 0
     except (OSError, subprocess.SubprocessError):
         return False
 

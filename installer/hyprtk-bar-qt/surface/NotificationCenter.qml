@@ -10,6 +10,7 @@ import "../theme"
 import "../config"
 import "../state"
 import "../data"
+import "../components"
 
 PanelWindow {
     id: center
@@ -76,8 +77,8 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.96, Theme.opacity))
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         border.width: BarConfig.borderWidth
         border.color: Theme.accent
         SequentialAnimation on border.color {
@@ -96,20 +97,18 @@ PanelWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "Notifications"; color: Theme.accent; font.bold: true; font.pixelSize: 15; Layout.fillWidth: true }
-                Rectangle {
-                    implicitWidth: clearText.implicitWidth + 18
+                Text { text: "Notifications"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(15); Layout.fillWidth: true }
+                ChipButton {
                     implicitHeight: 26
-                    radius: 6
-                    color: clearHover.hovered ? Theme.alpha(Theme.accent2, 0.25) : Theme.alpha(Theme.accent2, 0.12)
-                    Text { id: clearText; anchors.centerIn: parent; text: "Clear all"; color: Theme.foreground; font.pixelSize: 11 }
-                    HoverHandler { id: clearHover }
-                    TapHandler { onTapped: NotifyData.clearAll() }
+                    label: "Clear all"
+                    baseColor: Theme.alpha(Theme.accent2, 0.12)
+                    hoverColor: Theme.alpha(Theme.accent2, 0.25)
+                    onTapped: NotifyData.clearAll()
                 }
                 Text {
                     text: "\u00d7"
                     color: Theme.dim
-                    font.pixelSize: 18
+                    font.pixelSize: BarConfig.scaled(18)
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -123,7 +122,7 @@ PanelWindow {
                 visible: !NotifyData.enabled
                 text: "Notification daemon disabled (HYPRTK_BAR_QT_NOTIFICATIONS=0)."
                 color: Theme.warn
-                font.pixelSize: 11
+                font.pixelSize: BarConfig.scaled(11)
                 wrapMode: Text.WordWrap
             }
 
@@ -132,7 +131,7 @@ PanelWindow {
                 visible: NotifyData.tracked.length === 0
                 text: "No notifications"
                 color: Theme.dim
-                font.pixelSize: 12
+                font.pixelSize: BarConfig.scaled(12)
                 topPadding: 12
             }
 
@@ -173,12 +172,12 @@ PanelWindow {
                                         Layout.preferredWidth: 16
                                         Layout.preferredHeight: 16
                                     }
-                                    Text { text: row.modelData.appName || "Notification"; color: Theme.dim; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
-                                    Text { text: NotifyData.ago(row.modelData.id); color: Theme.dim; font.pixelSize: 10 }
+                                    Text { text: row.modelData.appName || "Notification"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true; elide: Text.ElideRight }
+                                    Text { text: NotifyData.ago(row.modelData.id); color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                                     Text {
                                         text: "\u00d7"
                                         color: Theme.dim
-                                        font.pixelSize: 13
+                                        font.pixelSize: BarConfig.scaled(13)
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
@@ -190,7 +189,7 @@ PanelWindow {
                                     text: row.modelData.summary || ""
                                     color: Theme.accent
                                     font.bold: true
-                                    font.pixelSize: 12
+                                    font.pixelSize: BarConfig.scaled(12)
                                     Layout.fillWidth: true
                                     wrapMode: Text.WordWrap
                                     visible: text.length > 0
@@ -198,7 +197,7 @@ PanelWindow {
                                 Text {
                                     text: row.modelData.body || ""
                                     color: Theme.foreground
-                                    font.pixelSize: 11
+                                    font.pixelSize: BarConfig.scaled(11)
                                     Layout.fillWidth: true
                                     wrapMode: Text.WordWrap
                                     visible: text.length > 0
@@ -218,15 +217,12 @@ PanelWindow {
                                     Item { Layout.fillWidth: true }
                                     Repeater {
                                         model: row.modelData.actions || []
-                                        delegate: Rectangle {
+                                        delegate: ChipButton {
                                             required property var modelData
-                                            implicitWidth: actText.implicitWidth + 18
-                                            implicitHeight: 24
-                                            radius: 6
-                                            color: actHover.hovered ? Theme.alpha(Theme.accent2, 0.3) : Theme.alpha(Theme.accent, 0.25)
-                                            Text { id: actText; anchors.centerIn: parent; text: modelData.text || ""; color: Theme.foreground; font.pixelSize: 11 }
-                                            HoverHandler { id: actHover }
-                                            TapHandler { onTapped: modelData.invoke() }
+                                            label: modelData.text || ""
+                                            baseColor: Theme.alpha(Theme.accent, 0.25)
+                                            hoverColor: Theme.alpha(Theme.accent2, 0.3)
+                                            onTapped: modelData.invoke()
                                         }
                                     }
                                 }

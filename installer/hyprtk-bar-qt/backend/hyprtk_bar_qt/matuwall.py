@@ -17,7 +17,6 @@ import argparse
 import json
 import os
 import re
-import sys
 import tempfile
 from pathlib import Path
 
@@ -98,6 +97,8 @@ def toml_value(value) -> str:
 
 def toml_dumps(cfg: dict) -> str:
     """Serialise a one-level-nested config dict to TOML."""
+    if not isinstance(cfg, dict):
+        raise TypeError("config must be a dict")
     out: list[str] = []
 
     def emit(prefix: list[str], body: dict) -> None:
@@ -209,6 +210,8 @@ def update_template(replacements: dict) -> None:
 
 
 def save(cfg: dict) -> None:
+    if not isinstance(cfg, dict):
+        raise TypeError("config must be a dict")
     _atomic_write(MATUWALL_CONFIG.resolve(), toml_dumps(cfg))
     update_template(template_replacements(cfg))
 
@@ -239,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     try:
         save(cfg)
-    except OSError as exc:
+    except (OSError, ValueError, TypeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 1
     print(json.dumps({"ok": True}))

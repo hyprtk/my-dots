@@ -60,6 +60,11 @@ class ThemeImport(unittest.TestCase):
     def test_traversal_name_is_none(self) -> None:
         self.assertIsNone(theme_import.parse_palette("../etc"))
 
+    def test_dot_names_rejected(self) -> None:
+        for name in (".", ".."):
+            self.assertFalse(theme_import._safe_name(name))
+            self.assertIsNone(theme_import._safe_theme_dir(name))
+
     def test_import_then_remove(self) -> None:
         src = self.base / "src-theme"
         src.mkdir()

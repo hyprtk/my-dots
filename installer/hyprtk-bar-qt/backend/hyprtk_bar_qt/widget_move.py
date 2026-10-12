@@ -17,7 +17,6 @@ import os
 import select
 import signal
 import stat
-import sys
 import time
 from pathlib import Path
 
@@ -63,7 +62,7 @@ def _arm_parent_death() -> None:
         libc = ctypes.CDLL("libc.so.6", use_errno=True)
         PR_SET_PDEATHSIG = 1
         libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
-    except Exception:
+    except (OSError, AttributeError):
         pass
 
 

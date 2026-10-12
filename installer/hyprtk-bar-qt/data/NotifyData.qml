@@ -50,10 +50,11 @@ Singleton {
                 onNotification: (n) => {
                     n.tracked = true;
                     root.unread += 1;
+                    root.tracked = root.tracked.concat([n]).slice(-root.maxStored);
                     const m = Object.assign({}, root.stamps);
                     m[n.id] = Date.now();
                     root.stamps = m;
-                    root.tracked = root.tracked.concat([n]).slice(-root.maxStored);
+                    root._pruneStamps();
                     root._pushToast(n);
                 }
             }
@@ -72,15 +73,32 @@ Singleton {
     function markRead() {
         root.unread = 0;
     }
+    function _pruneStamps() {
+        const live = {};
+        for (const n of root.tracked)
+            live[n.id] = true;
+        let next = null;
+        for (const k in root.stamps) {
+            if (!live[k]) {
+                if (!next)
+                    next = Object.assign({}, root.stamps);
+                delete next[k];
+            }
+        }
+        if (next)
+            root.stamps = next;
+    }
     function remove(n) {
         n.dismiss();
         root.tracked = root.tracked.filter(x => x !== n);
+        root._pruneStamps();
     }
     function clearAll() {
         const items = root.tracked.slice();
         for (let i = 0; i < items.length; i++)
             items[i].dismiss();
         root.tracked = [];
+        root.stamps = ({});
     }
 
     // Newest-first history for the center (capped at max_stored).

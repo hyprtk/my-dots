@@ -6,6 +6,7 @@
 import QtQuick
 import Quickshell
 import "../theme"
+import "../config"
 import "../data"
 
 PopupWindow {
@@ -15,6 +16,12 @@ PopupWindow {
 
     visible: Tooltips.show && Tooltips.text.length > 0 && Tooltips.target !== null
     color: "transparent"
+
+    property real reveal: 0
+    readonly property int animMs: Config.uiAnimations ? Config.animationDuration : 0
+    Behavior on reveal { NumberAnimation { duration: tip.animMs; easing.type: Easing.OutCubic } }
+    onVisibleChanged: tip.reveal = visible ? 1 : 0
+
     implicitWidth: label.implicitWidth + 18
     implicitHeight: label.implicitHeight + 8
 
@@ -28,9 +35,11 @@ PopupWindow {
     Rectangle {
         anchors.fill: parent
         radius: 6
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.95, Theme.opacity))
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         border.width: 1
         border.color: Theme.alpha(Theme.accent2, 0.3)
+        opacity: tip.reveal
+        transform: Translate { y: (1 - tip.reveal) * -8 }
 
         Text {
             id: label

@@ -311,7 +311,7 @@ PanelWindow {
         Text {
             text: r.label
             color: Theme.foreground
-            font.pixelSize: 12
+            font.pixelSize: BarConfig.scaled(12)
             Layout.preferredWidth: 150
             elide: Text.ElideRight
         }
@@ -322,13 +322,13 @@ PanelWindow {
         id: wo
         spacing: 4
         property string label: ""
-        Text { text: wo.label; color: Theme.dim; font.pixelSize: 10 }
+        Text { text: wo.label; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
     }
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.95, Theme.opacity))
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         opacity: win.reveal
         transform: Translate { y: (1 - win.reveal) * -8 }
     }
@@ -351,8 +351,8 @@ PanelWindow {
         Rectangle {
             Layout.fillHeight: true
             implicitWidth: 150
-            topLeftRadius: 14
-            bottomLeftRadius: 14
+            topLeftRadius: Theme.radiusPanel
+            bottomLeftRadius: Theme.radiusPanel
             color: Theme.alpha(Theme.background, 0.6)
             ColumnLayout {
                 anchors.fill: parent
@@ -373,9 +373,11 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.left: parent.left
                             anchors.leftMargin: 10
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
                             text: modelData
-                            color: win.page === index ? "#000000" : Theme.foreground
-                            font.pixelSize: 12
+                            color: win.page === index ? Theme.onAccent : Theme.foreground
+                            font.pixelSize: BarConfig.scaled(12)
                         }
                         HoverHandler { id: sbHover }
                         TapHandler { onTapped: win.page = index }
@@ -453,7 +455,7 @@ PanelWindow {
                                 value: win.g("opacity", 0.75)
                                 onMoved: { win.set("opacity", value); win.syncWidgetOpacity(value); }
                             }
-                            Text { text: Math.round(win.g("opacity", 0.75) * 100) + "%"; color: Theme.dim; font.pixelSize: 11 }
+                            Text { text: Math.round(win.g("opacity", 0.75) * 100) + "%"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                         }
                         Item { Layout.fillHeight: true }
                     }
@@ -565,7 +567,7 @@ PanelWindow {
                         Text {
                             Layout.fillWidth: true
                             text: "Animate the bar's border colour. Low/High follow Hyprland's animation files; Custom sets an independent speed."
-                            color: Theme.dim; font.pixelSize: 11; wrapMode: Text.WordWrap
+                            color: Theme.dim; font.pixelSize: BarConfig.scaled(11); wrapMode: Text.WordWrap
                         }
                         SRow {
                             label: "Animated border"
@@ -644,7 +646,7 @@ PanelWindow {
                             label: "Close on click"
                             TCheckBox { checked: win.g("arcmenu.close_on_click", true); onToggled: win.set("arcmenu.close_on_click", checked) }
                         }
-                        Text { text: "Menu items"; color: Theme.accent; font.bold: true; font.pixelSize: 12; Layout.topMargin: 6 }
+                        Text { text: "Menu items"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(12); Layout.topMargin: 6 }
                         Repeater {
                             model: win.arcItems()
                             delegate: RowLayout {
@@ -723,7 +725,7 @@ PanelWindow {
                             TCheckBox { checked: win.g("menu.show_recents", true); onToggled: win.set("menu.show_recents", checked) }
                         }
                         SRow { label: "Max recents"; TSpinBox { from: 0; to: 30; value: win.g("menu.max_recents", 10); onValueModified: win.set("menu.max_recents", value) } }
-                        Text { text: "Power commands"; color: Theme.accent; font.bold: true; font.pixelSize: 12; Layout.topMargin: 6 }
+                        Text { text: "Power commands"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(12); Layout.topMargin: 6 }
                         Repeater {
                             model: win.powerKeys
                             delegate: SRow {
@@ -732,14 +734,14 @@ PanelWindow {
                                 TTextField { Layout.fillWidth: true; text: win.powerVal(modelData); onEditingFinished: win.setPower(modelData, text) }
                             }
                         }
-                        Text { text: "Favourites"; color: Theme.accent; font.bold: true; font.pixelSize: 12; Layout.topMargin: 6 }
+                        Text { text: "Favourites"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(12); Layout.topMargin: 6 }
                         Repeater {
                             model: win.favorites()
                             delegate: RowLayout {
                                 required property var modelData
                                 required property int index
                                 Layout.fillWidth: true
-                                Text { text: modelData; color: Theme.foreground; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData; color: Theme.foreground; font.pixelSize: BarConfig.scaled(11); Layout.fillWidth: true; elide: Text.ElideRight }
                                 TButton { text: "\u2715"; implicitWidth: 30; onClicked: win.removeFavorite(index) }
                             }
                         }
@@ -806,7 +808,7 @@ PanelWindow {
                         Text {
                             Layout.fillWidth: true
                             text: "Enable a module and pick the bar section it lives in. Tap the arrow to reveal its options."
-                            color: Theme.dim; font.pixelSize: 11; wrapMode: Text.WordWrap
+                            color: Theme.dim; font.pixelSize: BarConfig.scaled(11); wrapMode: Text.WordWrap
                         }
                         Repeater {
                             model: win.moduleIds
@@ -836,7 +838,7 @@ PanelWindow {
                                         spacing: 8
                                         Text {
                                             text: win.moduleLabel(mcard.modelData)
-                                            color: Theme.foreground; font.bold: true; font.pixelSize: 12
+                                            color: Theme.foreground; font.bold: true; font.pixelSize: BarConfig.scaled(12)
                                             elide: Text.ElideRight
                                             Layout.preferredWidth: 122
                                         }
@@ -862,7 +864,7 @@ PanelWindow {
                                             visible: mcard.hasOpts
                                             implicitWidth: 28; implicitHeight: 24; radius: 6
                                             color: chevHover.hovered ? Theme.alpha(Theme.accent2, 0.2) : "transparent"
-                                            Text { anchors.centerIn: parent; text: mcard.expanded ? "\uf077" : "\uf078"; color: Theme.accent; font.pixelSize: 11 }
+                                            Text { anchors.centerIn: parent; text: mcard.expanded ? "\uf077" : "\uf078"; color: Theme.accent; font.pixelSize: BarConfig.scaled(11)}
                                             HoverHandler { id: chevHover }
                                             TapHandler { onTapped: win.toggleMod(mcard.modelData) }
                                         }
@@ -959,7 +961,7 @@ PanelWindow {
                             Text {
                                 Layout.fillWidth: true
                                 text: "Turn a desktop widget on and choose its screen position. Tap the arrow for size, colours and options."
-                                color: Theme.dim; font.pixelSize: 11; wrapMode: Text.WordWrap
+                                color: Theme.dim; font.pixelSize: BarConfig.scaled(11); wrapMode: Text.WordWrap
                             }
                             Repeater {
                                 model: win.widgetIds
@@ -985,7 +987,7 @@ PanelWindow {
                                         RowLayout {
                                             Layout.fillWidth: true
                                             spacing: 8
-                                            Text { text: win.widgetLabel(wcard.modelData); color: Theme.foreground; font.bold: true; font.pixelSize: 12; Layout.preferredWidth: 92 }
+                                            Text { text: win.widgetLabel(wcard.modelData); color: Theme.foreground; font.bold: true; font.pixelSize: BarConfig.scaled(12); Layout.preferredWidth: 92 }
                                             TCheckBox { text: "On"; checked: win.g("widgets." + wcard.modelData + ".enabled", false); onToggled: win.setWidget(wcard.modelData, "enabled", checked) }
                                             TComboBox {
                                                 Layout.preferredWidth: 128
@@ -993,7 +995,7 @@ PanelWindow {
                                                 currentIndex: win.idx(model, win.widgetVal(wcard.modelData, "position", "top-left"))
                                                 onActivated: win.setWidget(wcard.modelData, "position", model[currentIndex])
                                             }
-                                            Text { text: "Opacity"; color: Theme.dim; font.pixelSize: 10 }
+                                            Text { text: "Opacity"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                                             TSlider {
                                                 Layout.preferredWidth: 90
                                                 from: 0.1; to: 1.0; stepSize: 0.05
@@ -1004,7 +1006,7 @@ PanelWindow {
                                             Rectangle {
                                                 implicitWidth: 28; implicitHeight: 24; radius: 6
                                                 color: wchev.hovered ? Theme.alpha(Theme.accent2, 0.2) : "transparent"
-                                                Text { anchors.centerIn: parent; text: wcard.expanded ? "\uf077" : "\uf078"; color: Theme.accent; font.pixelSize: 11 }
+                                                Text { anchors.centerIn: parent; text: wcard.expanded ? "\uf077" : "\uf078"; color: Theme.accent; font.pixelSize: BarConfig.scaled(11)}
                                                 HoverHandler { id: wchev }
                                                 TapHandler { onTapped: win.toggleWid(wcard.modelData) }
                                             }
@@ -1015,7 +1017,7 @@ PanelWindow {
                                             spacing: 8
                                             visible: wcard.expanded
 
-                                            Text { text: "Placement"; color: Theme.dim; font.pixelSize: 10 }
+                                            Text { text: "Placement"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                                             Flow {
                                                 Layout.fillWidth: true
                                                 spacing: 8
@@ -1032,7 +1034,7 @@ PanelWindow {
                                                 WOpt { label: "order"; TSpinBox { from: 0; to: 99; value: win.widgetVal(wcard.modelData, "snap_order", 0); onValueModified: win.setWidget(wcard.modelData, "snap_order", value) } }
                                             }
 
-                                            Text { text: "Colours"; color: Theme.dim; font.pixelSize: 10; visible: wcard.hasColors }
+                                            Text { text: "Colours"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); visible: wcard.hasColors }
                                             Flow {
                                                 Layout.fillWidth: true
                                                 spacing: 8
@@ -1042,7 +1044,7 @@ PanelWindow {
                                                 WOpt { label: "accent"; TTextField { Layout.preferredWidth: 92; placeholderText: "#rrggbb"; text: win.widgetVal(wcard.modelData, "accent", ""); onEditingFinished: win.setWidget(wcard.modelData, "accent", text) } }
                                             }
 
-                                            Text { text: "Options"; color: Theme.dim; font.pixelSize: 10 }
+                                            Text { text: "Options"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                                             Flow {
                                                 Layout.fillWidth: true
                                                 spacing: 8
@@ -1134,7 +1136,7 @@ PanelWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "Saves to ~/.config/hyprtk-bar-qt/config.json (Qt bar only)"; color: Theme.dim; font.pixelSize: 10; Layout.fillWidth: true }
+                Text { text: "Saves to ~/.config/hyprtk-bar-qt/config.json (Qt bar only)"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true }
                 TButton { text: "Close"; onClicked: UiState.settingsOpen = false }
             }
         }
@@ -1145,7 +1147,7 @@ PanelWindow {
     // sidebar on the left/top-left/bottom-left).
     Rectangle {
         anchors.fill: parent
-        radius: 14
+        radius: Theme.radiusPanel
         color: "transparent"
         border.width: BarConfig.borderWidth
         border.color: Theme.accent

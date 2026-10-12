@@ -87,8 +87,8 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 10
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.opacity)
+        radius: Theme.radiusPopup
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacity)
         border.color: Theme.accent
         border.width: BarConfig.borderWidth
         SequentialAnimation on border.color {
@@ -113,24 +113,24 @@ PanelWindow {
                     id: row
                     required property var modelData
                     Layout.fillWidth: true
-                    implicitHeight: 30
+                    implicitHeight: 28
                     radius: 6
                     color: hover.hovered ? Theme.alpha(Theme.accent2, 0.18) : "transparent"
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
                         spacing: 10
                         Text {
                             text: row.modelData.glyph
                             color: Theme.accent
-                            font.pixelSize: 13
+                            font.pixelSize: BarConfig.scaled(13)
                         }
                         Text {
                             text: row.modelData.label
                             color: Theme.foreground
-                            font.pixelSize: 12
+                            font.pixelSize: BarConfig.scaled(12)
                             Layout.fillWidth: true
                         }
                     }

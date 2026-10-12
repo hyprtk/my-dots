@@ -110,9 +110,9 @@ PanelWindow {
 
     // Widgets follow the bar's *resolved* theme (manual / imported / pywal), so
     // changing the bar theme repaints them too; a per-widget colour overrides it.
-    readonly property color widgetBackground: frame._pick(frame.backgroundOverride, Theme.background, "#1e1e2e")
-    readonly property color widgetForeground: frame._pick(frame.foregroundOverride, Theme.foreground, "#e5e7eb")
-    readonly property color widgetAccent: frame._pick(frame.accentOverride, Theme.accent, "#c084fc")
+    readonly property color widgetBackground: frame._pick(frame.backgroundOverride, Theme.background, Theme.background)
+    readonly property color widgetForeground: frame._pick(frame.foregroundOverride, Theme.foreground, Theme.foreground)
+    readonly property color widgetAccent: frame._pick(frame.accentOverride, Theme.accent, Theme.accent)
 
     default property alias contentData: contentCol.data
 

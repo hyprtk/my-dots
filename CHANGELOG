@@ -3,6 +3,23 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [Unreleased] - 2026-10-12
+
+### Changed
+
+- **`hyprtk-bar-qt` (re-vendored, 0.41.0)** — full review pass. Bug fixes: DIMM
+  cache `NameError`, sparkline scaling, quick-settings slider/state sync,
+  SysMonitor kill-confirm click-through, start-menu pin case-mismatch, backend
+  `Process` exit handling. Security: swaylock / theme-import / config input
+  guards (newline/`=`/`..`/non-dict rejected, `@import` confined to `$HOME`),
+  atomic `mkstemp` writes. Performance: cached hwmon walk, single
+  `/proc/<pid>/status` read, slower visibility-gated polls, lazy About probes.
+  Look & feel: shared `Theme` tokens, unified panel opacity/radii/insets/motion,
+  hardcoded colours → tokens, panel fonts follow the configured size, new
+  `MeterBar`/`ChipButton` components. Shell/install: `install.sh` stages
+  subtrees before swapping and guards empty vars; the widget-move FIFO no longer
+  blocks when no reader is attached.
+
 ## [Unreleased] - 2026-10-09
 
 ### Changed

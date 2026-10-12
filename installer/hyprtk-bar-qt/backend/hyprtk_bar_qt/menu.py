@@ -17,10 +17,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 import tempfile
 from copy import deepcopy
-from pathlib import Path
 
 try:
     from .paths import QT_CONFIG

@@ -4,12 +4,10 @@ The hyprtk taskbar, rewritten on Qt. **QML presentation + Python/IPC logic**,
 built on [Quickshell](https://quickshell.org/) (a QtQuick toolkit that provides
 Wayland layer-shell surfaces, Hyprland IPC, SNI tray, MPRIS, PipeWire and more).
 
-This is the Qt counterpart to the GTK4 `hyprtk-bar`. It exists because
-PySide6/QtWidgets has **no supported layer-shell binding for Python** — the
-supported route for a Wayland bar is QML — so the shell is QML and any logic
-that is awkward in QML lives in a toolkit-free Python backend.
-
-See `../hyprtk-bar/QT-MIGRATION.md` for the full assessment and rationale.
+This is the hyprtk taskbar, on Qt — it replaced the GTK4 `hyprtk-bar`. The
+rewrite exists because PySide6/QtWidgets has **no supported layer-shell binding
+for Python** — the supported route for a Wayland bar is QML — so the shell is
+QML and any logic that is awkward in QML lives in a toolkit-free Python backend.
 
 ## Architecture
 
@@ -141,8 +139,7 @@ monitor dialog (CPU / Memory / Disks / Network / GPU / Apps, opened from the
 sysmon module), a notification center (bell + history panel), cliphist
 clipboard history, and free-floating desktop widgets (clock / resources / disk /
 network) driven by the Qt bar's own `widgets` config. Theming reads the live
-pywal palette and the Qt config's `theme` block, so it matches the desktop while
-the GTK bar still runs alongside it with its own separate config.
+pywal palette and its own config's `theme` block, so it matches the desktop.
 
 `make test` runs the toolkit-free backend unit tests. The arc menu, clipboard,
 settings and themer panels can be bound to hotkeys with

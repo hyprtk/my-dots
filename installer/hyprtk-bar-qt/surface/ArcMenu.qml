@@ -153,14 +153,14 @@ PanelWindow {
             border.color: arc.fabColor
             border.width: 1
 
-            Behavior on x { enabled: arc.animOn; NumberAnimation { duration: arc.animMs; easing.type: Easing.OutBack } }
-            Behavior on y { enabled: arc.animOn; NumberAnimation { duration: arc.animMs; easing.type: Easing.OutBack } }
+            Behavior on x { enabled: arc.animOn; NumberAnimation { duration: arc.animMs; easing.type: Easing.OutCubic } }
+            Behavior on y { enabled: arc.animOn; NumberAnimation { duration: arc.animMs; easing.type: Easing.OutCubic } }
             Behavior on opacity { enabled: arc.animOn; NumberAnimation { duration: arc.animMs } }
 
             Text {
                 anchors.centerIn: parent
                 text: cell.modelData.glyph || "\u2022"
-                color: "#000000"
+                color: Theme.onAccent
                 font.family: BarConfig.glyphFont
                 font.pixelSize: (arc.cfg.glyph_size > 0) ? arc.cfg.glyph_size
                     : Math.round(16 * (arc.itemSize / 42))
@@ -189,7 +189,7 @@ PanelWindow {
         Text {
             anchors.centerIn: parent
             text: arc.cfg.fab_glyph || "\uf00a"
-            color: "#000000"
+            color: Theme.onAccent
             font.family: BarConfig.glyphFont
             font.pixelSize: Math.round(arc.fabSize * 0.4)
             font.bold: true

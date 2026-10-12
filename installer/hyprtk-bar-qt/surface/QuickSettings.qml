@@ -77,6 +77,12 @@ PanelWindow {
 
     function refresh() {
         qs.brightnessProbed = false;
+        if (!vol.pressed)
+            vol.value = qs.volume;
+        if (!micVol.pressed)
+            micVol.value = qs.micVolume;
+        if (!bright.pressed)
+            bright.value = qs.brightness;
         volGet.running = true;
         micGet.running = true;
         brightGet.running = true;
@@ -93,6 +99,8 @@ PanelWindow {
                 if (m)
                     qs.volume = Math.round(parseFloat(m[1]) * 100);
                 qs.muted = /MUTED/.test(line);
+                if (!vol.pressed)
+                    vol.value = qs.volume;
             }
         }
     }
@@ -105,6 +113,8 @@ PanelWindow {
                 if (m)
                     qs.micVolume = Math.round(parseFloat(m[1]) * 100);
                 qs.micMuted = /MUTED/.test(line);
+                if (!micVol.pressed)
+                    micVol.value = qs.micVolume;
             }
         }
     }
@@ -126,6 +136,8 @@ PanelWindow {
                 qs.brightness = Math.round(parseInt(f[3]) || 0);
                 qs.hasBacklight = true;
                 qs.brightnessProbed = true;
+                if (!bright.pressed)
+                    bright.value = qs.brightness;
             }
         }
         onExited: (code) => {
@@ -141,6 +153,8 @@ PanelWindow {
                 const m = line.match(/gamma[:\s=]+([0-9]+)\s*%?/i);
                 if (m)
                     qs.brightness = Math.max(30, Math.min(parseInt(m[1]), 100));
+                if (!bright.pressed)
+                    bright.value = qs.brightness;
             }
         }
         onExited: (code) => { qs.hasBacklight = false; }
@@ -167,8 +181,8 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.opacity)
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacity)
         border.width: BarConfig.borderWidth
         border.color: Theme.accent
         SequentialAnimation on border.color {
@@ -192,13 +206,13 @@ PanelWindow {
                     text: "Quick Settings"
                     color: Theme.accent
                     font.bold: true
-                    font.pixelSize: 15
+                    font.pixelSize: BarConfig.scaled(15)
                     Layout.fillWidth: true
                 }
                 Text {
                     text: "\u00d7"
                     color: Theme.dim
-                    font.pixelSize: 16
+                    font.pixelSize: BarConfig.scaled(16)
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -211,7 +225,7 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
-                Text { text: qs.muted ? "\u2716" : "\u266b"; color: Theme.foreground; font.pixelSize: 15 }
+                Text { text: qs.muted ? "\u2716" : "\u266b"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(15)}
                 TSlider {
                     id: vol
                     Layout.fillWidth: true
@@ -222,13 +236,14 @@ PanelWindow {
                     onMoved: {
                         Quickshell.execDetached(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "0"]);
                         Quickshell.execDetached(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", (value / 100).toFixed(2)]);
+                        qs.volume = Math.round(value);
                     }
                 }
-                Text { text: qs.volume + "%"; color: Theme.foreground; font.pixelSize: 12; Layout.preferredWidth: 38 }
+                Text { text: qs.volume + "%"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.preferredWidth: 38 }
                 Text {
                     text: qs.muted ? "unmute" : "mute"
                     color: Theme.accent2
-                    font.pixelSize: 11
+                    font.pixelSize: BarConfig.scaled(11)
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -244,8 +259,9 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
-                Text { text: qs.micMuted ? "\uf131" : "\uf130"; color: Theme.foreground; font.family: BarConfig.glyphFont; font.pixelSize: 15 }
+                Text { text: qs.micMuted ? "\uf131" : "\uf130"; color: Theme.foreground; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(15)}
                 TSlider {
+                    id: micVol
                     Layout.fillWidth: true
                     from: 0
                     to: 100
@@ -254,13 +270,14 @@ PanelWindow {
                     onMoved: {
                         Quickshell.execDetached(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "0"]);
                         Quickshell.execDetached(["wpctl", "set-volume", "@DEFAULT_AUDIO_SOURCE@", (value / 100).toFixed(2)]);
+                        qs.micVolume = Math.round(value);
                     }
                 }
-                Text { text: qs.micVolume + "%"; color: Theme.foreground; font.pixelSize: 12; Layout.preferredWidth: 38 }
+                Text { text: qs.micVolume + "%"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.preferredWidth: 38 }
                 Text {
                     text: qs.micMuted ? "unmute" : "mute"
                     color: Theme.accent2
-                    font.pixelSize: 11
+                    font.pixelSize: BarConfig.scaled(11)
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -276,8 +293,9 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
-                Text { text: "\u263c"; color: Theme.warn; font.pixelSize: 15 }
+                Text { text: "\u263c"; color: Theme.warn; font.pixelSize: BarConfig.scaled(15)}
                 TSlider {
+                    id: bright
                     Layout.fillWidth: true
                     from: qs.hasBacklight ? 0 : 30
                     to: 100
@@ -294,7 +312,7 @@ PanelWindow {
                         }
                     }
                 }
-                Text { text: qs.brightness + "%"; color: Theme.foreground; font.pixelSize: 12; Layout.preferredWidth: 38 }
+                Text { text: qs.brightness + "%"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.preferredWidth: 38 }
             }
 
             // wifi

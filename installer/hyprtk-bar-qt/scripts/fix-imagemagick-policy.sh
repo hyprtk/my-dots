@@ -41,7 +41,10 @@ for f in "${POLICIES[@]}"; do
     before="$(grep -c 'TXT' "$f" 2>/dev/null || true)"
     # Only touch the module-domain line(s); a bare `s/TXT,//` would strip TXT
     # from every coder policy in the file.
-    as_root sed -i '/domain="module"/{s/TXT,//g; s/,TXT//g}' "$f"
+    if ! as_root sed -i '/domain="module"/{s/TXT,//g; s/,TXT//g}' "$f"; then
+        echo "failed to update $f" >&2
+        continue
+    fi
     after="$(grep -c 'TXT' "$f" 2>/dev/null || true)"
     if [ "${before:-0}" = "${after:-0}" ]; then
         echo "no TXT restriction changed in $f" >&2

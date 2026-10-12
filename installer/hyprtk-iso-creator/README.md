@@ -1,7 +1,7 @@
 # Hyprtk-ISO-Creator
 
 Build a **live Arch Linux ISO with the hyprtk desktop preinstalled and
-preconfigured** — a pywal-themed Hyprland session with hyprtk-bar, ready to use
+preconfigured** — a pywal-themed Hyprland session with hyprtk-bar-qt, ready to use
 the moment it boots.
 
 The builder starts from the stock archiso `releng` profile and adds:

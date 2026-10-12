@@ -14,6 +14,8 @@ def load_pywal_colors() -> dict | None:
         data = json.loads(PYWAL_PATH.read_text())
     except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
     out = dict(data.get("colors") or {})
     special = data.get("special") or {}
     out["background"] = special.get("background")

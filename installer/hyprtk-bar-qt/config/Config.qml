@@ -129,5 +129,9 @@ Singleton {
     Process {
         id: saveProc
         command: []
+        onExited: (code, status) => {
+            if (code !== 0)
+                console.warn("hyprtk-bar-qt config: write failed (exit " + code + ")");
+        }
     }
 }

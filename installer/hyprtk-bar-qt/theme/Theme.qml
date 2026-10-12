@@ -90,6 +90,23 @@ Singleton {
     readonly property color err: root.colors.color1 || "#f38ba8"
     readonly property color warn: root.colors.color3 || "#f9e2af"
     readonly property real opacity: root.num(root.config.opacity, 0.92)
+
+    // ── shared surface tokens ──────────────────────────────────────────
+    // Opaque floor for solid frosted panels.
+    readonly property real panelOpacity: Math.max(0.92, root.opacity)
+    // Higher floor for tooltips / menus / popups that should read more opaque.
+    readonly property real panelOpacityStrong: Math.max(0.96, root.opacity)
+    // Text/icon colours drawn on a fill (accent / danger).
+    readonly property color onAccent: "#000000"
+    readonly property color onDanger: "#ffffff"
+    readonly property color scrim: Qt.rgba(0, 0, 0, 0.35)
+    // Corner radii: panels, then compact popups.
+    readonly property int radiusPanel: 14
+    readonly property int radiusPopup: 10
+    // Standard interaction / border alpha steps (pair with alpha(c, a)).
+    readonly property real hoverAlpha: 0.15
+    readonly property real pressedAlpha: 0.40
+    readonly property real borderAlpha: 0.30
     readonly property string themeName: root.pick(Config.themeName, root.theme.theme_name || "")
 
     readonly property string fontFamily: root.pick(Config.fontFamily, "Noto Sans")

@@ -47,6 +47,8 @@ def deep_merge(base: dict, patch: dict) -> dict:
 
 
 def apply(patch: dict, path: Path = BAR_CONFIG) -> bool:
+    if not isinstance(patch, dict):
+        return False
     try:
         current = json.loads(path.read_text())
         if not isinstance(current, dict):

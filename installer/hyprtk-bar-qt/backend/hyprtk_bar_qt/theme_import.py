@@ -159,7 +159,13 @@ def import_theme(path) -> str | None:
         if not _safe_name(name):
             log.warning("refusing unsafe theme name %r", name)
             return None
+        if not (path / "style.css").is_file():
+            log.warning("not a waybar theme: %s", path)
+            return None
         dest = base / name
+        if dest.resolve().parent != base.resolve():
+            log.warning("refusing unsafe theme dir %r", name)
+            return None
         dest.mkdir(parents=True, exist_ok=True)
         for fname in ("style.css", "colors.css", "config"):
             src = path / fname
@@ -175,6 +181,9 @@ def import_theme(path) -> str | None:
             log.warning("refusing unsafe theme name %r", name)
             return None
         dest = base / name
+        if dest.resolve().parent != base.resolve():
+            log.warning("refusing unsafe theme dir %r", name)
+            return None
         dest.mkdir(parents=True, exist_ok=True)
         try:
             shutil.copy2(path, dest / "style.css")
@@ -234,6 +243,7 @@ def _absolutize_imports(css: str, origin_dir: Path) -> str:
 # ── CSS reading ─────────────────────────────────────────────────
 
 def _resolve_import(origin: Path, imp: str) -> Path | None:
+    home = Path.home().resolve()
     if imp.startswith("~"):
         target = Path(imp).expanduser()
     elif imp.startswith("/"):
@@ -246,7 +256,12 @@ def _resolve_import(origin: Path, imp: str) -> Path | None:
             # the bar's themes dir, fall back to the home-relative remainder so
             # `~/.cache/wal/...` imports still resolve.
             rest = re.sub(r"^(?:\.\./|\./)+", "", imp)
-            target = (Path.home() / rest).resolve()
+            target = (home / rest).resolve()
+    target = target.resolve()
+    try:
+        target.relative_to(home)
+    except ValueError:
+        return None
     if target.is_file():
         return target
     return None
@@ -478,12 +493,12 @@ _THEME_NAME_RE = re.compile(r"^[A-Za-z0-9_.+-]+$")
 
 def _safe_name(name: str) -> bool:
     """True when *name* is a sane theme dir name (no traversal / separators)."""
-    return bool(name) and _THEME_NAME_RE.fullmatch(name) is not None
+    return bool(name) and name not in (".", "..") and _THEME_NAME_RE.fullmatch(name) is not None
 
 
 def _safe_theme_dir(theme_name: str):
     """Resolve a theme directory, refusing traversal-style names."""
-    if not theme_name or not _THEME_NAME_RE.fullmatch(theme_name):
+    if not _safe_name(theme_name):
         return None
     return find_themes_dir() / theme_name
 

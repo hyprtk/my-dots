@@ -75,7 +75,7 @@ PanelWindow {
     property string statusMsg: ""
     property string importPath: ""
     property string lockConf: ""
-    property string iconHex: "#2196F3"
+    property string iconHex: Theme.accent
     property var mwConfig: ({})
     property var mwSections: []
 
@@ -505,8 +505,8 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.95, Theme.opacity))
+        radius: Theme.radiusPanel
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         opacity: win.reveal
         transform: Translate { y: (1 - win.reveal) * -8 }
     }
@@ -527,8 +527,8 @@ PanelWindow {
         Rectangle {
             Layout.fillHeight: true
             implicitWidth: 150
-            topLeftRadius: 14
-            bottomLeftRadius: 14
+            topLeftRadius: Theme.radiusPanel
+            bottomLeftRadius: Theme.radiusPanel
             color: Theme.alpha(Theme.background, 0.6)
             ColumnLayout {
                 anchors.fill: parent
@@ -548,10 +548,10 @@ PanelWindow {
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: 10
-                            anchors.rightMargin: 8
+                            anchors.rightMargin: 10
                             spacing: 8
-                            Text { text: modelData.glyph; color: win.page === index ? "#000000" : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: 13 }
-                            Text { text: modelData.label; color: win.page === index ? "#000000" : Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true }
+                            Text { text: modelData.glyph; color: win.page === index ? Theme.onAccent : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+                            Text { text: modelData.label; color: win.page === index ? Theme.onAccent : Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
                         }
                         HoverHandler { id: sbHover }
                         TapHandler { onTapped: win.page = index }
@@ -569,8 +569,8 @@ PanelWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: win.pages[win.page].label; color: Theme.accent; font.bold: true; font.pixelSize: 15; Layout.fillWidth: true }
-                Text { text: "\u00d7"; color: Theme.dim; font.pixelSize: 18; MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: UiState.themerOpen = false } }
+                Text { text: win.pages[win.page].label; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(15); Layout.fillWidth: true }
+                Text { text: "\u00d7"; color: Theme.dim; font.pixelSize: BarConfig.scaled(18); MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: UiState.themerOpen = false } }
             }
 
             StackLayout {
@@ -600,7 +600,7 @@ PanelWindow {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 5
-                            Text { text: "Wallpaper folder"; color: Theme.dim; font.pixelSize: 11 }
+                            Text { text: "Wallpaper folder"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                             TTextField {
                                 Layout.fillWidth: true
                                 text: win.wallDir()
@@ -627,7 +627,7 @@ PanelWindow {
                         visible: win.filteredWalls().length === 0
                         text: "No images in this folder"
                         color: Theme.dim
-                        font.pixelSize: 11
+                        font.pixelSize: BarConfig.scaled(11)
                     }
                     Flickable {
                         Layout.fillWidth: true
@@ -678,7 +678,7 @@ PanelWindow {
                 // Pywal ────────────────────────────────────────────────
                 ColumnLayout {
                     spacing: 8
-                    Text { text: "Live pywal palette (16 colours)"; color: Theme.dim; font.pixelSize: 11 }
+                    Text { text: "Live pywal palette (16 colours)"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                     GridLayout {
                         Layout.fillWidth: true
                         columns: 8
@@ -707,24 +707,24 @@ PanelWindow {
                             ? (win.pywalInspect + ": " + win.pywalColors[parseInt(win.pywalInspect.slice(5))] + "  (" + (win.pywalNames[parseInt(win.pywalInspect.slice(5))] || "") + ")")
                             : "Click a colour to inspect"
                         color: Theme.foreground
-                        font.pixelSize: 11
+                        font.pixelSize: BarConfig.scaled(11)
                     }
                     RowLayout {
                         spacing: 8
-                        Text { text: "Background"; color: Theme.dim; font.pixelSize: 10 }
+                        Text { text: "Background"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                         Rectangle { width: 18; height: 18; radius: 4; color: win.pywalSpecial.background || Theme.background; border.color: Theme.alpha(Theme.foreground, 0.3); border.width: 1 }
-                        Text { text: "Foreground"; color: Theme.dim; font.pixelSize: 10 }
+                        Text { text: "Foreground"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                         Rectangle { width: 18; height: 18; radius: 4; color: win.pywalSpecial.foreground || Theme.foreground; border.color: Theme.alpha(Theme.foreground, 0.3); border.width: 1 }
                         Item { Layout.fillWidth: true }
                     }
                     RowLayout {
                         spacing: 6
-                        Text { text: "wal dir"; color: Theme.dim; font.pixelSize: 10 }
+                        Text { text: "wal dir"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                         TTextField { Layout.fillWidth: true; placeholderText: win.wallDir(); text: win.pywalDir; color: Theme.foreground; onEditingFinished: win.pywalDir = text }
                         TButton { text: "Random wallpaper"; onClicked: win.rerunWal() }
                         TButton { text: "Refresh"; onClicked: { win.refreshPywal(); win.refreshSchemes(); } }
                     }
-                    Text { text: "Saved colour schemes (" + win.pywalSchemes.length + ")"; color: Theme.accent; font.bold: true; font.pixelSize: 11 }
+                    Text { text: "Saved colour schemes (" + win.pywalSchemes.length + ")"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(11)}
                     Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -751,7 +751,7 @@ PanelWindow {
                                         anchors.rightMargin: 10
                                         text: sch.modelData.name
                                         color: Theme.foreground
-                                        font.pixelSize: 11
+                                        font.pixelSize: BarConfig.scaled(11)
                                         elide: Text.ElideMiddle
                                     }
                                     HoverHandler { id: schHover }
@@ -765,7 +765,7 @@ PanelWindow {
                 // Rofi ─────────────────────────────────────────────────
                 ColumnLayout {
                     spacing: 8
-                    Text { text: "Active variant: " + (win.rofiActive.length ? win.rofiActive : "(none)"); color: Theme.foreground; font.pixelSize: 12 }
+                    Text { text: "Active variant: " + (win.rofiActive.length ? win.rofiActive : "(none)"); color: Theme.foreground; font.pixelSize: BarConfig.scaled(12)}
                     Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -785,7 +785,7 @@ PanelWindow {
                                     radius: 6
                                     color: rrHover.hovered ? Theme.alpha(Theme.accent2, 0.15)
                                         : (win.rofiActive === rr.modelData.name ? Theme.alpha(Theme.accent, 0.25) : "transparent")
-                                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: rr.modelData.name; color: Theme.foreground; font.pixelSize: 12 }
+                                    Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 10; text: rr.modelData.name; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12)}
                                     HoverHandler { id: rrHover }
                                     TapHandler { onTapped: win.applyRofi(rr.modelData.path) }
                                 }
@@ -844,7 +844,7 @@ PanelWindow {
                                         anchors.leftMargin: 8
                                         anchors.rightMargin: 8
                                         spacing: 8
-                                        Text { text: tr.modelData.name; color: Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true }
+                                        Text { text: tr.modelData.name; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
                                         Repeater {
                                             model: [tr.modelData.palette.background, tr.modelData.palette.foreground, tr.modelData.palette.accent]
                                             delegate: Rectangle {
@@ -882,7 +882,7 @@ PanelWindow {
                                     required property var modelData
                                     Layout.fillWidth: true
                                     spacing: 4
-                                    Text { text: mwSec.modelData.title; color: Theme.accent; font.bold: true; font.pixelSize: 12 }
+                                    Text { text: mwSec.modelData.title; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(12)}
                                     Repeater {
                                         model: mwSec.modelData.fields
                                         delegate: RowLayout {
@@ -893,7 +893,7 @@ PanelWindow {
                                             Text {
                                                 text: mwRow.modelData.label
                                                 color: Theme.foreground
-                                                font.pixelSize: 11
+                                                font.pixelSize: BarConfig.scaled(11)
                                                 Layout.preferredWidth: 170
                                                 elide: Text.ElideRight
                                             }
@@ -939,7 +939,7 @@ PanelWindow {
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: "Writes through the pywal symlink; colour keys stay live."; color: Theme.dim; font.pixelSize: 10; Layout.fillWidth: true }
+                        Text { text: "Writes through the pywal symlink; colour keys stay live."; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true }
                         TButton { text: "Save Matuwall"; onClicked: win.mwSave() }
                     }
                 }
@@ -953,7 +953,7 @@ PanelWindow {
                             ? win.lockKind + "  \u00b7  " + win.lockPath
                             : "No lock config found (swaylock or hyprlock)."
                         color: Theme.dim
-                        font.pixelSize: 10
+                        font.pixelSize: BarConfig.scaled(10)
                         wrapMode: Text.WordWrap
                     }
                     RowLayout {
@@ -965,7 +965,7 @@ PanelWindow {
                         TButton { text: "Reload"; onClicked: win.refreshLock() }
                         Item { Layout.fillWidth: true }
                     }
-                    Text { text: "Editable settings (" + win.lockItems.length + ")"; color: Theme.accent; font.bold: true; font.pixelSize: 11 }
+                    Text { text: "Editable settings (" + win.lockItems.length + ")"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(11)}
                     Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -985,7 +985,7 @@ PanelWindow {
                                     Text {
                                         text: lk.modelData.label
                                         color: Theme.foreground
-                                        font.pixelSize: 11
+                                        font.pixelSize: BarConfig.scaled(11)
                                         Layout.preferredWidth: 170
                                         elide: Text.ElideRight
                                     }
@@ -1009,7 +1009,7 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Editing writes back to the active lock config; pywal regenerates it on the next wallpaper change."
                         color: Theme.dim
-                        font.pixelSize: 9
+                        font.pixelSize: BarConfig.scaled(9)
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -1017,7 +1017,7 @@ PanelWindow {
                 // Icons ─────────────────────────────────────────────────
                 ColumnLayout {
                     spacing: 8
-                    Text { text: "Current folder colour: " + (win.iconCurrent.length ? win.iconCurrent : "unknown"); color: Theme.foreground; font.pixelSize: 12 }
+                    Text { text: "Current folder colour: " + (win.iconCurrent.length ? win.iconCurrent : "unknown"); color: Theme.foreground; font.pixelSize: BarConfig.scaled(12)}
                     RowLayout {
                         spacing: 10
                         Repeater {
@@ -1033,15 +1033,15 @@ PanelWindow {
                                     Layout.preferredHeight: 40
                                     Layout.alignment: Qt.AlignHCenter
                                 }
-                                Text { text: modelData.label; color: Theme.dim; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                                Text { text: modelData.label; color: Theme.dim; font.pixelSize: BarConfig.scaled(9); Layout.alignment: Qt.AlignHCenter }
                             }
                         }
                         Item { Layout.fillWidth: true }
                     }
-                    Text { text: "Pywal Auto-Color"; color: Theme.accent; font.bold: true; font.pixelSize: 12; Layout.topMargin: 4 }
-                    Text { text: "Matches the Papirus folder colour to pywal colour4."; color: Theme.dim; font.pixelSize: 10 }
+                    Text { text: "Pywal Auto-Color"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(12); Layout.topMargin: 4 }
+                    Text { text: "Matches the Papirus folder colour to pywal colour4."; color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                     TButton { text: "Apply pywal colour match"; onClicked: win.iconAuto() }
-                    Text { text: "Manual Folder Color"; color: Theme.accent; font.bold: true; font.pixelSize: 12; Layout.topMargin: 4 }
+                    Text { text: "Manual Folder Color"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(12); Layout.topMargin: 4 }
                     Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -1075,7 +1075,7 @@ PanelWindow {
                                             Layout.preferredHeight: 30
                                             Layout.alignment: Qt.AlignHCenter
                                         }
-                                        Text { text: pr.modelData.label; color: Theme.foreground; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                                        Text { text: pr.modelData.label; color: Theme.foreground; font.pixelSize: BarConfig.scaled(9); Layout.alignment: Qt.AlignHCenter }
                                     }
                                     HoverHandler { id: prHover }
                                     TapHandler { onTapped: win.applyIconPreset(pr.modelData.name) }
@@ -1098,7 +1098,7 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Update the login screen (SDDM) and bootloader (GRUB) with your current wallpaper. Runs as root via pkexec."
                         color: Theme.foreground
-                        font.pixelSize: 11
+                        font.pixelSize: BarConfig.scaled(11)
                         wrapMode: Text.WordWrap
                     }
                     Image {
@@ -1137,8 +1137,8 @@ PanelWindow {
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Text { text: "Importable themes"; color: Theme.dim; font.pixelSize: 11 }
-                        Text { Layout.fillWidth: true; visible: win.importable.length === 0; text: "None found"; color: Theme.dim; font.pixelSize: 11 }
+                        Text { text: "Importable themes"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
+                        Text { Layout.fillWidth: true; visible: win.importable.length === 0; text: "None found"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                         Flickable {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -1162,8 +1162,8 @@ PanelWindow {
                                             anchors.leftMargin: 8
                                             anchors.rightMargin: 6
                                             spacing: 8
-                                            Text { text: ir.modelData.name; color: Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
-                                            Text { text: ir.modelData.path; color: Theme.dim; font.pixelSize: 9; Layout.preferredWidth: 150; elide: Text.ElideMiddle }
+                                            Text { text: ir.modelData.name; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true; elide: Text.ElideRight }
+                                            Text { text: ir.modelData.path; color: Theme.dim; font.pixelSize: BarConfig.scaled(9); Layout.preferredWidth: 150; elide: Text.ElideMiddle }
                                             TButton { text: "Import"; onClicked: win.doImport(ir.modelData.path) }
                                         }
                                         HoverHandler { id: irHover }
@@ -1187,7 +1187,7 @@ PanelWindow {
                     ColumnLayout {
                         Layout.preferredWidth: 240
                         Layout.fillHeight: true
-                        Text { text: "Imported themes"; color: Theme.dim; font.pixelSize: 11 }
+                        Text { text: "Imported themes"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                         Flickable {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -1202,7 +1202,7 @@ PanelWindow {
                                     delegate: RowLayout {
                                         required property var modelData
                                         Layout.fillWidth: true
-                                        Text { text: modelData.name; color: Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
+                                        Text { text: modelData.name; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true; elide: Text.ElideRight }
                                         TButton { text: "\u2715"; onClicked: win.doRemove(modelData.name) }
                                     }
                                 }
@@ -1221,7 +1221,7 @@ PanelWindow {
                     value: Config.opacity >= 0 ? Config.opacity : Theme.opacity
                     onMoved: { Config.opacity = value; win.saveCfgSoon(); win.syncWidgetOpacity(value); }
                 }
-                Text { text: win.statusMsg; color: Theme.accent; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                Text { text: win.statusMsg; color: Theme.accent; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true; elide: Text.ElideRight }
                 TButton { text: "Save"; onClicked: Config.save() }
                 TButton { text: "Close"; onClicked: UiState.themerOpen = false }
             }
@@ -1232,7 +1232,7 @@ PanelWindow {
     // the same on every edge (the background's border was covered on the left).
     Rectangle {
         anchors.fill: parent
-        radius: 14
+        radius: Theme.radiusPanel
         color: "transparent"
         border.width: BarConfig.borderWidth
         border.color: Theme.accent

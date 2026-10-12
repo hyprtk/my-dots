@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import "../../theme"
 import "../../data"
+import "../../components"
 
 WidgetFrame {
     id: win
@@ -68,18 +69,12 @@ WidgetFrame {
                         font.pixelSize: Math.round(11 * win.effScale)
                     }
                 }
-                Rectangle {
+                MeterBar {
                     visible: win.showBar && modelData.size_b > 0
-                    Layout.fillWidth: true
                     height: Math.round(6 * win.effScale)
-                    radius: height / 2
-                    color: Qt.rgba(win.widgetForeground.r, win.widgetForeground.g, win.widgetForeground.b, 0.15)
-                    Rectangle {
-                        width: parent.width * Math.min(Math.max(win.frac(cell.modelData), 0), 1)
-                        height: parent.height
-                        radius: parent.radius
-                        color: win.widgetAccent
-                    }
+                    fraction: win.frac(cell.modelData)
+                    trackColor: Qt.rgba(win.widgetForeground.r, win.widgetForeground.g, win.widgetForeground.b, 0.15)
+                    fillColor: win.widgetAccent
                 }
             }
         }

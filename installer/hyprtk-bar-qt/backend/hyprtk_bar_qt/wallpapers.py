@@ -61,7 +61,7 @@ def _make_thumb(src: str, dst: Path) -> bool:
         with Image.open(src) as im:
             try:
                 im.draft("RGB", (THUMB_WIDTH, THUMB_WIDTH))
-            except Exception:
+            except (OSError, ValueError, AttributeError):
                 pass
             im = im.convert("RGB")
             im.thumbnail((THUMB_WIDTH, THUMB_WIDTH))

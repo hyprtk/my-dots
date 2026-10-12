@@ -57,18 +57,18 @@ PanelWindow {
 
     // ── palette / per-layout accents (GTK: whisker=color5, win7/plasma=color4,
     // win11=color6) ──────────────────────────────────────────────────────
-    readonly property color blueColor: Theme.walColor(4, "#89b4fa")
+    readonly property color blueColor: Theme.walColor(4, Theme.accent)
     readonly property color cyanColor: Theme.accent2
     readonly property color layoutAccent: sm.isWin7 || sm.isPlasma ? sm.blueColor
         : (sm.isWin11 ? sm.cyanColor : Theme.accent)
     readonly property color rowHover: Theme.alpha(sm.layoutAccent, sm.isWin7 ? 0.12 : 0.10)
     readonly property color selBg: sm.isWin7 ? sm.blueColor : Theme.alpha(sm.layoutAccent, 0.28)
     readonly property color selBorder: Theme.alpha(sm.layoutAccent, sm.isWin7 ? 0.0 : 0.5)
-    readonly property color selectedText: "#ffffff"
+    readonly property color selectedText: Theme.foreground
     readonly property color footerBg: sm.isWin7 ? Theme.alpha(sm.blueColor, 0.10)
         : sm.isWin11 ? Theme.alpha(Theme.foreground, 0.04)
         : sm.isPlasma ? Theme.alpha(sm.blueColor, 0.06)
-        : Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.92)
+        : Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacity)
     readonly property color footerBorder: sm.isWin7 ? Theme.alpha(sm.blueColor, 0.35)
         : sm.isWin11 ? Theme.alpha(Theme.foreground, 0.08)
         : sm.isPlasma ? Theme.alpha(sm.blueColor, 0.20)
@@ -123,10 +123,10 @@ PanelWindow {
         return String(id || "").replace(/\.desktop$/, "");
     }
     function byId(id) {
-        const want = sm._normId(id);
+        const want = sm._normId(id).toLowerCase();
         if (!want)
             return undefined;
-        return (sm.allApps || []).find(e => e.id === want);
+        return (sm.allApps || []).find(e => String(e.id || "").toLowerCase() === want);
     }
     function favoritesEntries() {
         return (MenuConfig.favorites || []).map(sm.byId).filter(e => e);
@@ -137,11 +137,11 @@ PanelWindow {
     // GTK falls back to a default pin/recommended set when favourites/recents
     // are empty (so the win11 tiles + whisker recents pane are never blank).
     readonly property var defaultPinned: [
-        "Alacritty", "brave-browser", "thunar", "chromium", "kitty",
+        "alacritty", "brave-browser", "thunar", "chromium", "kitty",
         "org.pulseaudio.pavucontrol", "btop"
     ]
     readonly property var defaultRecommended: [
-        "Alacritty", "brave-browser", "thunar", "org.pulseaudio.pavucontrol"
+        "alacritty", "brave-browser", "thunar", "org.pulseaudio.pavucontrol"
     ]
     // Win11 uses the pinned favourites, falling back to the default set; the
     // whisker/win7 favourite strips show only the real favourites (like GTK).
@@ -359,14 +359,32 @@ PanelWindow {
             Quickshell.execDetached(["sh", "-c", c]);
     }
 
-    Process { id: recProc }
-    Process { id: favProc }
-    Process { id: clearProc }
+    Process {
+        id: recProc
+        onExited: (code, status) => {
+            if (code !== 0)
+                console.warn("hyprtk-bar-qt menu: record failed (exit " + code + ")");
+        }
+    }
+    Process {
+        id: favProc
+        onExited: (code, status) => {
+            if (code !== 0)
+                console.warn("hyprtk-bar-qt menu: favorite write failed (exit " + code + ")");
+        }
+    }
+    Process {
+        id: clearProc
+        onExited: (code, status) => {
+            if (code !== 0)
+                console.warn("hyprtk-bar-qt menu: clear-recents failed (exit " + code + ")");
+        }
+    }
 
     // backdrop
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.35)
+        color: Theme.scrim
         MouseArea { anchors.fill: parent; onClicked: UiState.startMenuOpen = false }
     }
 
@@ -376,9 +394,9 @@ PanelWindow {
         y: sm.menuY
         width: sm.menuW
         height: sm.menuH
-        radius: 16
+        radius: Theme.radiusPanel
         clip: true
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, 0.92)
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacity)
         border.color: Theme.accent
         border.width: BarConfig.borderWidth
         SequentialAnimation on border.color {
@@ -426,7 +444,7 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: ar.entry ? (ar.entry.name || "") : ""
                         color: Theme.foreground
-                        font.pixelSize: sm.isWin7 ? 12 : 13
+                        font.pixelSize: BarConfig.scaled(sm.isWin7 ? 12 : 13)
                         elide: Text.ElideRight
                     }
                     Text {
@@ -434,7 +452,7 @@ PanelWindow {
                         visible: !!(ar.entry && ar.entry.comment)
                         text: ar.entry ? (ar.entry.comment || "") : ""
                         color: Theme.dim
-                        font.pixelSize: sm.isWin7 ? 10 : 11
+                        font.pixelSize: BarConfig.scaled(sm.isWin7 ? 10 : 11)
                         elide: Text.ElideRight
                     }
                 }
@@ -443,7 +461,7 @@ PanelWindow {
                     text: sm.isFavorite(ar.entry ? ar.entry.id : "") ? "\uf005" : "\uf006"
                     color: sm.isFavorite(ar.entry ? ar.entry.id : "") ? Theme.warn : Theme.dim
                     font.family: BarConfig.glyphFont
-                    font.pixelSize: 12
+                    font.pixelSize: BarConfig.scaled(12)
                     MouseArea {
                         anchors.fill: parent
                         anchors.margins: -6
@@ -471,7 +489,7 @@ PanelWindow {
                 anchors.leftMargin: 12
                 text: cr.label
                 color: cr.selected ? sm.selectedText : Theme.foreground
-                font.pixelSize: 13
+                font.pixelSize: BarConfig.scaled(13)
                 font.bold: cr.selected
             }
             HoverHandler { id: crHover }
@@ -505,7 +523,7 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: pt.entry ? (pt.entry.name || "") : ""
                     color: Theme.foreground
-                    font.pixelSize: 10
+                    font.pixelSize: BarConfig.scaled(10)
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -528,8 +546,8 @@ PanelWindow {
                 anchors.leftMargin: 12
                 anchors.rightMargin: 10
                 spacing: 10
-                Text { text: pr.glyph; color: sm.blueColor; font.family: BarConfig.glyphFont; font.pixelSize: 14 }
-                Text { text: pr.label; color: Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
+                Text { text: pr.glyph; color: sm.blueColor; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(14)}
+                Text { text: pr.label; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true; elide: Text.ElideRight }
             }
             HoverHandler { id: prHover }
             TapHandler { onTapped: sm.openPlace(pr.path) }
@@ -543,7 +561,7 @@ PanelWindow {
             implicitHeight: 24
             radius: 12
             color: pbHover.hovered ? Theme.alpha(sm.layoutAccent, 0.15) : "transparent"
-            Text { id: pbText; anchors.centerIn: parent; text: pb.label; color: sm.layoutAccent; font.pixelSize: 11 }
+            Text { id: pbText; anchors.centerIn: parent; text: pb.label; color: sm.layoutAccent; font.pixelSize: BarConfig.scaled(11)}
             HoverHandler { id: pbHover }
             TapHandler { onTapped: pb.tapped() }
         }
@@ -564,9 +582,9 @@ PanelWindow {
             Text {
                 anchors.centerIn: parent
                 text: pw.glyph
-                color: pwHover.hovered && pw.danger ? "#ffffff" : Theme.foreground
+                color: pwHover.hovered && pw.danger ? Theme.onDanger : Theme.foreground
                 font.family: BarConfig.glyphFont
-                font.pixelSize: 15
+                font.pixelSize: BarConfig.scaled(15)
             }
             HoverHandler { id: pwHover }
             TapHandler { onTapped: pw.tapped() }
@@ -596,9 +614,9 @@ PanelWindow {
                 text: "\uf002"
                 color: Theme.dim
                 font.family: BarConfig.glyphFont
-                font.pixelSize: 13
+                font.pixelSize: BarConfig.scaled(13)
             }
-            TextField {
+            TTextField {
                 id: field
                 anchors.left: parent.left
                 anchors.leftMargin: 38
@@ -608,11 +626,11 @@ PanelWindow {
                 placeholderText: sf.placeholder
                 placeholderTextColor: Theme.dim
                 color: Theme.foreground
-                font.pixelSize: 14
+                font.pixelSize: BarConfig.scaled(14)
                 font.family: Theme.fontFamily
                 background: Item {}
                 selectionColor: sm.layoutAccent
-                selectedTextColor: "#000000"
+                selectedTextColor: Theme.onAccent
                 onTextChanged: sf.edited()
                 onAccepted: sf.submitted()
                 Keys.onEscapePressed: UiState.startMenuOpen = false
@@ -662,7 +680,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: modelData.label
                             color: Theme.foreground
-                            font.pixelSize: 12
+                            font.pixelSize: BarConfig.scaled(12)
                             font.bold: sm.plasmaTab === modelData.tab
                         }
                         Rectangle {
@@ -737,7 +755,7 @@ PanelWindow {
                                 anchors.fill: parent
                                 anchors.margins: 8
                                 spacing: 6
-                                Text { text: "Favorites"; color: sm.layoutAccent; font.pixelSize: 11; font.bold: true }
+                                Text { text: "Favorites"; color: sm.layoutAccent; font.pixelSize: BarConfig.scaled(11); font.bold: true }
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 6
@@ -775,7 +793,7 @@ PanelWindow {
                                 Layout.topMargin: 10
                                 Layout.bottomMargin: 4
                                 spacing: 6
-                                Text { text: "Recently Used"; color: Theme.dim; font.pixelSize: 11; font.bold: true; Layout.fillWidth: true }
+                                Text { text: "Recently Used"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11); font.bold: true; Layout.fillWidth: true }
                                 PillButton { label: "Clear"; onTapped: sm.clearRecents() }
                             }
                             ListView {
@@ -813,7 +831,7 @@ PanelWindow {
                                 anchors.rightMargin: 10
                                 anchors.topMargin: 8
                                 spacing: 4
-                                Text { text: "Favorites"; color: sm.blueColor; font.pixelSize: 11; font.bold: true }
+                                Text { text: "Favorites"; color: sm.blueColor; font.pixelSize: BarConfig.scaled(11); font.bold: true }
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 6
@@ -843,8 +861,8 @@ PanelWindow {
                                 anchors.fill: parent
                                 anchors.leftMargin: 12
                                 anchors.rightMargin: 10
-                                Text { text: "All Programs"; color: Theme.foreground; font.pixelSize: 12; font.bold: true; Layout.fillWidth: true }
-                                Text { text: "\u25b8"; color: Theme.dim; font.pixelSize: 11 }
+                                Text { text: "All Programs"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); font.bold: true; Layout.fillWidth: true }
+                                Text { text: "\u25b8"; color: Theme.dim; font.pixelSize: BarConfig.scaled(11)}
                             }
                             HoverHandler { id: allHover }
                             TapHandler { onTapped: sm.side = "all" }
@@ -894,7 +912,7 @@ PanelWindow {
                             Layout.topMargin: 8
                             Layout.bottomMargin: 2
                             spacing: 8
-                            Text { text: "Pinned"; color: Theme.foreground; font.pixelSize: 13; font.bold: true; Layout.fillWidth: true }
+                            Text { text: "Pinned"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(13); font.bold: true; Layout.fillWidth: true }
                             PillButton { label: "All apps  \u25b8"; onTapped: sm.win11AllApps = true }
                         }
 
@@ -930,7 +948,7 @@ PanelWindow {
                             Layout.topMargin: 10
                             Layout.bottomMargin: 2
                             spacing: 8
-                            Text { text: "Recommended"; color: Theme.foreground; font.pixelSize: 13; font.bold: true; Layout.fillWidth: true }
+                            Text { text: "Recommended"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(13); font.bold: true; Layout.fillWidth: true }
                             PillButton { label: "More  \u25b8" }
                         }
 
@@ -1014,7 +1032,7 @@ PanelWindow {
                             spacing: 6
                             PillButton { label: "\u2190"; onTapped: sm.browseBack() }
                             PillButton { label: "\u2191"; onTapped: sm.browseUp() }
-                            Text { text: sm.browsePath; color: Theme.dim; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideMiddle }
+                            Text { text: sm.browsePath; color: Theme.dim; font.pixelSize: BarConfig.scaled(11); Layout.fillWidth: true; elide: Text.ElideMiddle }
                         }
                         RowLayout {
                             Layout.fillWidth: true
@@ -1036,7 +1054,7 @@ PanelWindow {
                                         implicitHeight: 30
                                         radius: 4
                                         color: bp2Hover.hovered ? Theme.alpha(sm.blueColor, 0.12) : "transparent"
-                                        Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 12; text: modelData.label; color: Theme.foreground; font.pixelSize: 12 }
+                                        Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 12; text: modelData.label; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12)}
                                         HoverHandler { id: bp2Hover }
                                         TapHandler { onTapped: sm.browseTo(modelData.path, false) }
                                     }
@@ -1061,9 +1079,9 @@ PanelWindow {
                                         anchors.leftMargin: 10
                                         anchors.rightMargin: 10
                                         spacing: 8
-                                        Text { text: frow.modelData.is_dir ? "\uf07b" : "\uf15b"; color: frow.modelData.is_dir ? Theme.warn : sm.blueColor; font.family: BarConfig.glyphFont; font.pixelSize: 13 }
-                                        Text { text: frow.modelData.name; color: Theme.foreground; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
-                                        Text { visible: !frow.modelData.is_dir; text: sm.fmtSize(frow.modelData.size); color: Theme.dim; font.pixelSize: 10 }
+                                        Text { text: frow.modelData.is_dir ? "\uf07b" : "\uf15b"; color: frow.modelData.is_dir ? Theme.warn : sm.blueColor; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+                                        Text { text: frow.modelData.name; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true; elide: Text.ElideRight }
+                                        Text { visible: !frow.modelData.is_dir; text: sm.fmtSize(frow.modelData.size); color: Theme.dim; font.pixelSize: BarConfig.scaled(10)}
                                     }
                                     HoverHandler { id: frHover }
                                     TapHandler { onTapped: sm.openEntry(frow.modelData) }
@@ -1105,20 +1123,20 @@ PanelWindow {
                             implicitHeight: 26
                             radius: 13
                             color: Theme.alpha(sm.layoutAccent, 0.22)
-                            Text { anchors.centerIn: parent; text: "\uf007"; color: sm.layoutAccent; font.family: BarConfig.glyphFont; font.pixelSize: 13 }
+                            Text { anchors.centerIn: parent; text: "\uf007"; color: sm.layoutAccent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
                         }
-                        Text { text: sm.username; color: Theme.foreground; font.pixelSize: 12 }
+                        Text { text: sm.username; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12)}
                     }
                     Item { Layout.fillWidth: true }
                     RowLayout {
                         spacing: 8
-                        Text { text: "hyprtk-menu"; color: Theme.dim; font.pixelSize: 12; font.italic: true }
+                        Text { text: "hyprtk-menu"; color: Theme.dim; font.pixelSize: BarConfig.scaled(12); font.italic: true }
                         PowerButton { glyph: "\uf013"; onTapped: { UiState.startMenuOpen = false; UiState.settingsOpen = true; } }
                         PowerButton { glyph: "\uf023"; onTapped: sm.power("lock") }
                         PowerButton { glyph: "\uf08b"; onTapped: sm.power("logout") }
                         PowerButton { glyph: "\uf021"; danger: true; onTapped: sm.power("reboot") }
                         PowerButton { glyph: "\uf011"; danger: true; onTapped: sm.power("shutdown") }
-                        Text { text: "\u2b0c"; color: Theme.dim; font.family: BarConfig.glyphFont; font.pixelSize: 13 }
+                        Text { text: "\u2b0c"; color: Theme.dim; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
                     }
                 }
             }

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
@@ -42,6 +43,14 @@ class MemFraction(unittest.TestCase):
         f = sysmon.mem_fraction()
         self.assertGreaterEqual(f, 0.0)
         self.assertLessEqual(f, 1.0)
+
+
+class ProcGuards(unittest.TestCase):
+    def test_readers_survive_oserror(self) -> None:
+        with mock.patch("builtins.open", side_effect=OSError):
+            self.assertEqual(sysmon._cpu_times(), (0, 0))
+            self.assertEqual(sysmon.mem_fraction(), 0.0)
+            self.assertEqual(sysmon._net_bytes(), (0, 0))
 
 
 class DiskUsage(unittest.TestCase):

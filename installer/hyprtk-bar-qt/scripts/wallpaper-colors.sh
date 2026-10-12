@@ -36,7 +36,7 @@ WOB_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 WOB_FIFO="$WOB_DIR/wobpipe"
 WOB_PID="$WOB_DIR/hyprtk-wob.pid"
 [ -r "$WOB_PID" ] && kill "$(cat "$WOB_PID")" 2>/dev/null
-pkill -f "tail -f $WOB_FIFO" 2>/dev/null
+pkill -f "(^|/)tail -f ${WOB_FIFO//./\\.}$" 2>/dev/null
 rm -f "$WOB_FIFO"
 if mkfifo -m 600 "$WOB_FIFO" 2>/dev/null; then
     tail -f "$WOB_FIFO" 2>/dev/null | wob -c ~/.config/wob/wob.ini >/dev/null 2>&1 &

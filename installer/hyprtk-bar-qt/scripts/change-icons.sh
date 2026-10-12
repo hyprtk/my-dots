@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Configuration
@@ -6,6 +7,8 @@ INPUT_FILE="$HOME/.cache/wal/colors"
 OUTPUT_FILE="$SCRIPT_DIR/folder-color.txt"
 LINE_NUMBER=5               # pywal line index (0‑based, so 5 → color4)
 DEFAULT_COLOR="mocha-blue"  # safe fallback from the palette below
+hex=""
+closest_color=""
 
 # wal colors start with a color of zero, so if i want to use color11 i must enter the value of 12 because of the row zero
 
@@ -189,11 +192,11 @@ echo "Closest color to $hex is: $closest_color"
 PAPIRUS="$HOME/.local/share/icons/papirus-folders.sh"
 if [[ -x "$PAPIRUS" ]]; then
     if "$PAPIRUS" -C "$closest_color" -t "$HOME/.local/share/icons/Papirus-Dark"; then
-        notify-send "Icon Colors updated" "with $closest_color"
+        notify-send "Icon Colors updated" "with $closest_color" || true
     else
-        notify-send "Icon colors failed" "papirus-folders returned an error"
+        notify-send "Icon colors failed" "papirus-folders returned an error" || true
     fi
 else
     echo "papirus-folders.sh not found" >&2
-    notify-send "Icon colors failed" "papirus-folders not found"
+    notify-send "Icon colors failed" "papirus-folders not found" || true
 fi

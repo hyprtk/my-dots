@@ -30,7 +30,10 @@ while true; do
         echo "Wallpaper changed: $CURRENT"
         LAST_WALL="$CURRENT"
         # Run pywal and sync colours (the wallpaper is already set by the caller)
-        "$WAL" -i "$CURRENT" -n -q
+        if ! "$WAL" -i "$CURRENT" -n -q; then
+            echo "wal failed for $CURRENT — skipping colour sync" >&2
+            continue
+        fi
         [ -f ~/.cache/wal/colors-wofi.css ]      && cp ~/.cache/wal/colors-wofi.css   ~/.config/wofi/style.css
         [ -f ~/.cache/wal/wob.ini ]              && cp ~/.cache/wal/wob.ini            ~/.config/wob/wob.ini
         [ -f ~/.cache/wal/hyprland-colors.conf ] && cp ~/.cache/wal/hyprland-colors.conf ~/.config/hypr/hyprland-colors.conf
@@ -39,7 +42,7 @@ while true; do
         "$SCRIPT_DIR/change-icons.sh"
         # hyprtk-bar owns the taskbar + notifications bus
         [ -r "$WOB_PID" ] && kill "$(cat "$WOB_PID")" 2>/dev/null
-        pkill -f "tail -f $WOB_FIFO" 2>/dev/null
+        pkill -f "(^|/)tail -f ${WOB_FIFO//./\\.}$" 2>/dev/null
         rm -f "$WOB_FIFO"
         if mkfifo -m 600 "$WOB_FIFO" 2>/dev/null; then
             tail -f "$WOB_FIFO" 2>/dev/null | wob -c ~/.config/wob/wob.ini >/dev/null 2>&1 &

@@ -67,7 +67,7 @@ works. See [`PORTABILITY.md`](PORTABILITY.md) for the full matrix.
 | **Terminal** | Alacritty + starship prompt |
 | **Editor** | Neovim (Vim fallback) |
 | **App launcher** | Rofi (plus the in-bar start menu) |
-| **Status bar** | hyprtk-bar-qt — GTK4 pywal-themed taskbar with built-in menus |
+| **Status bar** | hyprtk-bar-qt — Qt6/QML (Quickshell) pywal-themed taskbar with built-in menus |
 | **Desktop widgets** | Clock, weather, audio visualizer, hard disks, network, CPU/RAM and system info — free-floating surfaces you drag into place and snap into groups, themed by pywal |
 | **Theming** | pywal16 (bundled), live, from your wallpaper |
 | **Wallpaper** | Matuwall film-strip picker + rofi list + random (awww daemon, installed automatically) |

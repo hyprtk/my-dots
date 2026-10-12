@@ -13,14 +13,14 @@
 set -euo pipefail
 
 APP_NAME="hyprtk-bar-qt"
-INSTALL_DIR="$HOME/.local/share/$APP_NAME"
-QS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/$APP_NAME"
-BIN_DIR="$HOME/.local/bin"
-APPS_DIR="$HOME/.local/share/applications"
+INSTALL_DIR="${HOME:?}/.local/share/$APP_NAME"
+QS_DIR="${XDG_CONFIG_HOME:-${HOME:?}/.config}/quickshell/$APP_NAME"
+BIN_DIR="${HOME:?}/.local/bin"
+APPS_DIR="${HOME:?}/.local/share/applications"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/$APP_NAME"
+CONFIG_DIR="${XDG_CONFIG_HOME:-${HOME:?}/.config}/$APP_NAME"
 CONFIG_FILE="$CONFIG_DIR/config.json"
-CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/$APP_NAME"
+CACHE_DIR="${XDG_CACHE_HOME:-${HOME:?}/.cache}/$APP_NAME"
 
 usage() {
     echo "Usage: $0 [--dry-run|--no-deps|--no-extras|--wal-only|--uninstall|--help]"
@@ -60,7 +60,7 @@ done
 
 if [ "$DO_UNINSTALL" -eq 1 ]; then
     echo ":: Uninstalling $APP_NAME..."
-    rm -rf "$INSTALL_DIR" "$QS_DIR" "$CACHE_DIR"
+    rm -rf "${INSTALL_DIR:?}" "${QS_DIR:?}" "${CACHE_DIR:?}"
     rm -f "$BIN_DIR/wal"
     for h in "$SCRIPT_DIR"/bin/*; do
         [ -f "$h" ] || continue
@@ -199,7 +199,8 @@ install_extras() {
     local pm="$1"
     if [ -n "${EXTRAS[$pm]:-}" ]; then
         echo ":: Installing optional feature dependencies via $pm ..."
-        install_pkgs "$pm" ${EXTRAS[$pm]:-} || \
+        read -ra pkgs <<<"${EXTRAS[$pm]:-}"
+        install_pkgs "$pm" "${pkgs[@]}" || \
             echo ":: WARN: some optional packages failed to install — those features degrade gracefully."
     fi
     if [ "$pm" = "pacman" ] && [ -n "${EXTRAS_AUR:-}" ]; then
@@ -302,7 +303,8 @@ if [ "$SKIP_DEPS" -eq 0 ]; then
         echo ":: Install Quickshell (qs) + Qt6 QML modules manually, then rerun with --no-deps." >&2
     else
         echo ":: Installing system dependencies via $PM ..."
-        if ! install_pkgs "$PM" ${DEPS[$PM]:-}; then
+        read -ra pkgs <<<"${DEPS[$PM]:-}"
+        if ! install_pkgs "$PM" "${pkgs[@]}"; then
             echo ":: WARN: could not install all system dependencies via $PM (see above)." >&2
             echo "::       The bar will not start until Quickshell (qs) is available." >&2
         fi
@@ -378,17 +380,27 @@ fi
 # ── Install the QML shell tree (Quickshell reads it from the config dir) ────
 # Replace the runtime subtrees so modules removed upstream do not linger.
 dirs=(bar surface components config data state theme backend bin)
-mkdir -p "$QS_DIR"
+mkdir -p "${QS_DIR:?}"
 cp "$SCRIPT_DIR/shell.qml" "$QS_DIR/"
+if pgrep -f "qs.*-p.*$APP_NAME" >/dev/null 2>&1; then
+    echo ":: WARN: $APP_NAME appears to be running — restart it after install to load the new shell." >&2
+fi
 for d in "${dirs[@]}"; do
-    rm -rf "$QS_DIR/$d"
-    cp -a "$SCRIPT_DIR/$d" "$QS_DIR/$d"
+    staged="$QS_DIR/.$d.stage.$$"
+    rm -rf "$staged"
+    if cp -a "$SCRIPT_DIR/$d" "$staged" 2>/dev/null; then
+        rm -rf "${QS_DIR:?}/$d"
+        mv -f "$staged" "$QS_DIR/$d"
+    else
+        rm -rf "$staged"
+        echo ":: WARN: could not stage $d — keeping the existing tree." >&2
+    fi
 done
 find "$QS_DIR" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
 
 # ── Bundled scripts (installed tree the QML + launcher call) ────────────────
 if [ -d "$SCRIPT_DIR/scripts" ]; then
-    rm -rf "$INSTALL_DIR/scripts"
+    rm -rf "${INSTALL_DIR:?}/scripts"
     cp -a "$SCRIPT_DIR/scripts" "$INSTALL_DIR/scripts"
     chmod +x "$INSTALL_DIR/scripts"/*.sh 2>/dev/null || true
 fi
@@ -423,9 +435,9 @@ for s in "$SCRIPT_DIR"/bin/*; do
 done
 
 # Rewrite Exec to this user's actual launcher path.
-_exec_path="$(printf '%s' "$BIN_DIR/$APP_NAME" | sed -e 's/[\\&|]/\\&/g')"
 if [ -f "$SCRIPT_DIR/$APP_NAME.desktop" ]; then
-    sed "s|^Exec=.*|Exec=$_exec_path|" "$SCRIPT_DIR/$APP_NAME.desktop" > "$APPS_DIR/$APP_NAME.desktop"
+    awk -v e="$BIN_DIR/$APP_NAME" '/^Exec=/{print "Exec=\"" e "\""; next} {print}' \
+        "$SCRIPT_DIR/$APP_NAME.desktop" > "$APPS_DIR/$APP_NAME.desktop"
     update-desktop-database "$APPS_DIR" 2>/dev/null || true
 fi
 

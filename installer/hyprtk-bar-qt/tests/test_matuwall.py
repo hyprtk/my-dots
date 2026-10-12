@@ -30,6 +30,12 @@ class Toml(unittest.TestCase):
         self.assertEqual(matuwall.toml_value(["a", "b"]), '["a", "b"]')
         self.assertEqual(matuwall.toml_value("x"), '"x"')
 
+    def test_rejects_non_dict(self) -> None:
+        with self.assertRaises(TypeError):
+            matuwall.toml_dumps([1, 2])
+        with self.assertRaises(TypeError):
+            matuwall.save("nope")
+
 
 class Accessors(unittest.TestCase):
     def test_get_set_nested(self) -> None:

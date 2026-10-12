@@ -110,17 +110,14 @@ Singleton {
             "--id", id, "--x", String(x), "--y", String(y),
             "--rects", JSON.stringify(root.rects)];
         saveProc.running = true;
-        // Hold the dropped position until the async layout has caught up (else
-        // the widget flashes to its stale layout slot for a frame).
+        settleTimer.interval = 1500;
         settleTimer.restart();
         root.moving = false;
         root.movingId = "";
         root.status = "";
     }
 
-    // Clears the drop override once the config reload (debounce 120ms) and the
-    // layout process have both had time to run.
-    Timer { id: settleTimer; interval: 350; onTriggered: root.committed = ({}) }
+    Timer { id: settleTimer; interval: 500; onTriggered: root.committed = ({}) }
 
     Process {
         id: fifoProc
@@ -147,11 +144,19 @@ Singleton {
     }
     Process {
         id: saveProc
-        onExited: (code, status) => { root.status = code === 0 ? "Saved" : "Save failed"; }
+        onExited: (code, status) => {
+            root.status = code === 0 ? "Saved" : "Save failed";
+            if (code === 0) {
+                settleTimer.interval = 500;
+                settleTimer.restart();
+            } else {
+                root.committed = ({});
+            }
+        }
     }
     Timer {
         running: root.moving
-        interval: 30
+        interval: 70
         repeat: true
         onTriggered: cursorProc.running = true
     }

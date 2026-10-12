@@ -38,6 +38,11 @@ SPACING = SNAP_GAP
 BAR_CONFIG = QT_CONFIG
 
 
+def _as_int(v, default: int = 0) -> int:
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return default
 
 
 def layout(widgets: dict, heights: dict | None = None, bounds: dict | None = None) -> dict:
@@ -65,8 +70,8 @@ def layout(widgets: dict, heights: dict | None = None, bounds: dict | None = Non
         nat = []
         for _order, wid, block in members:
             measured = heights.get(wid) or {}
-            cw = max(int(block.get("width") or 0), int(measured.get("w") or 0)) or 200
-            ch = max(int(block.get("height") or 0), int(measured.get("h") or 0)) or 120
+            cw = max(_as_int(block.get("width"), 0), _as_int(measured.get("w"), 0)) or 200
+            ch = max(_as_int(block.get("height"), 0), _as_int(measured.get("h"), 0)) or 120
             nat.append((cw, ch))
         cell_w = max(n[0] for n in nat)
         cell_h = max(n[1] for n in nat)
@@ -86,8 +91,8 @@ def layout(widgets: dict, heights: dict | None = None, bounds: dict | None = Non
         anchor_block = members[0][2]
         mx = anchor_block.get("margin_x")
         my = anchor_block.get("margin_y")
-        ref_x = int(mx) if mx is not None else 40
-        ref_y = int(my) if my is not None else 40
+        ref_x = _as_int(mx, 40) if mx is not None else 40
+        ref_y = _as_int(my, 40) if my is not None else 40
         if str(anchor_block.get("position") or "free") != "free":
             ref_x, ref_y = 40, 40
         base_x, base_y = ref_x, ref_y

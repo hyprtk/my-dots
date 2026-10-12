@@ -28,24 +28,13 @@ Rectangle {
     BarCalendar { anchorWin: root.QsWindow.window }
 
     // Animated border (shared `theme.border_animation` + `animations` mode/speed).
-    readonly property bool borderAnim: BarConfig.theme.border_animation !== false && Config.uiAnimations
-    // Prefer the real Hyprland animation period (backend); fall back to a
-    // local estimate when the hypr config is unavailable.
-    readonly property int borderMs: {
-        if (HyprAnim.periodMs > 0)
-            return HyprAnim.periodMs;
-        const mode = BarConfig.animations.mode || "high";
-        if (mode === "custom")
-            return Math.max(200, Math.round(4000 / Math.max(1, BarConfig.animations.speed || 15)));
-        return mode === "low" ? 3200 : 1400;
-    }
     border.width: BarConfig.borderWidth
     border.color: Theme.accent
     SequentialAnimation on border.color {
-        running: root.borderAnim
+        running: Chrome.animated
         loops: Animation.Infinite
-        ColorAnimation { to: Theme.accent2; duration: root.borderMs; easing.type: Easing.InOutSine }
-        ColorAnimation { to: Theme.accent; duration: root.borderMs; easing.type: Easing.InOutSine }
+        ColorAnimation { to: Theme.accent2; duration: Chrome.periodMs; easing.type: Easing.InOutSine }
+        ColorAnimation { to: Theme.accent; duration: Chrome.periodMs; easing.type: Easing.InOutSine }
     }
 
     // Maps a layout entry to its module component.

@@ -2,6 +2,7 @@
 import QtQuick
 import Quickshell
 import "../theme"
+import "../config"
 import "../data"
 
 PopupWindow {
@@ -9,7 +10,7 @@ PopupWindow {
 
     property var anchorWin: null
 
-    readonly property var today: new Date()
+    property var today: new Date()
     readonly property int year: Cal.view.getFullYear()
     readonly property int month: Cal.view.getMonth()
     readonly property int daysInMonth: new Date(year, month + 1, 0).getDate()
@@ -20,6 +21,12 @@ PopupWindow {
 
     visible: Cal.show && Cal.target !== null
     color: "transparent"
+
+    property real reveal: 0
+    readonly property int animMs: Config.uiAnimations ? Config.animationDuration : 0
+    Behavior on reveal { NumberAnimation { duration: cal.animMs; easing.type: Easing.OutCubic } }
+    onVisibleChanged: cal.reveal = visible ? 1 : 0
+
     implicitWidth: 244
     implicitHeight: 236
     grabFocus: true
@@ -28,6 +35,13 @@ PopupWindow {
     Shortcut {
         sequence: "Escape"
         onActivated: Cal.close()
+    }
+
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: cal.today = new Date()
     }
 
     anchor.window: cal.anchorWin
@@ -39,10 +53,12 @@ PopupWindow {
 
     Rectangle {
         anchors.fill: parent
-        radius: 10
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Math.max(0.96, Theme.opacity))
+        radius: Theme.radiusPopup
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
         border.width: 1
         border.color: Theme.alpha(Theme.accent2, 0.25)
+        opacity: cal.reveal
+        transform: Translate { y: (1 - cal.reveal) * -8 }
 
         Column {
             anchors.fill: parent
@@ -55,7 +71,7 @@ PopupWindow {
                     text: "\uf053"
                     color: Theme.accent2
                     font.family: BarConfig.glyphFont
-                    font.pixelSize: 12
+                    font.pixelSize: BarConfig.scaled(12)
                     width: 22; height: 18
                     horizontalAlignment: Text.AlignHCenter
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Cal.prev() }
@@ -64,7 +80,7 @@ PopupWindow {
                     text: cal.monthNames[cal.month] + " " + cal.year
                     color: Theme.accent
                     font.bold: true
-                    font.pixelSize: 13
+                    font.pixelSize: BarConfig.scaled(13)
                     width: parent.width - 44
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -72,7 +88,7 @@ PopupWindow {
                     text: "\uf054"
                     color: Theme.accent2
                     font.family: BarConfig.glyphFont
-                    font.pixelSize: 12
+                    font.pixelSize: BarConfig.scaled(12)
                     width: 22; height: 18
                     horizontalAlignment: Text.AlignHCenter
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Cal.next() }
@@ -88,7 +104,7 @@ PopupWindow {
                         required property string modelData
                         text: modelData
                         color: Theme.dim
-                        font.pixelSize: 10
+                        font.pixelSize: BarConfig.scaled(10)
                         width: 30
                         height: 18
                         horizontalAlignment: Text.AlignHCenter
@@ -106,7 +122,7 @@ PopupWindow {
                         text: valid ? String(day) : ""
                         color: isToday ? Theme.accent : Theme.foreground
                         font.bold: isToday
-                        font.pixelSize: 11
+                        font.pixelSize: BarConfig.scaled(11)
                         width: 30
                         height: 22
                         horizontalAlignment: Text.AlignHCenter

@@ -25,8 +25,8 @@ def _rofi(prompt: str, entries: list[str], config: str = "") -> str | None:
         cmd += ["-config", config]
     try:
         proc = subprocess.run(cmd, input="\n".join(entries),
-                              capture_output=True, text=True)
-    except OSError:
+                              capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
         return None
     if proc.returncode != 0:
         return None

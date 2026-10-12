@@ -17,7 +17,6 @@ import os
 import shutil
 import stat
 import subprocess
-import sys
 import threading
 import time
 from pathlib import Path
@@ -120,7 +119,8 @@ class CavaSource:
         return True
 
     def _read(self) -> None:
-        assert self._proc is not None and self._proc.stdout is not None
+        if self._proc is None or self._proc.stdout is None:
+            return
         for line in self._proc.stdout:
             if self._stop.is_set():
                 break

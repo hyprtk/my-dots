@@ -100,8 +100,13 @@ case "$PM" in
         echo "No supported package manager found."
         ;;
 esac
+rc=$?
 
 echo
-echo "Update complete."
+if [ "$rc" -eq 0 ]; then
+    echo "Update complete."
+else
+    echo "Update did not complete — the upgrade was skipped (see above)." >&2
+fi
 echo "Press Enter to close."
 read -r _

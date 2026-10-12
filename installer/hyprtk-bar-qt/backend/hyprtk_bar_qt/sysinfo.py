@@ -52,7 +52,7 @@ def uptime() -> str:
 def gpu_model(use_cache: bool = True) -> str:
     try:
         info = monitor_data.gpu_static(use_cache=use_cache)
-    except Exception:
+    except (OSError, ValueError, TypeError, KeyError):
         info = None
     if not info:
         return ""
