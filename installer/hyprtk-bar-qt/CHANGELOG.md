@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.41.2 — unreleased
+
+- **Fix**: the clock's calendar popup overlapped the bar — it was anchored to
+  the clock label's bottom edge (which sits mid-bar), so it started inside the
+  bar. It is now window-anchored to the bar's bottom edge with a 6px gap, centred
+  on the clock, matching the GTK bar's popup placement.
+- **Fix**: the calendar used `panelOpacityStrong` (≥0.96) instead of the bar's
+  configured opacity, so it read as a separate surface. It now shares the bar's
+  effective opacity via a new `Theme.barOpacity` token (also used by `Bar.qml`).
+
 ## 0.41.1 — unreleased
 
 - **Fix**: `Theme.onAccent` / `Theme.onDanger` were invalid QML property names —

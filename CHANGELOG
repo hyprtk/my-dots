@@ -23,6 +23,11 @@ documented in this file. Dates are in YYYY-MM-DD format.
   invalid QML property names (`onAccent` was parsed as a signal handler for the
   `accent` property), which made the whole shell fail to load; renamed to
   `Theme.textOnAccent`/`Theme.textOnDanger`.
+- **`hyprtk-bar-qt` 0.41.2 (hotfix)** — the clock calendar popup overlapped the
+  bar (it was anchored to the clock label's bottom edge, which sits mid-bar); it
+  is now window-anchored to the bar's bottom edge with a 6px gap, centred on the
+  clock. The calendar also used `panelOpacityStrong` instead of the bar's
+  configured opacity; both now share a new `Theme.barOpacity` token.
 
 ## [Unreleased] - 2026-10-09
 

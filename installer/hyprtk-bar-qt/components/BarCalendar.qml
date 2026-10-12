@@ -11,6 +11,13 @@ PopupWindow {
     property var anchorWin: null
 
     property var today: new Date()
+
+    // Gap between the bar's bottom edge and the popup.
+    readonly property int gap: 6
+    // The clock's horizontal extent within the bar window, so the popup can
+    // centre on it. mapToItem is only re-evaluated when the target changes.
+    readonly property real anchorX: Cal.target ? Cal.target.mapToItem(null, 0, 0).x : 0
+    readonly property real anchorW: Cal.target ? Cal.target.width : 1
     readonly property int year: Cal.view.getFullYear()
     readonly property int month: Cal.view.getMonth()
     readonly property int daysInMonth: new Date(year, month + 1, 0).getDate()
@@ -44,9 +51,10 @@ PopupWindow {
         onTriggered: cal.today = new Date()
     }
 
+    // Hang off the bar's bottom edge (not the clock's), centred on the clock.
+    // Window-anchored so the rect is in bar-surface coordinates.
     anchor.window: cal.anchorWin
-    anchor.item: Cal.target
-    anchor.rect: Qt.rect(0, Cal.target ? Cal.target.height : 0, Cal.target ? Cal.target.width : 0, 1)
+    anchor.rect: Qt.rect(cal.anchorX, 0, cal.anchorW, BarConfig.barHeight + cal.gap)
     anchor.edges: Edges.Bottom
     anchor.gravity: Edges.Bottom
     anchor.adjustment: PopupAdjustment.SlideX
@@ -54,7 +62,7 @@ PopupWindow {
     Rectangle {
         anchors.fill: parent
         radius: Theme.radiusPopup
-        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.panelOpacityStrong)
+        color: Qt.rgba(Theme.background.r, Theme.background.g, Theme.background.b, Theme.barOpacity)
         border.width: 1
         border.color: Theme.alpha(Theme.accent2, 0.25)
         opacity: cal.reveal

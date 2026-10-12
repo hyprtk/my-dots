@@ -13,7 +13,7 @@ import "modules"
 Rectangle {
     id: root
 
-    readonly property real bgOpacity: Config.opacity >= 0 ? Config.opacity : Theme.opacity
+    readonly property real bgOpacity: Theme.barOpacity
     readonly property var leftMods: BarConfig.layoutLeft.length ? BarConfig.layoutLeft : Config.layoutLeft
     readonly property var centerMods: BarConfig.layoutCenter.length ? BarConfig.layoutCenter : Config.layoutCenter
     readonly property var rightMods: BarConfig.layoutRight.length ? BarConfig.layoutRight : Config.layoutRight

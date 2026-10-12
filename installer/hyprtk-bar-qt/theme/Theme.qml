@@ -92,6 +92,10 @@ Singleton {
     readonly property real opacity: root.num(root.config.opacity, 0.92)
 
     // ── shared surface tokens ──────────────────────────────────────────
+    // The bar surface's effective opacity: the user override when set, else the
+    // config/pywal value. Popups that hang off the bar (the calendar) reuse it
+    // so they read as one surface.
+    readonly property real barOpacity: Config.opacity >= 0 ? Config.opacity : root.opacity
     // Opaque floor for solid frosted panels.
     readonly property real panelOpacity: Math.max(0.92, root.opacity)
     // Higher floor for tooltips / menus / popups that should read more opaque.

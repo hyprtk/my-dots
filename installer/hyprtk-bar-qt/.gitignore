@@ -4,3 +4,7 @@ __pycache__/
 build/
 dist/
 .venv/
+
+# Dev-only working notes (not shipped).
+PARITY.md
+PLAN.md
