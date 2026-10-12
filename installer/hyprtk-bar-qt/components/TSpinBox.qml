@@ -16,7 +16,7 @@ SpinBox {
         font: root.font
         color: Theme.foreground
         selectionColor: Theme.accent
-        selectedTextColor: Theme.onAccent
+        selectedTextColor: Theme.textOnAccent
         horizontalAlignment: Qt.AlignLeft
         verticalAlignment: Qt.AlignVCenter
         readOnly: !root.editable

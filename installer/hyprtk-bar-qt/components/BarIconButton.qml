@@ -19,7 +19,7 @@ Rectangle {
     Text {
         anchors.centerIn: parent
         text: btn.glyph
-        color: btn.active ? Theme.onAccent : Theme.foreground
+        color: btn.active ? Theme.textOnAccent : Theme.foreground
         font.family: BarConfig.glyphFont
         font.pixelSize: BarConfig.iconSize(BarConfig.fontSize(11))
     }

@@ -582,7 +582,7 @@ PanelWindow {
             Text {
                 anchors.centerIn: parent
                 text: pw.glyph
-                color: pwHover.hovered && pw.danger ? Theme.onDanger : Theme.foreground
+                color: pwHover.hovered && pw.danger ? Theme.textOnDanger : Theme.foreground
                 font.family: BarConfig.glyphFont
                 font.pixelSize: BarConfig.scaled(15)
             }
@@ -630,7 +630,7 @@ PanelWindow {
                 font.family: Theme.fontFamily
                 background: Item {}
                 selectionColor: sm.layoutAccent
-                selectedTextColor: Theme.onAccent
+                selectedTextColor: Theme.textOnAccent
                 onTextChanged: sf.edited()
                 onAccepted: sf.submitted()
                 Keys.onEscapePressed: UiState.startMenuOpen = false

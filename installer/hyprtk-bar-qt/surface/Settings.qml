@@ -376,7 +376,7 @@ PanelWindow {
                             anchors.right: parent.right
                             anchors.rightMargin: 10
                             text: modelData
-                            color: win.page === index ? Theme.onAccent : Theme.foreground
+                            color: win.page === index ? Theme.textOnAccent : Theme.foreground
                             font.pixelSize: BarConfig.scaled(12)
                         }
                         HoverHandler { id: sbHover }

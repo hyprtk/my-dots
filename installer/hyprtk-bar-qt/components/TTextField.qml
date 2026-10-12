@@ -12,7 +12,7 @@ TextField {
     color: Theme.foreground
     placeholderTextColor: Theme.dim
     selectionColor: Theme.accent
-    selectedTextColor: Theme.onAccent
+    selectedTextColor: Theme.textOnAccent
     leftPadding: 9
     rightPadding: 9
 

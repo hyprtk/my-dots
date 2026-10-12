@@ -550,8 +550,8 @@ PanelWindow {
                             anchors.leftMargin: 10
                             anchors.rightMargin: 10
                             spacing: 8
-                            Text { text: modelData.glyph; color: win.page === index ? Theme.onAccent : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
-                            Text { text: modelData.label; color: win.page === index ? Theme.onAccent : Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
+                            Text { text: modelData.glyph; color: win.page === index ? Theme.textOnAccent : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+                            Text { text: modelData.label; color: win.page === index ? Theme.textOnAccent : Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
                         }
                         HoverHandler { id: sbHover }
                         TapHandler { onTapped: win.page = index }

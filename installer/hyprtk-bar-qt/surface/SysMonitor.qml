@@ -246,8 +246,8 @@ PanelWindow {
             anchors.leftMargin: 10
             anchors.rightMargin: 10
             spacing: 8
-            Text { text: sb.glyph; color: sb.active ? Theme.onAccent : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
-            Text { text: sb.label; color: sb.active ? Theme.onAccent : Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
+            Text { text: sb.glyph; color: sb.active ? Theme.textOnAccent : Theme.accent; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+            Text { text: sb.label; color: sb.active ? Theme.textOnAccent : Theme.foreground; font.pixelSize: BarConfig.scaled(12); Layout.fillWidth: true }
         }
         HoverHandler { id: hov }
         MouseArea {
@@ -871,7 +871,7 @@ PanelWindow {
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: modelData.label
-                                                color: win.appsKey === modelData.key ? Theme.onAccent : Theme.foreground
+                                                color: win.appsKey === modelData.key ? Theme.textOnAccent : Theme.foreground
                                                 font.pixelSize: BarConfig.scaled(11)
                                             }
                                             TapHandler {

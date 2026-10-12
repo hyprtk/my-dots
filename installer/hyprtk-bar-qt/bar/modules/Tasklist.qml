@@ -133,7 +133,7 @@ RowLayout {
                 anchors.rightMargin: 2
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 2
-                color: grp.act ? Theme.onAccent : Theme.accent2
+                color: grp.act ? Theme.textOnAccent : Theme.accent2
             }
 
             HoverHandler {

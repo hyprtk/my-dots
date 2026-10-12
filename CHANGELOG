@@ -19,6 +19,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
   `MeterBar`/`ChipButton` components. Shell/install: `install.sh` stages
   subtrees before swapping and guards empty vars; the widget-move FIFO no longer
   blocks when no reader is attached.
+- **`hyprtk-bar-qt` 0.41.1 (hotfix)** — `Theme.onAccent`/`Theme.onDanger` were
+  invalid QML property names (`onAccent` was parsed as a signal handler for the
+  `accent` property), which made the whole shell fail to load; renamed to
+  `Theme.textOnAccent`/`Theme.textOnDanger`.
 
 ## [Unreleased] - 2026-10-09
 

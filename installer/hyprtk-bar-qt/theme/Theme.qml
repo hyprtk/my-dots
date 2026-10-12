@@ -97,8 +97,8 @@ Singleton {
     // Higher floor for tooltips / menus / popups that should read more opaque.
     readonly property real panelOpacityStrong: Math.max(0.96, root.opacity)
     // Text/icon colours drawn on a fill (accent / danger).
-    readonly property color onAccent: "#000000"
-    readonly property color onDanger: "#ffffff"
+    readonly property color textOnAccent: "#000000"
+    readonly property color textOnDanger: "#ffffff"
     readonly property color scrim: Qt.rgba(0, 0, 0, 0.35)
     // Corner radii: panels, then compact popups.
     readonly property int radiusPanel: 14

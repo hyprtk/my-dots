@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.41.1 — unreleased
+
+- **Fix**: `Theme.onAccent` / `Theme.onDanger` were invalid QML property names —
+  QML parsed `onAccent` as a signal handler for the existing `accent` property,
+  so the whole shell failed to load (`Cannot assign a value to a signal`).
+  Renamed to `Theme.textOnAccent` / `Theme.textOnDanger`.
+
 ## 0.41.0 — unreleased
 
 Full review pass: bugs, security, performance and look & feel consistency.
