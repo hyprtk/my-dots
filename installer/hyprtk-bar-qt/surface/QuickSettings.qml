@@ -339,7 +339,13 @@ PanelWindow {
                     onColor: Theme.accent
                     offColor: Theme.accent2
                     onToggled: (v) => {
-                        Quickshell.execDetached(["bluetoothctl", "power", v ? "on" : "off"]);
+                        // `bluetoothctl power on` fails (org.bluez.Error.Failed) while the
+                        // adapter is rfkill soft-blocked — which it is out of the box on
+                        // many systems — so clear the soft block first. `;` (not `&&`) keeps
+                        // the power call running even if rfkill is absent.
+                        Quickshell.execDetached(["sh", "-c", v
+                            ? "rfkill unblock bluetooth; bluetoothctl power on"
+                            : "bluetoothctl power off"]);
                         qs.btOn = v;
                     }
                 }

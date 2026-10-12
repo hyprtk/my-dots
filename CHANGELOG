@@ -28,6 +28,13 @@ documented in this file. Dates are in YYYY-MM-DD format.
   is now window-anchored to the bar's bottom edge with a 6px gap, centred on the
   clock. The calendar also used `panelOpacityStrong` instead of the bar's
   configured opacity; both now share a new `Theme.barOpacity` token.
+- **`hyprtk-bar-qt` 0.41.3 (hotfix)** — the quick-settings Bluetooth toggle could
+  not enable Bluetooth: `bluetoothctl power on` fails (`org.bluez.Error.Failed`)
+  while the adapter is rfkill **soft-blocked** (its default on many systems).
+  Enabling now clears the soft block first (`rfkill unblock bluetooth`).
+- **`.gitignore`**: dropped the stale GTK `hyprtk-bar` generated-file entries —
+  the GTK bar is no longer vendored (bar-qt ships its own `hyprtk-bar-qt*`
+  launchers).
 
 ## [Unreleased] - 2026-10-09
 

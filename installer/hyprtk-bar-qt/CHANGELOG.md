@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.41.3 — unreleased
+
+- **Fix**: the quick-settings Bluetooth toggle could not enable Bluetooth —
+  `bluetoothctl power on` failed with `org.bluez.Error.Failed` while the adapter
+  was rfkill **soft-blocked** (its out-of-the-box state on many systems).
+  Enabling now clears the soft block first (`rfkill unblock bluetooth`) before
+  powering on; disabling is unchanged. The GTK bar had the same bug.
+
 ## 0.41.2 — unreleased
 
 - **Fix**: the clock's calendar popup overlapped the bar — it was anchored to
