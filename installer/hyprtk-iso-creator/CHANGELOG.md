@@ -3,6 +3,15 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.4] - 2026-10-13
+
+### Fixed
+
+- **Chooser icons + combo styling.** The folder chooser now uses the desktop
+  icon theme (`gtk-icon-theme-name`, i.e. `Papirus-Dark`) so its icons match the
+  session's pywal-recoloured folders; combo down-arrows are a themed SVG chevron
+  and the dropdown menu is restyled.
+
 ## [0.2.3] - 2026-10-13
 
 ### Fixed

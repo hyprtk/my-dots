@@ -20,7 +20,7 @@ import sys
 import threading
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPainter
+from PySide6.QtGui import QColor, QIcon, QPainter
 from PySide6.QtWidgets import (
     QAbstractButton,
     QApplication,
@@ -73,10 +73,47 @@ def _rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({c.red()},{c.green()},{c.blue()},{int(round(alpha * 255))})"
 
 
+def _arrow_icon(color: str) -> str:
+    """Write a small down-chevron SVG in ``color`` to the app cache and return
+    its path. Qt's QSS can't draw a border-triangle for ``QComboBox::down-arrow``
+    (it renders as a filled block), so the arrow is a themed SVG."""
+    cache = os.path.join(os.path.expanduser("~"), ".cache", "hyprtk-usb")
+    path = os.path.join(cache, "combo-arrow.svg")
+    try:
+        os.makedirs(cache, exist_ok=True)
+        with open(path, "w") as f:
+            f.write(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" '
+                'viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" '
+                f'stroke="{color}" stroke-width="2" stroke-linecap="round" '
+                'stroke-linejoin="round"/></svg>'
+            )
+        return path
+    except OSError:
+        return ""
+
+
+def _apply_icon_theme() -> None:
+    """Use the desktop's icon theme (Papirus-Dark) so file-chooser icons match
+    the session — and the pywal folder colour papirus-folders applies there."""
+    name = ""
+    try:
+        ini = os.path.join(os.path.expanduser("~"), ".config", "gtk-3.0", "settings.ini")
+        with open(ini) as f:
+            for line in f:
+                if line.strip().startswith("gtk-icon-theme-name"):
+                    name = line.split("=", 1)[1].strip()
+                    break
+    except OSError:
+        pass
+    QIcon.setThemeName(name or "Papirus-Dark")
+
+
 def build_qss(p: Palette) -> str:
     """The hyprtk usb stylesheet: a pywal-driven frosted panel with mauve
     (color5) accents and cyan (color6) surface tints. Matches the bar's look.
     """
+    arrow = _arrow_icon(p.accent)
     return f"""
 QLabel {{ color: {p.fg}; }}
 QLabel[role="title"] {{ color: {p.accent}; font-weight: bold; font-size: 15pt; }}
@@ -117,15 +154,23 @@ QComboBox {{
     padding: 5px 10px;
 }}
 QComboBox:hover {{ background-color: {_rgba(p.accent2, 0.14)}; }}
-QComboBox::drop-down {{ border: none; width: 22px; }}
-QComboBox::down-arrow {{ image: none; border-left: 4px solid transparent;
-    border-right: 4px solid transparent; border-top: 5px solid {p.accent}; }}
+QComboBox::drop-down {{ border: none; width: 26px; }}
+QComboBox::down-arrow {{
+    image: url({arrow});
+    width: 12px; height: 12px;
+    margin-right: 6px;
+}}
 QComboBox QAbstractItemView {{
-    background-color: {p.bg}; color: {p.fg};
+    background-color: {p.bg};
+    color: {p.fg};
     border: 1px solid {_rgba(p.accent2, 0.30)};
-    selection-background-color: {p.accent};
+    border-radius: 8px;
+    padding: 4px;
+    outline: 0;
+    selection-background-color: {_rgba(p.accent, 0.85)};
     selection-color: #ffffff;
 }}
+QComboBox QAbstractItemView::item {{ padding: 4px 8px; min-height: 20px; }}
 
 QProgressBar {{
     background-color: {_rgba(p.accent2, 0.12)};
@@ -630,6 +675,7 @@ def main(argv: list[str] | None = None) -> int:
     app.setApplicationName("hyprtk-usb")
     app.setDesktopFileName("hyprtk-usb")
     app.setStyle("Fusion")
+    _apply_icon_theme()
     win = Window()
     win.show()
     return app.exec()

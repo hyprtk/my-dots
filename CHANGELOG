@@ -24,6 +24,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Chooser icon theme + combo styling (`hyprtk-usb` 0.4.4, `hyprtk-iso-creator`
+  0.2.4)** — the choosers now adopt the desktop icon theme (`Papirus-Dark`), so
+  their folder icons match the pywal-recoloured session icons; the combo
+  down-arrow is a themed SVG chevron and the dropdown menu is restyled.
 - **Themed file/folder choosers (`hyprtk-usb` 0.4.3, `hyprtk-iso-creator` 0.2.3)**
   — the **Browse…** / **Choose…** dialogs used the platform/portal chooser
   (GTK-styled, ignoring the app theme); they are now non-native Qt dialogs styled
