@@ -34,6 +34,9 @@ Singleton {
 
     // Set true by the dialog while it is visible; starts/stops the process.
     property bool active: false
+    // Forces a backend restart (crossing the Apps boundary) without clobbering
+    // the `running: root.active` binding.
+    property bool _restarting: false
 
     // The page currently on screen. Changing it restarts the backend so the
     // expensive process walk only runs while the Apps page is visible.
@@ -76,7 +79,7 @@ Singleton {
 
     Process {
         id: proc
-        running: root.active
+        running: root.active && !root._restarting
         command: [
             "python3", "-u", root.backend,
             "--interval", String(root.intervalS),
@@ -155,6 +158,29 @@ Singleton {
         root.netUpHist = [];
         root.gpuUtilHist = [];
         root.gpuVramHist = [];
+    }
+
+    // monitor.py's `--active` gates the expensive Apps process walk. The backend
+    // is only told the page at launch, so restart it whenever the dialog crosses
+    // the Apps boundary: entering Apps starts the walk (otherwise the list is
+    // empty) and leaving it stops walking every process on the box.
+    property string _prevActivePage: "cpu"
+    Timer {
+        id: restartTimer
+        interval: 0
+        onTriggered: root._restarting = false
+    }
+    function _restartProc() {
+        root._restarting = true;
+        restartTimer.restart();
+    }
+    Component.onCompleted: root._prevActivePage = root.activePage
+    onActivePageChanged: {
+        const wasApps = root._prevActivePage === "apps";
+        const isApps = root.activePage === "apps";
+        root._prevActivePage = root.activePage;
+        if (root.active && wasApps !== isApps)
+            root._restartProc();
     }
 
     function _push(arr, v) {

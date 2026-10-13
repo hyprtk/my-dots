@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.41.6 — unreleased
+
+- **Fix**: the System Monitor's **Apps** page was broken. A QML binding loop in
+  the process-list model (the model binding wrote the cache it also read) left
+  the list blank, and the sampler backend was never re-told the active page, so
+  the Apps process walk never ran — which also left **Launch / Kill / Force
+  kill** with nothing to act on. The list is now rebuilt outside the model
+  binding, the sampler restarts when the dialog crosses the Apps boundary, and
+  the action bar is pinned below the list so the buttons are always visible
+  (no scrolling).
+- **Add**: the start menu now asks for confirmation (Yes / No) before **Log
+  out**, **Restart** or **Shut down**, so an accidental click can no longer end
+  the session. Lock and the other footer buttons stay immediate.
+
 ## 0.41.5 — unreleased
 
 - **Fix**: left-clicking the nm-applet tray icon (the NetworkManager indicator)

@@ -101,16 +101,15 @@ PanelWindow {
     property string appsMsg: ""
     property bool confirmOpen: false
     property bool confirmForce: false
-    property string appsCacheKey: ""
-    property var appsCacheSrc: null
-    property var appsCache: []
+    property var appsRows: []
 
-    function bucketRows(key) {
-        const src = MonitorData.sample;
-        if (key === win.appsCacheKey && src === win.appsCacheSrc)
-            return win.appsCache;
+    // Rebuild the visible bucket. Called from the sample watcher and on sub-tab
+    // change — NOT from inside the Repeater's `model` binding (writing state
+    // there caused a binding loop and left the list blank).
+    function refreshApps() {
         const u = MonitorData.uid;
-        const rows = (MonitorData.apps || []).filter(r => {
+        const key = win.appsKey;
+        win.appsRows = (MonitorData.apps || []).filter(r => {
             if (key === "user-apps")
                 return r.uid === u && r.is_app;
             if (key === "system-apps")
@@ -119,10 +118,11 @@ PanelWindow {
                 return r.uid === u;
             return r.uid !== u;
         }).slice(0, 250);
-        win.appsCacheKey = key;
-        win.appsCacheSrc = src;
-        win.appsCache = rows;
-        return rows;
+    }
+    onAppsKeyChanged: win.refreshApps()
+    Connections {
+        target: MonitorData
+        function onSampleChanged() { win.refreshApps(); }
     }
     function fmtMem(gb) {
         if (!gb || gb <= 0)
@@ -847,80 +847,87 @@ PanelWindow {
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Flickable {
+
+                        ColumnLayout {
                             anchors.fill: parent
-                            contentHeight: appsCol.implicitHeight
-                            clip: true
-                            ColumnLayout {
-                                id: appsCol
-                                width: parent.width
-                                spacing: 6
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 4
-                                    Repeater {
-                                        model: win.appsViews
-                                        delegate: Rectangle {
-                                            required property var modelData
-                                            Layout.fillWidth: true
-                                            implicitHeight: 26
-                                            radius: 6
-                                            color: win.appsKey === modelData.key
-                                                ? Theme.alpha(Theme.accent, 0.85)
-                                                : Theme.alpha(Theme.accent2, 0.12)
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: modelData.label
-                                                color: win.appsKey === modelData.key ? Theme.textOnAccent : Theme.foreground
-                                                font.pixelSize: BarConfig.scaled(11)
-                                            }
-                                            TapHandler {
-                                                onTapped: {
-                                                    win.appsKey = modelData.key;
-                                                    win.selPid = -1;
-                                                    win.selName = "";
-                                                }
+                            spacing: 6
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+                                Repeater {
+                                    model: win.appsViews
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        Layout.fillWidth: true
+                                        implicitHeight: 26
+                                        radius: 6
+                                        color: win.appsKey === modelData.key
+                                            ? Theme.alpha(Theme.accent, 0.85)
+                                            : Theme.alpha(Theme.accent2, 0.12)
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: modelData.label
+                                            color: win.appsKey === modelData.key ? Theme.textOnAccent : Theme.foreground
+                                            font.pixelSize: BarConfig.scaled(11)
+                                        }
+                                        TapHandler {
+                                            onTapped: {
+                                                win.appsKey = modelData.key;
+                                                win.selPid = -1;
+                                                win.selName = "";
                                             }
                                         }
                                     }
                                 }
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-                                    Text { text: "Process"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true }
-                                    Text { text: "CPU"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
-                                    Text { text: "Memory"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                                }
-                                Text {
-                                    visible: win.bucketRows(win.appsKey).length === 0
-                                    text: MonitorData.ready ? "No processes" : "Loading\u2026"
-                                    color: Theme.dim
-                                    font.pixelSize: BarConfig.scaled(11)
-                                }
-                                Repeater {
-                                    model: win.bucketRows(win.appsKey)
-                                    delegate: AppRow {
-                                        required property var modelData
-                                        entry: modelData
-                                        selected: modelData.pid === win.selPid
-                                    }
-                                }
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    Layout.topMargin: 6
-                                    spacing: 8
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Text { text: "Process"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.fillWidth: true }
+                                Text { text: "CPU"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
+                                Text { text: "Memory"; color: Theme.dim; font.pixelSize: BarConfig.scaled(10); Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                            }
+                            Flickable {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                contentHeight: appsCol.implicitHeight
+                                clip: true
+                                ColumnLayout {
+                                    id: appsCol
+                                    width: parent.width
+                                    spacing: 0
                                     Text {
-                                        text: win.appsMsg.length ? win.appsMsg
-                                            : (win.selPid >= 0 ? win.selName + "  (PID " + win.selPid + ")" : "Select a process")
-                                        color: win.appsMsg.length ? Theme.accent : Theme.dim
-                                        font.pixelSize: BarConfig.scaled(10)
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
+                                        visible: win.appsRows.length === 0
+                                        text: MonitorData.ready ? "No processes" : "Loading\u2026"
+                                        color: Theme.dim
+                                        font.pixelSize: BarConfig.scaled(11)
                                     }
-                                    ActionButton { label: "Launch"; onClicked: win.launchSelected() }
-                                    ActionButton { label: "Kill"; onClicked: win.askKill(false) }
-                                    ActionButton { label: "Force kill"; onClicked: win.askKill(true) }
+                                    Repeater {
+                                        model: win.appsRows
+                                        delegate: AppRow {
+                                            required property var modelData
+                                            entry: modelData
+                                            selected: modelData.pid === win.selPid
+                                        }
+                                    }
                                 }
+                            }
+                            // Pinned action bar — always visible, no scrolling needed.
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.topMargin: 6
+                                spacing: 8
+                                Text {
+                                    text: win.appsMsg.length ? win.appsMsg
+                                        : (win.selPid >= 0 ? win.selName + "  (PID " + win.selPid + ")" : "Select a process")
+                                    color: win.appsMsg.length ? Theme.accent : Theme.dim
+                                    font.pixelSize: BarConfig.scaled(10)
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                }
+                                ActionButton { label: "Launch"; onClicked: win.launchSelected() }
+                                ActionButton { label: "Kill"; onClicked: win.askKill(false) }
+                                ActionButton { label: "Force kill"; onClicked: win.askKill(true) }
                             }
                         }
                         Rectangle {

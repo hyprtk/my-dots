@@ -10,9 +10,18 @@ documented in this file. Dates are in YYYY-MM-DD format.
 - **`hyprtk-bar-qt` vendored `.gitignore`** — ignore test/lint artefacts
   (`.pytest_cache/`, `.ruff_cache/`, `.mypy_cache/`, `.coverage`, `coverage.xml`,
   `htmlcov/`, `.tox/`).
+- **`hyprtk-bar-qt` 0.41.6 (re-vendored)** — the start menu now asks for
+  confirmation (Yes / No) before **Log out**, **Restart** or **Shut down**, so an
+  accidental click can't end the session (Lock and the other footer buttons stay
+  immediate).
 
 ### Fixed
 
+- **System Monitor → Apps page (`hyprtk-bar-qt` 0.41.6)** — a QML binding loop in
+  the process-list model left it blank, and the sampler was never re-told the
+  active page, so the Apps process walk never ran; both are fixed, so the list
+  populates and **Launch / Kill / Force kill** have a selection to act on. The
+  action bar is pinned below the list, so those buttons are always visible.
 - **Icon recolouring ran twice on every wallpaper change.** `change-icons.sh` is
   the only script that emits the "Icon Colors updated" notification, but two
   independent consumers react to the same awww wallpaper change — the

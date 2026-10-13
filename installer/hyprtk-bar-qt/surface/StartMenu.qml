@@ -329,6 +329,9 @@ PanelWindow {
             win7Search.clear();
             searchFocus.restart();
             placesProc.running = true;
+        } else {
+            sm.confirmOpen = false;
+            sm.pendingPower = "";
         }
     }
     // Focus the search field a beat after opening (after the surface maps).
@@ -357,6 +360,33 @@ PanelWindow {
         const c = MenuConfig.power(cmd);
         if (c)
             Quickshell.execDetached(["sh", "-c", c]);
+    }
+    // Logout / reboot / shutdown need a Yes/No guard so a stray click can't end
+    // the session. Lock and the other buttons stay immediate.
+    property bool confirmOpen: false
+    property string pendingPower: ""
+    readonly property string powerLabel: sm.pendingPower === "logout" ? "Log out"
+        : sm.pendingPower === "reboot" ? "Restart"
+        : sm.pendingPower === "shutdown" ? "Shut down" : "Confirm"
+    readonly property string powerQuestion: sm.pendingPower === "logout"
+        ? "End your session and return to the login screen?"
+        : sm.pendingPower === "reboot" ? "Restart the computer?"
+        : sm.pendingPower === "shutdown" ? "Power off the computer?"
+        : "Are you sure?"
+    function askPower(cmd) {
+        sm.pendingPower = cmd;
+        sm.confirmOpen = true;
+    }
+    function cancelPower() {
+        sm.confirmOpen = false;
+        sm.pendingPower = "";
+    }
+    function confirmPower() {
+        const cmd = sm.pendingPower;
+        sm.confirmOpen = false;
+        sm.pendingPower = "";
+        if (cmd)
+            sm.power(cmd);
     }
 
     Process {
@@ -1133,10 +1163,77 @@ PanelWindow {
                         Text { text: "hyprtk-menu"; color: Theme.dim; font.pixelSize: BarConfig.scaled(12); font.italic: true }
                         PowerButton { glyph: "\uf013"; onTapped: { UiState.startMenuOpen = false; UiState.settingsOpen = true; } }
                         PowerButton { glyph: "\uf023"; onTapped: sm.power("lock") }
-                        PowerButton { glyph: "\uf08b"; onTapped: sm.power("logout") }
-                        PowerButton { glyph: "\uf021"; danger: true; onTapped: sm.power("reboot") }
-                        PowerButton { glyph: "\uf011"; danger: true; onTapped: sm.power("shutdown") }
+                        PowerButton { glyph: "\uf08b"; onTapped: sm.askPower("logout") }
+                        PowerButton { glyph: "\uf021"; danger: true; onTapped: sm.askPower("reboot") }
+                        PowerButton { glyph: "\uf011"; danger: true; onTapped: sm.askPower("shutdown") }
                         Text { text: "\u2b0c"; color: Theme.dim; font.family: BarConfig.glyphFont; font.pixelSize: BarConfig.scaled(13)}
+                    }
+                }
+            }
+        }
+
+        // ── power confirmation: Yes/No guard over the menu ─────────────
+        Rectangle {
+            anchors.fill: parent
+            visible: sm.confirmOpen
+            color: Qt.rgba(0, 0, 0, 0.45)
+            z: 100
+            // Swallow clicks on the scrim so nothing behind it activates.
+            MouseArea { anchors.fill: parent }
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: Math.min(320, parent.width - 40)
+                height: confirmCol.implicitHeight + 28
+                radius: 12
+                color: Theme.background
+                border.width: 1
+                border.color: Theme.alpha(Theme.err, 0.6)
+
+                ColumnLayout {
+                    id: confirmCol
+                    anchors.centerIn: parent
+                    width: parent.width - 28
+                    spacing: 10
+                    Text {
+                        Layout.fillWidth: true
+                        text: sm.powerLabel
+                        color: Theme.foreground
+                        font.bold: true
+                        font.pixelSize: BarConfig.scaled(14)
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: sm.powerQuestion
+                        color: Theme.dim
+                        font.pixelSize: BarConfig.scaled(11)
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.topMargin: 4
+                        spacing: 10
+                        Item { Layout.fillWidth: true }
+                        Rectangle {
+                            implicitWidth: 84
+                            implicitHeight: 30
+                            radius: 6
+                            color: noHover.hovered ? Theme.alpha(sm.layoutAccent, 0.30) : Theme.alpha(sm.layoutAccent, 0.14)
+                            Text { anchors.centerIn: parent; text: "No"; color: Theme.foreground; font.pixelSize: BarConfig.scaled(12) }
+                            HoverHandler { id: noHover }
+                            TapHandler { onTapped: sm.cancelPower() }
+                        }
+                        Rectangle {
+                            implicitWidth: 84
+                            implicitHeight: 30
+                            radius: 6
+                            color: yesHover.hovered ? Theme.alpha(Theme.err, 0.80) : Theme.alpha(Theme.err, 0.55)
+                            Text { anchors.centerIn: parent; text: "Yes"; color: Theme.textOnDanger; font.pixelSize: BarConfig.scaled(12) }
+                            HoverHandler { id: yesHover }
+                            TapHandler { onTapped: sm.confirmPower() }
+                        }
                     }
                 }
             }
