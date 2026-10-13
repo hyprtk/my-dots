@@ -24,6 +24,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Themed file/folder choosers (`hyprtk-usb` 0.4.3, `hyprtk-iso-creator` 0.2.3)**
+  — the **Browse…** / **Choose…** dialogs used the platform/portal chooser
+  (GTK-styled, ignoring the app theme); they are now non-native Qt dialogs styled
+  by the app stylesheet.
 - **GUI dialog headers padded (`hyprtk-usb` 0.4.1, `hyprtk-iso-creator` 0.2.1)**
   — the window title sat too close to the rounded panel border; the header row
   now uses a 16px top margin (left/right aligned to the body), keeps its natural

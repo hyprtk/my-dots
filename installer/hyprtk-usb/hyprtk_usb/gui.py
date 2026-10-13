@@ -134,6 +134,41 @@ QProgressBar {{
     text-align: center; color: {p.fg};
 }}
 QProgressBar::chunk {{ background-color: {p.accent}; border-radius: 8px; }}
+
+/* ── file dialog (non-native) — match the frosted panel ── */
+QDialog, QFileDialog {{ background-color: {_rgba(p.bg, p.opacity)}; }}
+QFileDialog QLabel {{ color: {p.fg}; }}
+QFileDialog QListView, QFileDialog QTreeView {{
+    background-color: {_rgba(p.accent2, 0.05)};
+    color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.20)};
+    border-radius: 8px; outline: none;
+}}
+QFileDialog QListView::item, QFileDialog QTreeView::item {{ padding: 3px 6px; border-radius: 6px; }}
+QFileDialog QListView::item:hover, QFileDialog QTreeView::item:hover {{ background-color: {_rgba(p.accent2, 0.15)}; }}
+QFileDialog QListView::item:selected, QFileDialog QTreeView::item:selected {{ background-color: {_rgba(p.accent, 0.85)}; color: #ffffff; }}
+QFileDialog QHeaderView::section {{
+    background-color: {_rgba(p.accent2, 0.10)};
+    color: {p.dim};
+    border: none; border-bottom: 1px solid {_rgba(p.accent2, 0.20)};
+    padding: 4px 6px;
+}}
+QFileDialog QToolButton {{
+    background: transparent; border: none; border-radius: 6px;
+    color: {p.fg}; padding: 4px;
+}}
+QFileDialog QToolButton:hover {{ background-color: {_rgba(p.accent2, 0.18)}; }}
+QFileDialog QComboBox {{
+    background-color: {_rgba(p.accent2, 0.08)}; color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.25)}; border-radius: 8px; padding: 4px 8px;
+}}
+QFileDialog QSplitter::handle {{ background: transparent; }}
+QFileDialog QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px; }}
+QFileDialog QScrollBar::handle:vertical {{ background-color: {_rgba(p.accent, 0.45)}; border-radius: 5px; min-height: 24px; }}
+QFileDialog QScrollBar::add-line:vertical, QFileDialog QScrollBar::sub-line:vertical {{ height: 0; }}
+QFileDialog QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 2px; }}
+QFileDialog QScrollBar::handle:horizontal {{ background-color: {_rgba(p.accent, 0.45)}; border-radius: 5px; min-width: 24px; }}
+QFileDialog QScrollBar::add-line:horizontal, QFileDialog QScrollBar::sub-line:horizontal {{ width: 0; }}
 """
 
 
@@ -344,11 +379,16 @@ class Window(QWidget):
         self._buttons(back=False, forward=("Continue", "device"))
 
     def _browse_iso(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select ISO", os.path.expanduser("~"), "ISO images (*.iso)"
-        )
-        if path:
-            self._set_iso(path)
+        # Non-native so the app stylesheet themes it (the portal dialog is not).
+        dlg = QFileDialog(self, "Select ISO")
+        dlg.setOption(QFileDialog.DontUseNativeDialog, True)
+        dlg.setFileMode(QFileDialog.ExistingFile)
+        dlg.setNameFilter("ISO images (*.iso)")
+        dlg.setDirectory(os.path.expanduser("~"))
+        if dlg.exec():
+            files = dlg.selectedFiles()
+            if files:
+                self._set_iso(files[0])
 
     def _set_iso(self, path: str) -> None:
         self.iso_path = path

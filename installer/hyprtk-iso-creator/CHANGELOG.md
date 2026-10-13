@@ -3,6 +3,14 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.3] - 2026-10-13
+
+### Fixed
+
+- **Themed folder chooser.** The **Choose…** dialog used the platform/portal
+  chooser (GTK-styled, ignoring the app theme). It is now a non-native Qt dialog
+  styled by the app stylesheet (frosted panel, accent selection rows).
+
 ## [0.2.2] - 2026-10-13
 
 ### Changed

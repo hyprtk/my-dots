@@ -142,6 +142,41 @@ QTextEdit#log {{
     font-family: monospace;
     font-size: 9pt;
 }}
+
+/* ── file dialog (non-native) — match the frosted panel ── */
+QDialog, QFileDialog {{ background-color: {_rgba(p.bg, p.opacity)}; }}
+QFileDialog QLabel {{ color: {p.fg}; }}
+QFileDialog QListView, QFileDialog QTreeView {{
+    background-color: {_rgba(p.accent2, 0.05)};
+    color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.20)};
+    border-radius: 8px; outline: none;
+}}
+QFileDialog QListView::item, QFileDialog QTreeView::item {{ padding: 3px 6px; border-radius: 6px; }}
+QFileDialog QListView::item:hover, QFileDialog QTreeView::item:hover {{ background-color: {_rgba(p.accent2, 0.15)}; }}
+QFileDialog QListView::item:selected, QFileDialog QTreeView::item:selected {{ background-color: {_rgba(p.accent, 0.85)}; color: #ffffff; }}
+QFileDialog QHeaderView::section {{
+    background-color: {_rgba(p.accent2, 0.10)};
+    color: {p.dim};
+    border: none; border-bottom: 1px solid {_rgba(p.accent2, 0.20)};
+    padding: 4px 6px;
+}}
+QFileDialog QToolButton {{
+    background: transparent; border: none; border-radius: 6px;
+    color: {p.fg}; padding: 4px;
+}}
+QFileDialog QToolButton:hover {{ background-color: {_rgba(p.accent2, 0.18)}; }}
+QFileDialog QComboBox {{
+    background-color: {_rgba(p.accent2, 0.08)}; color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.25)}; border-radius: 8px; padding: 4px 8px;
+}}
+QFileDialog QSplitter::handle {{ background: transparent; }}
+QFileDialog QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px; }}
+QFileDialog QScrollBar::handle:vertical {{ background-color: {_rgba(p.accent, 0.45)}; border-radius: 5px; min-height: 24px; }}
+QFileDialog QScrollBar::add-line:vertical, QFileDialog QScrollBar::sub-line:vertical {{ height: 0; }}
+QFileDialog QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 2px; }}
+QFileDialog QScrollBar::handle:horizontal {{ background-color: {_rgba(p.accent, 0.45)}; border-radius: 5px; min-width: 24px; }}
+QFileDialog QScrollBar::add-line:horizontal, QFileDialog QScrollBar::sub-line:horizontal {{ width: 0; }}
 """
 
 
@@ -337,10 +372,17 @@ class Window(QWidget):
         self._row(label, sw)
 
     def _choose_dir(self, entry: QLineEdit, key: str) -> None:
-        path = QFileDialog.getExistingDirectory(self, "Select a folder", os.path.expanduser("~"))
-        if path:
-            entry.setText(path)
-            setattr(self.opts, key, path)
+        # Non-native so the app stylesheet themes it (the portal dialog is not).
+        dlg = QFileDialog(self, "Select a folder")
+        dlg.setOption(QFileDialog.DontUseNativeDialog, True)
+        dlg.setFileMode(QFileDialog.Directory)
+        dlg.setOption(QFileDialog.ShowDirsOnly, True)
+        dlg.setDirectory(os.path.expanduser("~"))
+        if dlg.exec():
+            files = dlg.selectedFiles()
+            if files:
+                entry.setText(files[0])
+                setattr(self.opts, key, files[0])
 
     # ── steps ──────────────────────────────────────────────────────────
     def show_step(self) -> None:
