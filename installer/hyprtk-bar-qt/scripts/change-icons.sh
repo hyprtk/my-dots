@@ -189,9 +189,24 @@ fi
 
 # Apply the chosen color to Papirus folders
 echo "Closest color to $hex is: $closest_color"
+
+# Collapse duplicate recolours: several consumers react to the same wallpaper
+# change (the awww wrapper -> wallpaper-colors.sh, the polling wal-watcher.sh,
+# and the bar's own scripts). Serialise with flock and skip when this colour is
+# already applied, so the poller does not re-run papirus-folders (and re-notify).
+STATE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/hyprtk"
+STATE_FILE="$STATE_DIR/last-icon-color"
+mkdir -p "$STATE_DIR" 2>/dev/null || true
+exec 9>"$STATE_FILE.lock" 2>/dev/null || true
+flock 9 2>/dev/null || true
+if [ "$(cat "$STATE_FILE" 2>/dev/null)" = "$closest_color" ]; then
+    exit 0
+fi
+
 PAPIRUS="$HOME/.local/share/icons/papirus-folders.sh"
 if [[ -x "$PAPIRUS" ]]; then
     if "$PAPIRUS" -C "$closest_color" -t "$HOME/.local/share/icons/Papirus-Dark"; then
+        printf '%s\n' "$closest_color" > "$STATE_FILE" || true
         notify-send "Icon Colors updated" "with $closest_color" || true
     else
         notify-send "Icon colors failed" "papirus-folders returned an error" || true
