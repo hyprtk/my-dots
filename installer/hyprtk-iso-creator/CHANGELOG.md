@@ -3,6 +3,14 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.6] - 2026-10-13
+
+### Fixed
+
+- **White border on the dropdown.** Only Fusion + a stylesheet were set, so
+  Fusion's own frames (which QSS doesn't cover) used the default light palette
+  and showed a white border. A dark `QPalette` is now applied.
+
 ## [0.2.5] - 2026-10-13
 
 ### Fixed

@@ -1,3 +1,3 @@
 """hyprtk-usb — write a hyprtk ISO to a USB stick (+ optional persistence)."""
 
-__version__ = "0.4.5"
+__version__ = "0.4.6"

@@ -22,7 +22,7 @@ import threading
 from html import escape
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QTextCursor
+from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QTextCursor
 from PySide6.QtWidgets import (
     QAbstractButton,
     QApplication,
@@ -116,6 +116,34 @@ def _apply_icon_theme() -> None:
     except OSError:
         pass
     QIcon.setThemeName(name or "Papirus-Dark")
+
+
+def _apply_palette(app, p: Palette) -> None:
+    """Set a dark QPalette so Fusion draws dark frames/mid-tones. Without this
+    the style renders light-grey frames the QSS doesn't cover (e.g. the combo
+    popup's container frame shows as a white border)."""
+    pal = QPalette()
+    bg = QColor(p.bg)
+    fg = QColor(p.fg)
+    pal.setColor(QPalette.Window, bg)
+    pal.setColor(QPalette.WindowText, fg)
+    pal.setColor(QPalette.Base, bg.lighter(118))
+    pal.setColor(QPalette.AlternateBase, bg)
+    pal.setColor(QPalette.Text, fg)
+    pal.setColor(QPalette.Button, bg)
+    pal.setColor(QPalette.ButtonText, fg)
+    pal.setColor(QPalette.BrightText, QColor("#ffffff"))
+    pal.setColor(QPalette.Highlight, QColor(p.accent))
+    pal.setColor(QPalette.HighlightedText, QColor("#ffffff"))
+    pal.setColor(QPalette.ToolTipBase, bg)
+    pal.setColor(QPalette.ToolTipText, fg)
+    pal.setColor(QPalette.PlaceholderText, QColor(p.dim))
+    pal.setColor(QPalette.Light, bg.lighter(150))
+    pal.setColor(QPalette.Midlight, bg.lighter(130))
+    pal.setColor(QPalette.Mid, bg.lighter(120))
+    pal.setColor(QPalette.Dark, bg.darker(120))
+    pal.setColor(QPalette.Shadow, QColor("#000000"))
+    app.setPalette(pal)
 
 
 def build_qss(p: Palette) -> str:
@@ -697,6 +725,7 @@ def main(argv: list[str] | None = None) -> int:
     app.setDesktopFileName("hyprtk-iso-creator")
     app.setStyle("Fusion")
     _apply_icon_theme()
+    _apply_palette(app, load_palette())
     win = Window()
     win.show()
     return app.exec()
