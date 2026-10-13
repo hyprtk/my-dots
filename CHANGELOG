@@ -24,6 +24,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Dropdown border follows the bar theme (`hyprtk-usb` 0.4.7, `hyprtk-iso-creator`
+  0.2.7)** — Fusion draws the combo popup's container frame from the palette's
+  frame roles; they now track the bar theme's accent (pywal color5), matching the
+  bar-qt's own borders.
 - **White dropdown border (`hyprtk-usb` 0.4.6, `hyprtk-iso-creator` 0.2.6)** — the
   apps set only Fusion + a stylesheet, so Fusion's own frames (combo popup
   container) used the default light palette; a dark `QPalette` is now applied.

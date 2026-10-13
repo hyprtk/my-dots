@@ -3,6 +3,15 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.7] - 2026-10-13
+
+### Fixed
+
+- **Dropdown border follows the bar theme.** Fusion draws the popup's container
+  frame from the palette's frame roles, which now track the bar theme's accent
+  (pywal color5) — the same colour the bar-qt uses for its borders — so the
+  border matches whichever bar theme is selected.
+
 ## [0.2.6] - 2026-10-13
 
 ### Fixed

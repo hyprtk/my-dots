@@ -138,10 +138,13 @@ def _apply_palette(app, p: Palette) -> None:
     pal.setColor(QPalette.ToolTipBase, bg)
     pal.setColor(QPalette.ToolTipText, fg)
     pal.setColor(QPalette.PlaceholderText, QColor(p.dim))
-    pal.setColor(QPalette.Light, bg.lighter(150))
-    pal.setColor(QPalette.Midlight, bg.lighter(130))
-    pal.setColor(QPalette.Mid, bg.lighter(120))
-    pal.setColor(QPalette.Dark, bg.darker(120))
+    # Frame colours (Fusion draws the combo popup's container frame with these)
+    # track the bar theme's accent (= pywal color5), matching the bar-qt borders.
+    accent = QColor(p.accent)
+    pal.setColor(QPalette.Light, accent.lighter(115))
+    pal.setColor(QPalette.Midlight, accent.lighter(108))
+    pal.setColor(QPalette.Mid, accent)
+    pal.setColor(QPalette.Dark, accent.darker(115))
     pal.setColor(QPalette.Shadow, QColor("#000000"))
     app.setPalette(pal)
 
