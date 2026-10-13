@@ -8,6 +8,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "../config"
 
 Singleton {
     id: root
@@ -31,6 +32,24 @@ Singleton {
     // id -> {x, y, w, h} registered by each widget frame.
     property var rects: ({})
 
+    // Boundary: no widget may pass outside the area inset from every screen
+    // edge by the bar height + 3px (matches WidgetFrame / WidgetLayout).
+    readonly property int boundary: Math.max(0, BarConfig.barHeight + 3)
+
+    // Clamp a widget rect (x, y, w, h) inside the boundary.
+    function _clamp(x, y, w, h) {
+        const s = Screens.focused;
+        const sw = s ? s.width : 0;
+        const sh = s ? s.height : 0;
+        const b = root.boundary;
+        const maxX = Math.max(b, sw - b - w);
+        const maxY = Math.max(b, sh - b - h);
+        return {
+            x: Math.round(Math.min(Math.max(x, b), maxX)),
+            y: Math.round(Math.min(Math.max(y, b), maxY))
+        };
+    }
+
     // id -> {x, y}: a just-dropped position held until the config reload
     // confirms it. Without this the widget reverts to its old margin for a
     // frame (the async save has not landed yet) — a "boomerang".
@@ -48,15 +67,19 @@ Singleton {
     }
 
     function overFor(id) {
-        if (root.moving && root.movingId === id)
-            return {
-                x: Math.round(root.baseX + (root.curX - root.startX)),
-                y: Math.round(root.baseY + (root.curY - root.startY)),
-                w: -1, h: -1
-            };
-        const c = root.committed[id];
-        if (c)
+        const r = root.rects[id];
+        const w = r ? r.w : 0;
+        const h = r ? r.h : 0;
+        if (root.moving && root.movingId === id) {
+            const c = root._clamp(root.baseX + (root.curX - root.startX),
+                                  root.baseY + (root.curY - root.startY), w, h);
             return { x: c.x, y: c.y, w: -1, h: -1 };
+        }
+        const cm = root.committed[id];
+        if (cm) {
+            const c = root._clamp(cm.x, cm.y, w, h);
+            return { x: c.x, y: c.y, w: -1, h: -1 };
+        }
         return null;
     }
 
@@ -99,8 +122,12 @@ Singleton {
             return;
         }
         const id = root.movingId;
-        const x = Math.round(root.baseX + (root.curX - root.startX));
-        const y = Math.round(root.baseY + (root.curY - root.startY));
+        const r = root.rects[id];
+        const cl = root._clamp(root.baseX + (root.curX - root.startX),
+                               root.baseY + (root.curY - root.startY),
+                               r ? r.w : 0, r ? r.h : 0);
+        const x = cl.x;
+        const y = cl.y;
         // Hold the dropped position until the config reload reflects it.
         const c = Object.assign({}, root.committed);
         c[id] = { x: x, y: y };

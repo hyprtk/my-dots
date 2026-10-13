@@ -59,13 +59,11 @@ Singleton {
         const s = Screens.focused();
         if (!s)
             return { x0: 0, y0: 0, w: 0, h: 0 };
-        // Usable area: the monitor minus the bar's reserved edge, as an origin
-        // (x0/y0) plus size. The layout clamps the whole group into this, so its
-        // top member is not shifted alone by the widget frame.
-        const inset = BarConfig.barHeight + BarConfig.gapOut + BarConfig.gapIn;
-        const top = BarConfig.barPosition === "top" ? inset : 0;
-        const bottom = BarConfig.barPosition === "bottom" ? inset : 0;
-        return { x0: 0, y0: top, w: s.width, h: s.height - top - bottom };
+        // Boundary: the monitor inset from every edge by the bar height + 3px
+        // (matches WidgetFrame / WidgetMove). The layout clamps the whole snap
+        // group into this, so no member can pass outside it.
+        const b = Math.max(0, BarConfig.barHeight + 3);
+        return { x0: b, y0: b, w: Math.max(0, s.width - 2 * b), h: Math.max(0, s.height - 2 * b) };
     }
 
     function reload() {

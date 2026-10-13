@@ -7,6 +7,9 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Changed
 
+- **Desktop-widget boundary (`hyprtk-bar-qt` 0.41.7)** — desktop widgets can no
+  longer be dragged, pinned or snapped outside the screen: they are kept inside
+  an area inset from each screen edge by the bar height + 3px.
 - **`hyprtk-bar-qt` vendored `.gitignore`** — ignore test/lint artefacts
   (`.pytest_cache/`, `.ruff_cache/`, `.mypy_cache/`, `.coverage`, `coverage.xml`,
   `htmlcov/`, `.tox/`).

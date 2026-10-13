@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.41.7 — unreleased
+
+- **Fix**: desktop widgets could be moved outside the screen — overlapping the
+  bar or running off an edge. A boundary now keeps every widget inside an area
+  inset from each screen edge by the bar height + 3px, enforced for free
+  drags/drops (`WidgetMove`), pinned margins (`WidgetFrame`) and snap groups
+  (`WidgetLayout`).
+
 ## 0.41.6 — unreleased
 
 - **Fix**: the System Monitor's **Apps** page was broken. A QML binding loop in

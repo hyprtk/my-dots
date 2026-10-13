@@ -121,19 +121,21 @@ PanelWindow {
     WlrLayershell.layer: frame._layer()
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-    // Usable area: never sit under the bar (its edge inset acts as a border).
-    readonly property int barTop: BarConfig.barPosition === "top" ? BarConfig.barHeight + BarConfig.gapOut + BarConfig.gapIn : 0
-    readonly property int barBottom: BarConfig.barPosition === "bottom" ? BarConfig.barHeight + BarConfig.gapOut + BarConfig.gapIn : 0
+    // Boundary: a widget may not pass outside the area inset from every screen
+    // edge by the bar height + 3px. Used as the minimum margin for pinned
+    // placements; free moves are clamped in WidgetMove, snap groups in
+    // WidgetLayout.
+    readonly property int boundary: Math.max(0, BarConfig.barHeight + 3)
 
     readonly property var pos: frame._pos()
     anchors.top: pos.top
     anchors.bottom: pos.bottom
     anchors.left: pos.left
     anchors.right: pos.right
-    margins.top: pos.top ? Math.max(frame.effMarginY, frame.barTop) : 0
-    margins.bottom: pos.bottom ? Math.max(frame.effMarginY, frame.barBottom) : 0
-    margins.left: pos.left ? frame.effMarginX : 0
-    margins.right: pos.right ? frame.effMarginX : 0
+    margins.top: pos.top ? Math.max(frame.effMarginY, frame.boundary) : 0
+    margins.bottom: pos.bottom ? Math.max(frame.effMarginY, frame.boundary) : 0
+    margins.left: pos.left ? Math.max(frame.effMarginX, frame.boundary) : 0
+    margins.right: pos.right ? Math.max(frame.effMarginX, frame.boundary) : 0
 
     implicitWidth: frame.effWidth
     implicitHeight: frame.effHeight > 0
