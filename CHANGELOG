@@ -32,6 +32,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
   not enable Bluetooth: `bluetoothctl power on` fails (`org.bluez.Error.Failed`)
   while the adapter is rfkill **soft-blocked** (its default on many systems).
   Enabling now clears the soft block first (`rfkill unblock bluetooth`).
+- **`hyprtk-bar-qt` 0.41.4 (hotfix)** — clicking a task in the task list did
+  nothing (focus / minimise / close all failed). Quickshell reports
+  `HyprlandToplevel.address` as hex **without** the `0x` prefix, but the Hyprland
+  dispatchers require it **with** the prefix, so every `address:…` request failed
+  with `hl.focus: window not found`. Addresses are now normalised in the `Hypr`
+  dispatch helper.
 - **`.gitignore`**: dropped the stale GTK `hyprtk-bar` generated-file entries —
   the GTK bar is no longer vendored (bar-qt ships its own `hyprtk-bar-qt*`
   launchers).

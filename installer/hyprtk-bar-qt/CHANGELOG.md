@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.41.4 — unreleased
+
+- **Fix**: clicking a task in the task list did nothing (focus / minimise /
+  close all failed). Quickshell reports `HyprlandToplevel.address` as hex
+  **without** the `0x` prefix, but the Hyprland dispatchers expect it **with**
+  the prefix, so every `address:…` dispatch failed with `hl.focus: window not
+  found`. Addresses are now normalised (`0x` prepended when missing) in the
+  `Hypr` dispatch helper.
+
 ## 0.41.3 — unreleased
 
 - **Fix**: the quick-settings Bluetooth toggle could not enable Bluetooth —

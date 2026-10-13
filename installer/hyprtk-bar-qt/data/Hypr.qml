@@ -33,18 +33,29 @@ Singleton {
         }
     }
 
+    // Quickshell's HyprlandToplevel.address is hex WITHOUT the `0x` prefix
+    // (e.g. "561bd4a5a200"), but the Hyprland dispatchers expect it WITH the
+    // prefix. Normalise so a bare address never reaches `address:...` (which
+    // Hyprland rejects with "window not found").
+    function _addr(addr) {
+        const a = String(addr || "");
+        return (a.length > 0 && a.indexOf("0x") !== 0) ? ("0x" + a) : a;
+    }
     function workspace(id) {
         return root.lua ? ("hl.dsp.focus({ workspace = " + id + " })") : ("workspace " + id);
     }
     function focusWindow(addr) {
-        return root.lua ? ('hl.dsp.focus({ window = "address:' + addr + '" })') : ("focuswindow address:" + addr);
+        const a = root._addr(addr);
+        return root.lua ? ('hl.dsp.focus({ window = "address:' + a + '" })') : ("focuswindow address:" + a);
     }
     function closeWindow(addr) {
-        return root.lua ? ('hl.dsp.window.close({ window = "address:' + addr + '" })') : ("closewindow address:" + addr);
+        const a = root._addr(addr);
+        return root.lua ? ('hl.dsp.window.close({ window = "address:' + a + '" })') : ("closewindow address:" + a);
     }
     function moveWindowTo(ws, addr) {
+        const a = root._addr(addr);
         return root.lua
-            ? ('hl.dsp.window.move({ workspace = "' + ws + '", window = "address:' + addr + '" })')
-            : ("movetoworkspace " + ws + ",address:" + addr);
+            ? ('hl.dsp.window.move({ workspace = "' + ws + '", window = "address:' + a + '" })')
+            : ("movetoworkspace " + ws + ",address:" + a);
     }
 }
