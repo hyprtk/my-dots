@@ -1,13 +1,13 @@
 # Hyprtk ISO Creator (GUI)
 
-The GTK 4 front end for **Hyprtk-ISO-Creator** — a short wizard over
+The Qt (PySide6) front end for **Hyprtk-ISO-Creator** — a short wizard over
 [`hyprtk-iso-builder.sh`](../hyprtk-iso-builder.sh). It collects the builder's
 options, then runs the builder as root (via a `pkexec` helper) and shows its
 **live output** as the ISO is assembled.
 
 The GUI runs **unprivileged**: only the builder — which needs root for
 `mkarchiso` — is elevated, by `hyprtk_isocreator.helper` launched through
-`pkexec`, so the GTK app never runs as root.
+`pkexec`, so the app never runs as root.
 
 ## Install
 
@@ -16,7 +16,7 @@ The GUI runs **unprivileged**: only the builder — which needs root for
 bash install.sh
 ```
 
-This creates a venv (with system site-packages, so it finds PyGObject/GTK 4),
+This creates a venv (with system site-packages, so it finds PySide6/Qt 6),
 installs `python/` into it, links `hyprtk-iso-creator` / `hyprtk-iso-creator-helper`
 into `~/.local/bin`, records the checkout path, and installs a desktop entry.
 

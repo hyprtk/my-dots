@@ -1,6 +1,6 @@
 """Core: the option model, builder argument construction and log helpers.
 
-Everything here is pure (no GTK, no subprocess) so it can be unit-tested. The
+Everything here is pure (no toolkit, no subprocess) so it can be unit-tested. The
 GUI collects :class:`Options`; :func:`builder_args` turns them into the flags
 ``hyprtk-iso-builder.sh`` understands; the helper relays the builder's output as
 one JSON object per line, using :func:`classify_level` and :func:`detect_stage`.

@@ -3,6 +3,14 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.2] - 2026-10-13
+
+### Changed
+
+- **Removed stale GTK references** — the Qt port's docstrings, comments and
+  `python/README.md` no longer describe the former GTK 4 front end (they now say
+  PySide6/Qt 6).
+
 ## [0.2.1] - 2026-10-13
 
 ### Fixed

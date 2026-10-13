@@ -1,6 +1,6 @@
 """Privileged build helper.
 
-The GTK app runs unprivileged and shells out to this module via ``pkexec`` for
+The GUI runs unprivileged and shells out to this module via ``pkexec`` for
 the one operation that needs root: ``mkarchiso`` (and the profile/AUR staging
 around it). Keeping elevation to this step means the app never runs as root and
 isn't affected by pkexec's stripped environment.

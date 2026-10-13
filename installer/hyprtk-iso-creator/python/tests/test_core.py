@@ -1,4 +1,4 @@
-"""Unit tests for hyprtk_isocreator.core (no GTK, no root needed)."""
+"""Unit tests for hyprtk_isocreator.core (no toolkit, no root needed)."""
 
 import re
 import unittest

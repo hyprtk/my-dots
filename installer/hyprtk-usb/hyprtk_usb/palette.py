@@ -46,7 +46,7 @@ def load_palette() -> Palette:
     home = os.path.expanduser("~")
     p = Palette()
     bar = _read_json(os.path.join(home, ".config", "hyprtk-bar-qt", "config.json"))
-    if not bar:  # fall back to a GTK-bar install
+    if not bar:  # fall back to a legacy bar install
         bar = _read_json(os.path.join(home, ".config", "hyprtk-bar", "config.json"))
     theme = bar.get("theme") or {}
     source = str(theme.get("source") or "pywal")

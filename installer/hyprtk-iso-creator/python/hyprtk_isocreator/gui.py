@@ -6,8 +6,7 @@ wizard. The single privileged operation — running ``hyprtk-iso-builder.sh``
 ``hyprtk_isocreator.helper`` launched through ``pkexec``, so the Qt app never
 runs as root. The builder's live output is shown in a scrolling log.
 
-This is the Qt replacement for the former GTK 4 front end: a frameless,
-non-resizable wizard themed from the running hyprtk-bar palette
+A frameless, non-resizable wizard themed from the running hyprtk-bar palette
 (``ui.load_palette``). The compositor draws the pywal border + rounding.
 """
 
@@ -85,7 +84,7 @@ def _rgba(hex_color: str, alpha: float) -> str:
 
 def build_qss(p: Palette) -> str:
     """The hyprtk ISO Creator stylesheet (pywal-driven frosted panel, mauve
-    accents, cyan tints). Mirrors the old GTK CSS."""
+    accents, cyan tints). Matches the bar's look."""
     return f"""
 QLabel {{ color: {p.fg}; }}
 QLabel[role="title"] {{ color: {p.accent}; font-weight: bold; font-size: 15pt; }}
@@ -147,7 +146,7 @@ QTextEdit#log {{
 
 
 class Switch(QAbstractButton):
-    """A compact pill toggle matching the old ``Gtk.Switch`` look."""
+    """A compact pill toggle."""
 
     def __init__(self, checked: bool = False, on_color: str = "#c084fc",
                  off_color: str = "#22d3ee") -> None:

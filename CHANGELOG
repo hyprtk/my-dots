@@ -18,6 +18,9 @@ documented in this file. Dates are in YYYY-MM-DD format.
   rewrite (which replaces the GTK 4 GUI) is now vendored and installed;
   `installer/hyprtk-usb/install.sh` and the installer messages were updated from
   GTK/PyGObject to PySide6. Both GUIs now need system PySide6 (see notes).
+- **Removed stale GTK references** from the Qt `hyprtk-usb` / `hyprtk-iso-creator`
+  docstrings, comments and the iso `python/README.md` (`hyprtk-usb` 0.4.2,
+  `hyprtk-iso-creator` 0.2.2).
 
 ### Fixed
 

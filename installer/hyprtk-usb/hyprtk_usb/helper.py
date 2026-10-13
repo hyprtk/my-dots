@@ -2,7 +2,7 @@
 
 The GUI runs unprivileged and shells out to this module via ``pkexec`` for the
 single operation that needs root: writing the ISO and creating the partition.
-Keeping the elevation to this one step means the GTK app never runs as root and
+Keeping the elevation to this one step means the GUI never runs as root and
 isn't affected by pkexec's stripped environment.
 
 It re-derives the plan (and re-runs the guardrails) from the ISO + target, so a

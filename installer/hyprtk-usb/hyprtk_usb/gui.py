@@ -5,10 +5,9 @@ single privileged operation — the write — is performed by ``hyprtk_usb.helpe
 launched through ``pkexec``, so the Qt app never runs as root and isn't subject
 to pkexec's stripped environment.
 
-This is the Qt replacement for the former GTK 4 front end: a frameless,
-non-resizable wizard over ``core``, themed from the running hyprtk-bar palette
-(``palette.load_palette``). The compositor draws the pywal border + rounding;
-the panel is frosted at the bar theme's opacity.
+A frameless, non-resizable wizard over ``core``, themed from the running
+hyprtk-bar palette (``palette.load_palette``). The compositor draws the pywal
+border + rounding; the panel is frosted at the bar theme's opacity.
 """
 
 from __future__ import annotations
@@ -76,7 +75,7 @@ def _rgba(hex_color: str, alpha: float) -> str:
 
 def build_qss(p: Palette) -> str:
     """The hyprtk usb stylesheet: a pywal-driven frosted panel with mauve
-    (color5) accents and cyan (color6) surface tints. Mirrors the old GTK CSS.
+    (color5) accents and cyan (color6) surface tints. Matches the bar's look.
     """
     return f"""
 QLabel {{ color: {p.fg}; }}
@@ -139,7 +138,7 @@ QProgressBar::chunk {{ background-color: {p.accent}; border-radius: 8px; }}
 
 
 class Switch(QAbstractButton):
-    """A compact pill toggle matching the old ``Gtk.Switch`` look."""
+    """A compact pill toggle."""
 
     def __init__(self, checked: bool = False, on_color: str = "#c084fc",
                  off_color: str = "#22d3ee") -> None:
@@ -279,7 +278,7 @@ class Window(QWidget):
         h.setContentsMargins(0, 6, 0, 0)
         h.setSpacing(8)
         h.addStretch(1)
-        # Visual order matches the old GTK row: primary action, then Back.
+        # Visual order: primary action, then Back.
         if forward:
             label, nxt = forward
             b = QPushButton(label)

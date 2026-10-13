@@ -1,7 +1,7 @@
 """The hyprtk palette, resolved from the running hyprtk-bar-qt theme.
 
 Mirrors ``hyprtk_usb.ui`` (and, beneath it, the bar's own ``resolve_palette``),
-so the ISO Creator's GTK window matches the rest of the desktop: a pywal-driven
+so the ISO Creator window matches the rest of the desktop: a pywal-driven
 dark panel with mauve (color5) accents and cyan (color6) surface tints.
 """
 
@@ -38,7 +38,7 @@ def load_palette() -> Palette:
     home = os.path.expanduser("~")
     p = Palette()
     bar = _read_json(os.path.join(home, ".config", "hyprtk-bar-qt", "config.json"))
-    if not bar:  # fall back to a GTK-bar install
+    if not bar:  # fall back to a legacy bar install
         bar = _read_json(os.path.join(home, ".config", "hyprtk-bar", "config.json"))
     theme = bar.get("theme") or {}
     source = str(theme.get("source") or "pywal")

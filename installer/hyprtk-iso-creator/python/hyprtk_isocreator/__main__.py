@@ -1,4 +1,4 @@
-"""``python -m hyprtk_isocreator`` — launch the GTK 4 app in place."""
+"""``python -m hyprtk_isocreator`` — launch the Qt app in place."""
 
 import sys
 
