@@ -1030,13 +1030,13 @@ else
         # ── hyprtk-usb (GUI) ────────────────────────────────────────
         _step "Installing hyprtk-usb"
         _spin "Installing hyprtk-usb..." "bash $SCRIPT_DIR/installer/hyprtk-usb/install.sh" "$LOG_FILE"
-        _ok "hyprtk-usb installed (CLI/TUI zipapp + hyprtk-usb-gui)"
+        _ok "hyprtk-usb installed (CLI/TUI zipapp + Qt/PySide6 GUI)"
 
         # ── hyprtk-iso-creator (GUI; Arch-only — drives mkarchiso) ──
         if [ "$DISTRO_FAMILY" = arch ]; then
             _step "Installing Hyprtk ISO Creator"
             _spin "Installing hyprtk-iso-creator..." "bash $SCRIPT_DIR/installer/hyprtk-iso-creator/install.sh" "$LOG_FILE"
-            _ok "hyprtk-iso-creator installed (GTK 4 GUI over hyprtk-iso-builder.sh)"
+            _ok "hyprtk-iso-creator installed (Qt/PySide6 GUI over hyprtk-iso-builder.sh)"
         else
             echo -e "${CYAN}  → ${WHITE}Skipping Hyprtk ISO Creator (Arch-only: needs mkarchiso)${NC}"
         fi

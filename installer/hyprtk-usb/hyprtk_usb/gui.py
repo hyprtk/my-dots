@@ -1,29 +1,44 @@
-"""GTK 4 front end for hyprtk-usb.
+"""Qt (PySide6) front end for hyprtk-usb.
 
 The GUI runs unprivileged and drives the same ``core`` backend as the CLI. The
 single privileged operation — the write — is performed by ``hyprtk_usb.helper``
-launched through ``pkexec``, so the GTK app never runs as root and isn't subject
+launched through ``pkexec``, so the Qt app never runs as root and isn't subject
 to pkexec's stripped environment.
+
+This is the Qt replacement for the former GTK 4 front end: a frameless,
+non-resizable wizard over ``core``, themed from the running hyprtk-bar palette
+(``palette.load_palette``). The compositor draws the pywal border + rounding;
+the panel is frosted at the bar theme's opacity.
 """
 
 from __future__ import annotations
 
-import gi
+import json
+import os
+import shutil
+import subprocess
+import sys
+import threading
 
-gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QPainter
+from PySide6.QtWidgets import (
+    QAbstractButton,
+    QApplication,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
-import json  # noqa: E402
-import os  # noqa: E402
-import shutil  # noqa: E402
-import subprocess  # noqa: E402
-import sys  # noqa: E402
-import threading  # noqa: E402
-
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
-
-from . import __version__, core  # noqa: E402
-from .ui import human_bytes, load_palette  # noqa: E402
+from . import core
+from .palette import Palette, human_bytes, load_palette
 
 SIZE_CHOICES = core.SIZE_CHOICES
 TEST_MODE = os.environ.get("HYPRTK_USB_TEST") == "1"
@@ -51,10 +66,132 @@ def _elevate(cmd: list[str]) -> list[str]:
     return [pkexec, *cmd]
 
 
-class Window(Gtk.ApplicationWindow):
-    def __init__(self, app: Gtk.Application) -> None:
-        super().__init__(application=app, title="hyprtk-usb")
-        self.set_default_size(720, 600)
+def _rgba(hex_color: str, alpha: float) -> str:
+    """A QSS ``rgba(...)`` string from a hex colour and a 0..1 alpha."""
+    c = QColor(hex_color)
+    if not c.isValid():
+        c = QColor("#000000")
+    return f"rgba({c.red()},{c.green()},{c.blue()},{int(round(alpha * 255))})"
+
+
+def build_qss(p: Palette) -> str:
+    """The hyprtk usb stylesheet: a pywal-driven frosted panel with mauve
+    (color5) accents and cyan (color6) surface tints. Mirrors the old GTK CSS.
+    """
+    return f"""
+QLabel {{ color: {p.fg}; }}
+QLabel[role="title"] {{ color: {p.accent}; font-weight: bold; font-size: 15pt; }}
+QLabel[role="dim"] {{ color: {p.dim}; }}
+QLabel[role="warn"] {{ color: {p.warn}; }}
+QLabel[role="err"] {{ color: {p.err}; }}
+QLabel[role="ok"] {{ color: {p.accent2}; }}
+
+QFrame#panel {{ background-color: {_rgba(p.bg, p.opacity)}; border-radius: 12px; }}
+QWidget#header {{ background: transparent; }}
+
+QPushButton {{
+    background-color: {_rgba(p.accent2, 0.10)};
+    color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.25)};
+    border-radius: 10px;
+    padding: 6px 14px;
+}}
+QPushButton:hover {{ background-color: {_rgba(p.accent2, 0.18)}; }}
+QPushButton[role="primary"] {{
+    background-color: {_rgba(p.accent, 0.85)};
+    color: #ffffff;
+    border: 1px solid {_rgba(p.accent, 0.95)};
+    font-weight: bold;
+}}
+QPushButton[role="primary"]:hover {{ background-color: {p.accent}; }}
+QPushButton#close {{
+    background: transparent; border: none;
+    color: {p.dim}; font-size: 15pt; padding: 0 8px;
+}}
+QPushButton#close:hover {{ color: {p.err}; }}
+
+QComboBox {{
+    background-color: {_rgba(p.accent2, 0.08)};
+    color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.25)};
+    border-radius: 10px;
+    padding: 5px 10px;
+}}
+QComboBox:hover {{ background-color: {_rgba(p.accent2, 0.14)}; }}
+QComboBox::drop-down {{ border: none; width: 22px; }}
+QComboBox::down-arrow {{ image: none; border-left: 4px solid transparent;
+    border-right: 4px solid transparent; border-top: 5px solid {p.accent}; }}
+QComboBox QAbstractItemView {{
+    background-color: {p.bg}; color: {p.fg};
+    border: 1px solid {_rgba(p.accent2, 0.30)};
+    selection-background-color: {p.accent};
+    selection-color: #ffffff;
+}}
+
+QProgressBar {{
+    background-color: {_rgba(p.accent2, 0.12)};
+    border: none; border-radius: 8px;
+    min-height: 10px; max-height: 10px;
+    text-align: center; color: {p.fg};
+}}
+QProgressBar::chunk {{ background-color: {p.accent}; border-radius: 8px; }}
+"""
+
+
+class Switch(QAbstractButton):
+    """A compact pill toggle matching the old ``Gtk.Switch`` look."""
+
+    def __init__(self, checked: bool = False, on_color: str = "#c084fc",
+                 off_color: str = "#22d3ee") -> None:
+        super().__init__()
+        self.setCheckable(True)
+        self.setChecked(checked)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedSize(46, 24)
+        self._on = QColor(on_color)
+        self._off = QColor(off_color)
+        self._off.setAlphaF(0.35)
+
+    def paintEvent(self, _event) -> None:  # noqa: N802 (Qt override)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        rect = self.rect().adjusted(1, 1, -1, -1)
+        radius = rect.height() / 2.0
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(self._on if self.isChecked() else self._off)
+        painter.drawRoundedRect(rect, radius, radius)
+        d = rect.height() - 4
+        y = rect.top() + 2
+        x = (rect.right() - d - 2) if self.isChecked() else (rect.left() + 2)
+        painter.setBrush(QColor("#ffffff"))
+        painter.drawEllipse(x, y, d, d)
+
+
+class DragBar(QWidget):
+    """Header strip that moves the frameless toplevel (Wayland-safe)."""
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        if event.button() == Qt.LeftButton:
+            handle = self.window().windowHandle()
+            if handle is not None:
+                handle.startSystemMove()
+                event.accept()
+                return
+        super().mousePressEvent(event)
+
+
+class Window(QWidget):
+    progress_msg = Signal(dict)
+    failed = Signal(str)
+    finished = Signal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setObjectName("root")
+        self.setWindowTitle("hyprtk-usb")
+        self.setWindowFlag(Qt.FramelessWindowHint, True)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setFixedSize(720, 600)
         self.p = load_palette()
         self.runner = core.ExecRunner()
 
@@ -65,208 +202,116 @@ class Window(Gtk.ApplicationWindow):
         self.persist = True
         self.size = "rest"
         self.refresh = False
+        self._error: str | None = None
 
-        # Match hyprtk-bar's floating dialogs: no client-side decorations (the
-        # compositor draws the pywal border + rounding); the panel is frosted at
-        # the bar's opacity. GTK4 surfaces are RGBA by default, so unlike GTK3
-        # there is no app-paintable / rgba-visual dance.
-        self.set_decorated(False)
-        self.set_resizable(False)
+        app = QApplication.instance()
+        if app is not None:
+            app.setStyleSheet(build_qss(self.p))
 
-        # Scope our stylesheet to this window; prefer the dark GTK variant so the
-        # combo popups (separate windows) stay dark too.
-        self.add_css_class("hyprtk-usb")
-        settings = Gtk.Settings.get_default()
-        if settings is not None:
-            settings.set_property("gtk-application-prefer-dark-theme", True)
-        self._apply_css()
+        panel = QFrame()
+        panel.setObjectName("panel")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(panel)
 
-        self.panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-        self.panel.add_css_class("panel")
-        self.set_child(self.panel)
-        self.panel.append(self._header_row())
-        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        self.box.set_margin_top(18)
-        self.box.set_margin_bottom(18)
-        self.box.set_margin_start(18)
-        self.box.set_margin_end(18)
-        self.panel.append(self.box)
+        pl = QVBoxLayout(panel)
+        pl.setContentsMargins(0, 0, 0, 0)
+        pl.setSpacing(0)
+        pl.addWidget(self._header_row())
+
+        body = QWidget()
+        self.body_layout = QVBoxLayout(body)
+        self.body_layout.setContentsMargins(18, 18, 18, 18)
+        self.body_layout.setSpacing(14)
+        pl.addWidget(body)
+
+        self.progress_msg.connect(self._progress)
+        self.failed.connect(self._fail)
+        self.finished.connect(self._finish)
         self.show_step()
 
-    def _header_row(self) -> Gtk.Widget:
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        row.add_css_class("header")
-        title = Gtk.Label(label="hyprtk-usb", xalign=0)
-        title.add_css_class("title")
-        title.set_hexpand(True)
-        row.append(title)
+    def _header_row(self) -> QWidget:
+        bar = DragBar()
+        bar.setObjectName("header")
+        # Keep the header at its natural height so it can't absorb extra
+        # vertical space (which would float the title away from the top edge).
+        bar.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        row = QHBoxLayout(bar)
+        row.setContentsMargins(18, 16, 14, 6)
+        row.setSpacing(8)
+        title = QLabel("hyprtk-usb")
+        title.setProperty("role", "title")
+        title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        row.addWidget(title)
         if self.p.theme_name:
-            theme_lbl = Gtk.Label(label=self.p.theme_name, xalign=1)
-            theme_lbl.add_css_class("dim")
-            row.append(theme_lbl)
-
-        close = Gtk.Button(label="\u00d7")
-        close.add_css_class("close")
-        close.set_has_frame(False)
-        close.set_focusable(False)
-        close.connect("clicked", lambda *_: self.close())
-        row.append(close)
-
-        # No CSD titlebar, so let the header drag the window. GTK4 removed the
-        # add_events/button-press-event/begin_move_drag dance; a WindowHandle is
-        # the supported way to make an area move the toplevel (and works on
-        # Wayland, where begin_move_drag did not).
-        handle = Gtk.WindowHandle()
-        handle.set_child(row)
-        return handle
-
-    # ── theming ────────────────────────────────────────────────────────
-    def _apply_css(self) -> None:
-        p = self.p
-        # Mirrors hyprtk-bar's semantic tokens (assets/style.css): a pywal-driven
-        # dark frosted panel with mauve (color5) accents and cyan (color6) surface
-        # tints. Scoped to `.hyprtk-usb` so it never restyles other windows.
-        css = f"""
-@define-color bg {p.bg};
-@define-color fg {p.fg};
-@define-color dim {p.dim};
-@define-color accent {p.accent};
-@define-color accent_alt {p.accent2};
-@define-color err {p.err};
-@define-color warn {p.warn};
-
-/* The compositor draws the pywal border + rounding (like every other hyprtk
-   floating window); the panel is frosted at the bar theme's opacity. */
-.hyprtk-usb {{ background-color: transparent; color: @fg; border: none; }}
-
-.hyprtk-usb .panel {{ background-color: alpha(@bg, {p.opacity:.3f}); }}
-
-.hyprtk-usb .header {{ padding: 10px 10px 2px 16px; }}
-.hyprtk-usb button.close {{
-    background-image: none; background-color: transparent;
-    border: none; box-shadow: none;
-    color: @dim; font-size: 15pt; padding: 0 8px; min-height: 0;
-}}
-.hyprtk-usb button.close:hover {{ color: @err; }}
-
-.hyprtk-usb label {{ color: @fg; }}
-.hyprtk-usb label.title {{ color: @accent; font-weight: bold; font-size: 15pt; }}
-.hyprtk-usb label.dim {{ color: @dim; }}
-.hyprtk-usb label.warn {{ color: @warn; }}
-.hyprtk-usb label.err {{ color: @err; }}
-.hyprtk-usb label.ok {{ color: @accent_alt; }}
-
-/* The GTK theme paints a background-image/shadow over any background-color, so
-   reset them (the bar does the same inside its menu). */
-.hyprtk-usb button {{
-    background-image: none; box-shadow: none; text-shadow: none;
-    background-color: alpha(@accent_alt, 0.10);
-    color: @fg;
-    border: 1px solid alpha(@accent_alt, 0.25);
-    border-radius: 10px;
-    padding: 6px 14px;
-}}
-.hyprtk-usb button:hover {{ background-color: alpha(@accent_alt, 0.18); }}
-.hyprtk-usb button.suggested-action {{
-    background-color: alpha(@accent, 0.85);
-    color: #ffffff;
-    border: 1px solid alpha(@accent, 0.95);
-    font-weight: bold;
-}}
-.hyprtk-usb button.suggested-action:hover {{ background-color: @accent; }}
-
-.hyprtk-usb entry, .hyprtk-usb combobox button {{
-    background-image: none; box-shadow: none;
-    background-color: alpha(@accent_alt, 0.08);
-    color: @fg;
-    border: 1px solid alpha(@accent_alt, 0.25);
-    border-radius: 10px;
-    padding: 5px 10px;
-}}
-.hyprtk-usb combobox arrow {{ color: @accent; }}
-
-/* Switches: the GTK theme paints the trough/slider with a background-image and
-   shadow, which sits over any background-color — reset them (else a light
-   square shows around the switch). */
-.hyprtk-usb switch {{
-    background-image: none; box-shadow: none;
-    background-color: alpha(@accent_alt, 0.20);
-    border: 1px solid alpha(@accent_alt, 0.30);
-    border-radius: 12px;
-    min-width: 40px; min-height: 22px;
-}}
-.hyprtk-usb switch:checked {{
-    background-image: none; box-shadow: none;
-    background-color: @accent;
-    border-color: @accent;
-}}
-.hyprtk-usb switch slider {{
-    background-image: none; box-shadow: none;
-    background-color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    min-width: 16px; min-height: 16px;
-    margin: 2px;
-}}
-
-.hyprtk-usb progressbar trough {{
-    background-color: alpha(@accent_alt, 0.12);
-    border-radius: 8px;
-    min-height: 10px;
-}}
-.hyprtk-usb progressbar progress {{ background-color: @accent; border-radius: 8px; }}
-"""
-        provider = Gtk.CssProvider()
-        provider.load_from_data(css.encode())
-        display = self.get_display() or Gdk.Display.get_default()
-        if display is not None:
-            Gtk.StyleContext.add_provider_for_display(
-                display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-            )
+            theme_lbl = QLabel(self.p.theme_name)
+            theme_lbl.setProperty("role", "dim")
+            row.addWidget(theme_lbl)
+        close = QPushButton("\u00d7")
+        close.setObjectName("close")
+        close.setFocusPolicy(Qt.NoFocus)
+        close.setCursor(Qt.PointingHandCursor)
+        close.clicked.connect(self.close)
+        row.addWidget(close)
+        return bar
 
     # ── widgets ────────────────────────────────────────────────────────
     def _clear(self) -> None:
-        # GTK4 removed Gtk.Container.get_children()/remove() on widgets; walk the
-        # box's child list instead (Gtk.Box still exposes remove()).
-        child = self.box.get_first_child()
-        while child is not None:
-            nxt = child.get_next_sibling()
-            self.box.remove(child)
-            child = nxt
+        while self.body_layout.count():
+            item = self.body_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
 
     def _title(self, text: str, sub: str = "") -> None:
-        lbl = Gtk.Label(label=text, xalign=0)
-        lbl.add_css_class("title")
-        self.box.append(lbl)
+        lbl = QLabel(text)
+        lbl.setProperty("role", "title")
+        self.body_layout.addWidget(lbl)
         if sub:
-            s = Gtk.Label(label=sub, xalign=0)
-            s.add_css_class("dim")
-            s.set_wrap(True)
-            self.box.append(s)
+            s = QLabel(sub)
+            s.setProperty("role", "dim")
+            s.setWordWrap(True)
+            self.body_layout.addWidget(s)
 
     def _buttons(self, back: bool, forward: tuple[str, str] | None) -> None:
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        row.set_halign(Gtk.Align.END)
-        row.set_margin_top(6)
-        # The old GTK3 row pack_end-ed Back first then the forward button; that
-        # put the primary action to the left of Back. Appending in visual order
-        # reproduces it exactly.
+        row = QWidget()
+        h = QHBoxLayout(row)
+        h.setContentsMargins(0, 6, 0, 0)
+        h.setSpacing(8)
+        h.addStretch(1)
+        # Visual order matches the old GTK row: primary action, then Back.
         if forward:
             label, nxt = forward
-            b = Gtk.Button(label=label)
-            b.add_css_class("suggested-action")
-            b.connect("clicked", lambda *_: self.advance(nxt))
-            row.append(b)
+            b = QPushButton(label)
+            b.setProperty("role", "primary")
+            b.setCursor(Qt.PointingHandCursor)
+            b.clicked.connect(lambda *_, n=nxt: self.advance(n))
+            h.addWidget(b)
         if back:
-            b = Gtk.Button(label="Back")
-            b.connect("clicked", lambda *_: self.go_back())
-            row.append(b)
-        self.box.append(row)
+            b = QPushButton("Back")
+            b.setCursor(Qt.PointingHandCursor)
+            b.clicked.connect(self.go_back)
+            h.addWidget(b)
+        self.body_layout.addWidget(row)
+
+    def _row(self, label: str, widget: QWidget) -> None:
+        row = QWidget()
+        h = QHBoxLayout(row)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.setSpacing(12)
+        lbl = QLabel(label)
+        lbl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        h.addWidget(lbl)
+        h.addWidget(widget)
+        self.body_layout.addWidget(row)
 
     # ── steps ──────────────────────────────────────────────────────────
     def show_step(self) -> None:
         self._clear()
         getattr(self, f"_step_{self.step}")()
+        # Push the step content to the top; without this the vertical slack is
+        # shared out and the title/dim labels stretch (and their text drifts).
+        self.body_layout.addStretch(1)
 
     def go_back(self) -> None:
         self.step = {"device": "iso", "options": "device", "review": "options"}.get(self.step, "iso")
@@ -279,48 +324,32 @@ class Window(Gtk.ApplicationWindow):
     def _step_iso(self) -> None:
         self._title("Select the ISO", "The hyprtk ISO to write to the USB stick.")
         isos = core.scan_isos()
-        combo = Gtk.ComboBoxText()
-        for path in isos:
-            combo.append_text(path)
+        combo = QComboBox()
+        combo.addItems(isos)
         if isos:
-            combo.set_active(0)
-        combo.connect("changed", lambda c: self._set_iso(c.get_active_text() or ""))
-        if isos:
+            combo.setCurrentIndex(0)
             self.iso_path = isos[0]
-        self.box.append(combo)
+        combo.currentTextChanged.connect(self._set_iso)
+        self.body_layout.addWidget(combo)
 
-        browse = Gtk.Button(label="Browse…")
-        browse.set_halign(Gtk.Align.START)
-        browse.connect("clicked", lambda *_: self._browse_iso())
-        self.box.append(browse)
+        browse = QPushButton("Browse\u2026")
+        browse.setCursor(Qt.PointingHandCursor)
+        browse.clicked.connect(self._browse_iso)
+        self._row("", browse)
 
         if not isos:
-            w = Gtk.Label(label="No hyprtk ISO found in ~/Documents/Isos or ~.", xalign=0)
-            w.add_css_class("warn")
-            self.box.append(w)
+            w = QLabel("No hyprtk ISO found in ~/Documents/Isos or ~.")
+            w.setProperty("role", "warn")
+            self.body_layout.addWidget(w)
 
         self._buttons(back=False, forward=("Continue", "device"))
 
     def _browse_iso(self) -> None:
-        dlg = Gtk.FileChooserDialog(
-            title="Select ISO", transient_for=self, action=Gtk.FileChooserAction.OPEN
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select ISO", os.path.expanduser("~"), "ISO images (*.iso)"
         )
-        dlg.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Open", Gtk.ResponseType.OK)
-        f = Gtk.FileFilter()
-        f.set_name("ISO images")
-        f.add_pattern("*.iso")
-        dlg.add_filter(f)
-        dlg.connect("response", self._on_iso_chosen)
-        dlg.present()
-
-    def _on_iso_chosen(self, dialog: Gtk.FileChooserDialog, response: int) -> None:
-        if response == Gtk.ResponseType.OK:
-            # GTK4 removed Gtk.FileChooser.get_filename(); get_file() gives a
-            # Gio.File whose get_path() returns the local path.
-            gfile = dialog.get_file()
-            if gfile is not None:
-                self._set_iso(gfile.get_path() or "")
-        dialog.destroy()
+        if path:
+            self._set_iso(path)
 
     def _set_iso(self, path: str) -> None:
         self.iso_path = path
@@ -328,7 +357,7 @@ class Window(Gtk.ApplicationWindow):
         self.target = ""
 
     def _step_device(self) -> None:
-        self._title("Select the target disk", "Whole disks only — the stick is erased.")
+        self._title("Select the target disk", "Whole disks only \u2014 the stick is erased.")
         try:
             iso = core.open_iso(self.iso_path, self.runner)
             root = core.root_disk(self.runner)
@@ -349,13 +378,12 @@ class Window(Gtk.ApplicationWindow):
             self._buttons(back=True, forward=None)
             return
 
-        combo = Gtk.ComboBoxText()
-        for d in self.devices:
-            combo.append_text(d.describe())
-        combo.set_active(0)
+        combo = QComboBox()
+        combo.addItems([d.describe() for d in self.devices])
+        combo.setCurrentIndex(0)
         self.target = self.devices[0].path
-        combo.connect("changed", lambda c: self._set_device(c.get_active()))
-        self.box.append(combo)
+        combo.currentIndexChanged.connect(self._set_device)
+        self.body_layout.addWidget(combo)
         self._buttons(back=True, forward=("Continue", "options"))
 
     def _set_device(self, idx: int) -> None:
@@ -366,26 +394,23 @@ class Window(Gtk.ApplicationWindow):
         self._title("Options", f"Target {self.target}")
         p = self._current_device()
 
-        persist_sw = Gtk.Switch()
-        persist_sw.set_active(self.persist)
-        persist_sw.connect("notify::active", lambda s, _: setattr(self, "persist", s.get_active()))
+        persist_sw = Switch(self.persist, self.p.accent, self.p.accent2)
+        persist_sw.toggled.connect(lambda v: setattr(self, "persist", v))
         self._row("Add the hyprtk-persist partition", persist_sw)
 
-        size_combo = Gtk.ComboBoxText()
-        for s in SIZE_CHOICES:
-            size_combo.append_text(s)
-        size_combo.set_active(SIZE_CHOICES.index(self.size) if self.size in SIZE_CHOICES else 0)
-        size_combo.connect("changed", lambda c: setattr(self, "size", c.get_active_text() or "rest"))
+        size_combo = QComboBox()
+        size_combo.addItems(list(SIZE_CHOICES))
+        size_combo.setCurrentIndex(SIZE_CHOICES.index(self.size) if self.size in SIZE_CHOICES else 0)
+        size_combo.currentTextChanged.connect(lambda t: setattr(self, "size", t or "rest"))
         self._row("Persistence size", size_combo)
 
         if p is not None and p.persist_partition() is not None:
-            refresh_sw = Gtk.Switch()
-            refresh_sw.set_active(self.refresh)
-            refresh_sw.connect("notify::active", lambda s, _: setattr(self, "refresh", s.get_active()))
+            refresh_sw = Switch(self.refresh, self.p.accent, self.p.accent2)
+            refresh_sw.toggled.connect(lambda v: setattr(self, "refresh", v))
             self._row("Keep the existing partition", refresh_sw)
-            note = Gtk.Label(label="An existing hyprtk-persist partition was found.", xalign=0)
-            note.add_css_class("dim")
-            self.box.append(note)
+            note = QLabel("An existing hyprtk-persist partition was found.")
+            note.setProperty("role", "dim")
+            self.body_layout.addWidget(note)
 
         self._buttons(back=True, forward=("Review", "review"))
 
@@ -402,7 +427,8 @@ class Window(Gtk.ApplicationWindow):
             dev = self._current_device() or core.find_device(self.runner, self.target)
             plan = core.build_plan(
                 iso, dev,
-                core.Options(persist=self.persist, size=self.size, refresh=self.refresh, test_mode=TEST_MODE),
+                core.Options(persist=self.persist, size=self.size,
+                             refresh=self.refresh, test_mode=TEST_MODE),
             )
         except core.UsbError as e:
             self._error_label(str(e))
@@ -427,50 +453,59 @@ class Window(Gtk.ApplicationWindow):
                 f"({human_bytes(plan.size_sectors * 512)})"
             )
         for line in lines:
-            lbl = Gtk.Label(label=line, xalign=0)
-            self.box.append(lbl)
+            self.body_layout.addWidget(QLabel(line))
         for w in plan.warnings:
-            wl = Gtk.Label(label="! " + w, xalign=0)
-            wl.add_css_class("warn")
-            self.box.append(wl)
+            wl = QLabel("! " + w)
+            wl.setProperty("role", "warn")
+            wl.setWordWrap(True)
+            self.body_layout.addWidget(wl)
 
-        erase = Gtk.Label(label=f"This ERASES {dev.path}.", xalign=0)
-        erase.add_css_class("err")
-        self.box.append(erase)
+        erase = QLabel(f"This ERASES {dev.path}.")
+        erase.setProperty("role", "err")
+        self.body_layout.addWidget(erase)
 
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        row.set_halign(Gtk.Align.END)
-        write = Gtk.Button(label="Write")
-        write.add_css_class("suggested-action")
-        write.connect("clicked", lambda *_: self._start_write())
-        row.append(write)
-        back = Gtk.Button(label="Back")
-        back.connect("clicked", lambda *_: self.go_back())
-        row.append(back)
-        self.box.append(row)
+        row = QWidget()
+        h = QHBoxLayout(row)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.setSpacing(8)
+        h.addStretch(1)
+        write = QPushButton("Write")
+        write.setProperty("role", "primary")
+        write.setCursor(Qt.PointingHandCursor)
+        write.clicked.connect(self._start_write)
+        h.addWidget(write)
+        back = QPushButton("Back")
+        back.setCursor(Qt.PointingHandCursor)
+        back.clicked.connect(self.go_back)
+        h.addWidget(back)
+        self.body_layout.addWidget(row)
 
     def _step_progress(self) -> None:
         self._title("Writing", "Do not unplug the device.")
-        self.bar = Gtk.ProgressBar()
-        self.bar.set_show_text(True)
-        self.box.append(self.bar)
-        self.status = Gtk.Label(label="starting…", xalign=0)
-        self.status.add_css_class("dim")
-        self.box.append(self.status)
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 100)
+        self.bar.setTextVisible(True)
+        self.body_layout.addWidget(self.bar)
+        self.status = QLabel("starting\u2026")
+        self.status.setProperty("role", "dim")
+        self.body_layout.addWidget(self.status)
 
     def _step_done(self) -> None:
         self._title("Done")
         msg = 'Boot the stick and pick "Hyprtk live with persistence".'
-        lbl = Gtk.Label(label=msg, xalign=0)
-        lbl.add_css_class("ok")
-        lbl.set_wrap(True)
-        self.box.append(lbl)
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        row.set_halign(Gtk.Align.END)
-        close = Gtk.Button(label="Close")
-        close.connect("clicked", lambda *_: self.close())
-        row.append(close)
-        self.box.append(row)
+        lbl = QLabel(msg)
+        lbl.setProperty("role", "ok")
+        lbl.setWordWrap(True)
+        self.body_layout.addWidget(lbl)
+        row = QWidget()
+        h = QHBoxLayout(row)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.addStretch(1)
+        close = QPushButton("Close")
+        close.setCursor(Qt.PointingHandCursor)
+        close.clicked.connect(self.close)
+        h.addWidget(close)
+        self.body_layout.addWidget(row)
 
     def _step_error(self) -> None:
         self._title("Failed")
@@ -478,18 +513,10 @@ class Window(Gtk.ApplicationWindow):
         self._buttons(back=True, forward=None)
 
     def _error_label(self, msg: str) -> None:
-        lbl = Gtk.Label(label=msg, xalign=0)
-        lbl.add_css_class("err")
-        lbl.set_wrap(True)
-        self.box.append(lbl)
-
-    def _row(self, label: str, widget: Gtk.Widget) -> None:
-        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        lbl = Gtk.Label(label=label, xalign=0)
-        lbl.set_hexpand(True)
-        row.append(lbl)
-        row.append(widget)
-        self.box.append(row)
+        lbl = QLabel(msg)
+        lbl.setProperty("role", "err")
+        lbl.setWordWrap(True)
+        self.body_layout.addWidget(lbl)
 
     # ── writing ────────────────────────────────────────────────────────
     def _start_write(self) -> None:
@@ -519,7 +546,7 @@ class Window(Gtk.ApplicationWindow):
         try:
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         except OSError as e:
-            GLib.idle_add(self._fail, str(e))
+            self.failed.emit(str(e))
             return
         assert proc.stdout is not None
         for line in proc.stdout:
@@ -530,50 +557,43 @@ class Window(Gtk.ApplicationWindow):
                 msg = json.loads(line)
             except ValueError:
                 continue
-            GLib.idle_add(self._progress, msg)
+            self.progress_msg.emit(msg)
         err = (proc.stderr.read() if proc.stderr else "").strip()
         rc = proc.wait()
         if rc != 0:
-            GLib.idle_add(self._fail, err or f"write failed (exit {rc})")
+            self.failed.emit(err or f"write failed (exit {rc})")
         else:
-            GLib.idle_add(self._finish)
+            self.finished.emit()
 
-    def _progress(self, msg: dict) -> bool:
+    def _progress(self, msg: dict) -> None:
         stage = msg.get("stage", "")
         if stage == "copy":
             total = msg.get("total") or 0
             written = msg.get("written") or 0
             if total:
-                self.bar.set_fraction(min(written / total, 1.0))
-                self.bar.set_text(f"copying {human_bytes(written)} / {human_bytes(total)}")
+                self.bar.setValue(int(min(written / total, 1.0) * 100))
+                self.bar.setFormat(f"copying {human_bytes(written)} / {human_bytes(total)}")
         elif stage == "partition":
-            self.status.set_text("adding the persistence partition…")
+            self.status.setText("adding the persistence partition\u2026")
         elif stage == "format":
-            self.status.set_text(f"formatting {core.PERSIST_LABEL}…")
-        return False
+            self.status.setText(f"formatting {core.PERSIST_LABEL}\u2026")
 
-    def _fail(self, msg: str) -> bool:
+    def _fail(self, msg: str) -> None:
         self._error = msg
         self.advance("error")
-        return False
 
-    def _finish(self) -> bool:
+    def _finish(self) -> None:
         self.advance("done")
-        return False
-
-
-class App(Gtk.Application):
-    def __init__(self) -> None:
-        super().__init__(application_id="org.hyprtk.usb", flags=0)
-
-    def do_activate(self) -> None:
-        win = self.get_active_window() or Window(self)
-        win.present()
 
 
 def main(argv: list[str] | None = None) -> int:
-    app = App()
-    return app.run(argv if argv is not None else sys.argv)
+    app = QApplication.instance() or QApplication(argv if argv is not None else sys.argv)
+    app.setApplicationName("hyprtk-usb")
+    app.setDesktopFileName("hyprtk-usb")
+    app.setStyle("Fusion")
+    win = Window()
+    win.show()
+    return app.exec()
 
 
 if __name__ == "__main__":

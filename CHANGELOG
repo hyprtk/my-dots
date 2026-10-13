@@ -14,9 +14,17 @@ documented in this file. Dates are in YYYY-MM-DD format.
   confirmation (Yes / No) before **Log out**, **Restart** or **Shut down**, so an
   accidental click can't end the session (Lock and the other footer buttons stay
   immediate).
+- **`hyprtk-usb` re-vendored to the Qt (PySide6) front end (0.4.1)** — the Qt
+  rewrite (which replaces the GTK 4 GUI) is now vendored and installed;
+  `installer/hyprtk-usb/install.sh` and the installer messages were updated from
+  GTK/PyGObject to PySide6. Both GUIs now need system PySide6 (see notes).
 
 ### Fixed
 
+- **GUI dialog headers padded (`hyprtk-usb` 0.4.1, `hyprtk-iso-creator` 0.2.1)**
+  — the window title sat too close to the rounded panel border; the header row
+  now uses a 16px top margin (left/right aligned to the body), keeps its natural
+  height, and step content is top-aligned, matching the hyprtk-bar-qt dialogs.
 - **System Monitor → Apps page (`hyprtk-bar-qt` 0.41.6)** — a QML binding loop in
   the process-list model left it blank, and the sampler was never re-told the
   active page, so the Apps process walk never ran; both are fixed, so the list

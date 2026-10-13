@@ -3,6 +3,16 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.1] - 2026-10-13
+
+### Fixed
+
+- **Dialog header padded to match the bar.** The window title sat too close to
+  the panel's rounded border. The header row now uses a 16px top margin with
+  left/right aligned to the body, the header keeps its natural height (so it
+  can't absorb slack and float the title), and the step content is top-aligned —
+  matching the hyprtk-bar-qt dialogs.
+
 ## [0.2.0] - 2026-10-07
 
 ### Changed

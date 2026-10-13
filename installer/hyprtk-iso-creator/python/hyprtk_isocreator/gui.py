@@ -240,8 +240,11 @@ class Window(QWidget):
     def _header_row(self) -> QWidget:
         bar = DragBar()
         bar.setObjectName("header")
+        # Keep the header at its natural height so it can't absorb extra
+        # vertical space (which would float the title away from the top edge).
+        bar.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         row = QHBoxLayout(bar)
-        row.setContentsMargins(16, 10, 10, 2)
+        row.setContentsMargins(16, 16, 14, 6)
         row.setSpacing(8)
         title = QLabel("Hyprtk ISO Creator")
         title.setProperty("role", "title")
@@ -344,6 +347,9 @@ class Window(QWidget):
     def show_step(self) -> None:
         self._clear()
         getattr(self, f"_step_{self.step}")()
+        # Push the step content to the top; without this the vertical slack is
+        # shared out and the title/dim labels stretch (and their text drifts).
+        self.body_layout.addStretch(1)
 
     def go_back(self) -> None:
         self.step = {
