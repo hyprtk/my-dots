@@ -24,6 +24,9 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Dropdown menu borders (`hyprtk-usb` 0.4.5, `hyprtk-iso-creator` 0.2.5)** — the
+  combo popup border used `color6` (a light grey in many palettes) and drew a box
+  around the current item; it now uses the accent colour, with no per-item box.
 - **Chooser icon theme + combo styling (`hyprtk-usb` 0.4.4, `hyprtk-iso-creator`
   0.2.4)** — the choosers now adopt the desktop icon theme (`Papirus-Dark`), so
   their folder icons match the pywal-recoloured session icons; the combo

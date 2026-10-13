@@ -180,14 +180,21 @@ QComboBox::down-arrow {{
 QComboBox QAbstractItemView {{
     background-color: {p.bg};
     color: {p.fg};
-    border: 1px solid {_rgba(p.accent2, 0.30)};
-    border-radius: 8px;
-    padding: 4px;
+    border: 1px solid {_rgba(p.accent, 0.45)};
     outline: 0;
     selection-background-color: {_rgba(p.accent, 0.85)};
     selection-color: #ffffff;
 }}
-QComboBox QAbstractItemView::item {{ padding: 4px 8px; min-height: 20px; }}
+QComboBox QAbstractItemView::item {{
+    padding: 5px 8px;
+    border: none;
+}}
+QComboBox QAbstractItemView::item:selected,
+QComboBox QAbstractItemView::item:selected:active {{
+    background-color: {_rgba(p.accent, 0.85)};
+    color: #ffffff;
+    border: none;
+}}
 
 QProgressBar {{
     background-color: {_rgba(p.accent2, 0.12)};
