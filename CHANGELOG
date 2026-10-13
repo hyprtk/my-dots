@@ -5,6 +5,12 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ## [Unreleased] - 2026-10-13
 
+### Changed
+
+- **`hyprtk-bar-qt` vendored `.gitignore`** — ignore test/lint artefacts
+  (`.pytest_cache/`, `.ruff_cache/`, `.mypy_cache/`, `.coverage`, `coverage.xml`,
+  `htmlcov/`, `.tox/`).
+
 ### Fixed
 
 - **Icon recolouring ran twice on every wallpaper change.** `change-icons.sh` is

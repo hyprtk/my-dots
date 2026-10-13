@@ -5,6 +5,15 @@ build/
 dist/
 .venv/
 
+# Test / lint artefacts (not shipped).
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
 # Dev-only working notes (not shipped).
 PARITY.md
 PLAN.md
