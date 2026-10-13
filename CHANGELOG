@@ -27,6 +27,11 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Fixed
 
+- **Widget boundary move fix (`hyprtk-bar-qt` 0.41.8)** — the 0.41.7 boundary
+  stopped widgets from moving: a `moveOver` binding loop (it read
+  `WidgetMove.rects` → `setGeometry` → margin → `moveOver`) and a
+  `Screens.focused` call missing `()` (→ `NaN`). The clamp now runs only in the
+  cursor/drop handlers, never in the binding.
 - **Dropdown border follows the bar theme (`hyprtk-usb` 0.4.7, `hyprtk-iso-creator`
   0.2.7)** — Fusion draws the combo popup's container frame from the palette's
   frame roles; they now track the bar theme's accent (pywal color5), matching the

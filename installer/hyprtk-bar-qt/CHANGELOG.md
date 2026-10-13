@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.41.8 — unreleased
+
+- **Fix**: the widget boundary (0.41.7) made widgets unable to move — they
+  snapped back on release. Two bugs: the `moveOver` binding looped (it read
+  `WidgetMove.rects`, which `setGeometry` writes and which derives from the
+  margin), and `Screens.focused` was used without calling it, so the clamp
+  produced `NaN`. The clamp now runs only in the cursor/drop handlers, never in
+  the binding.
+
 ## 0.41.7 — unreleased
 
 - **Fix**: desktop widgets could be moved outside the screen — overlapping the

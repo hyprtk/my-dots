@@ -38,7 +38,7 @@ Singleton {
 
     // Clamp a widget rect (x, y, w, h) inside the boundary.
     function _clamp(x, y, w, h) {
-        const s = Screens.focused;
+        const s = Screens.focused();
         const sw = s ? s.width : 0;
         const sh = s ? s.height : 0;
         const b = root.boundary;
@@ -67,19 +67,19 @@ Singleton {
     }
 
     function overFor(id) {
-        const r = root.rects[id];
-        const w = r ? r.w : 0;
-        const h = r ? r.h : 0;
-        if (root.moving && root.movingId === id) {
-            const c = root._clamp(root.baseX + (root.curX - root.startX),
-                                  root.baseY + (root.curY - root.startY), w, h);
+        // NOTE: must not read root.rects here — this is evaluated in the
+        // WidgetFrame `moveOver` binding, and rects is written by setGeometry
+        // (triggered by effMarginX), which would loop. Clamping happens in
+        // _cursor/_beginAt/stop instead.
+        if (root.moving && root.movingId === id)
+            return {
+                x: Math.round(root.baseX + (root.curX - root.startX)),
+                y: Math.round(root.baseY + (root.curY - root.startY)),
+                w: -1, h: -1
+            };
+        const c = root.committed[id];
+        if (c)
             return { x: c.x, y: c.y, w: -1, h: -1 };
-        }
-        const cm = root.committed[id];
-        if (cm) {
-            const c = root._clamp(cm.x, cm.y, w, h);
-            return { x: c.x, y: c.y, w: -1, h: -1 };
-        }
         return null;
     }
 
@@ -196,8 +196,15 @@ Singleton {
         if (root.selecting) {
             root._beginAt(cx, cy);
         } else if (root.moving) {
-            root.curX = cx;
-            root.curY = cy;
+            // Clamp the target (base + cursor delta) inside the boundary, then
+            // store it back as a cursor offset so overFor (a binding) stays free
+            // of the rect read that would otherwise loop via setGeometry.
+            const r = root.rects[root.movingId];
+            const cl = root._clamp(root.baseX + (cx - root.startX),
+                                   root.baseY + (cy - root.startY),
+                                   r ? r.w : 0, r ? r.h : 0);
+            root.curX = root.startX + (cl.x - root.baseX);
+            root.curY = root.startY + (cl.y - root.baseY);
         }
     }
 }
