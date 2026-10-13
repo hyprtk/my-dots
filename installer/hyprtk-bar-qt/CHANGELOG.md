@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.41.5 — unreleased
+
+- **Fix**: left-clicking the nm-applet tray icon (the NetworkManager indicator)
+  did nothing — its `activate()`/menu is a no-op under a Quickshell SNI host. It
+  now opens `nm-connection-editor`, matching the GTK bar.
+
 ## 0.41.4 — unreleased
 
 - **Fix**: clicking a task in the task list did nothing (focus / minimise /

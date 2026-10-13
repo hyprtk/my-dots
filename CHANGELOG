@@ -38,6 +38,10 @@ documented in this file. Dates are in YYYY-MM-DD format.
   dispatchers require it **with** the prefix, so every `address:…` request failed
   with `hl.focus: window not found`. Addresses are now normalised in the `Hypr`
   dispatch helper.
+- **`hyprtk-bar-qt` 0.41.5 (hotfix)** — left-clicking the nm-applet tray icon
+  (the NetworkManager indicator) did nothing: its `activate()`/menu is a no-op
+  under a Quickshell SNI host. It now opens `nm-connection-editor`, matching the
+  GTK bar.
 - **`.gitignore`**: dropped the stale GTK `hyprtk-bar` generated-file entries —
   the GTK bar is no longer vendored (bar-qt ships its own `hyprtk-bar-qt*`
   launchers).

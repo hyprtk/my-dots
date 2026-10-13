@@ -61,6 +61,13 @@ RowLayout {
             return Theme.dim;
         return Theme.foreground;
     }
+    // nm-applet (the NetworkManager indicator): left-click opens the connection
+    // editor, matching the GTK bar. Its own activate()/menu does nothing useful
+    // in a Quickshell host.
+    function isNmApplet(it) {
+        const s = root._info(it);
+        return s.indexOf("nm-applet") >= 0 || s.indexOf("nm_applet") >= 0;
+    }
 
     Repeater {
         model: SystemTray.items
@@ -110,6 +117,8 @@ RowLayout {
                     } else if (mouse.button === Qt.RightButton) {
                         if (item.modelData.hasMenu)
                             menuAnchor.open();
+                    } else if (root.isNmApplet(item.modelData)) {
+                        Quickshell.execDetached(["nm-connection-editor"]);
                     } else if (item.modelData.onlyMenu) {
                         if (item.modelData.hasMenu)
                             menuAnchor.open();
