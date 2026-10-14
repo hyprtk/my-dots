@@ -3,6 +3,15 @@
 All notable changes to **Hyprtk-ISO-Creator** are documented in this file.
 Dates are in `YYYY-MM-DD` format.
 
+## [0.2.8] - 2026-10-14
+
+### Changed
+
+- **The GUI installer falls back to a PyPI PySide6.** `install.sh` builds a venv
+  with system site-packages and relies on the distro's PySide6; on releases that
+  don't package it (Debian 12, Ubuntu 24.04, Mint 22) it now `pip install`s
+  `PySide6` so the GUI is still launchable.
+
 ## [0.2.7] - 2026-10-13
 
 ### Fixed
@@ -70,7 +79,7 @@ Dates are in `YYYY-MM-DD` format.
 - **The GUI is now Qt (PySide6)**, replacing the GTK 4 front end
   (`python/hyprtk_isocreator/gui.py`). Same wizard and live builder log over the
   same builder/helper; QSS retunes the window from the running hyprtk-bar pywal
-  palette. Distro installs provide Qt via `python-pyside6`; pip users can
+  palette. Distro installs provide Qt via `pyside6`; pip users can
   `pip install hyprtk-isocreator[gui]`.
 - Added a headless PySide6 smoke test (`python/tests/test_gui_smoke.py`).
 

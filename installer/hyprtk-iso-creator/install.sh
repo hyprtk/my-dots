@@ -31,6 +31,14 @@ echo ":: installing hyprtk-iso-creator (GUI) into $VENV"
 "$VENV/bin/pip" install --quiet --upgrade pip
 "$VENV/bin/pip" install --quiet "$SCRIPT_DIR/python"
 
+# PySide6 normally comes from the distro (the venv inherits system
+# site-packages). Releases that don't package it (Debian 12, Ubuntu 24.04,
+# Mint 22) would leave the GUI unlaunchable, so fall back to PyPI.
+if ! "$VENV/bin/python" -c 'import PySide6' >/dev/null 2>&1; then
+    echo ":: no system PySide6 found — installing it from PyPI"
+    "$VENV/bin/pip" install --quiet "PySide6>=6.6"
+fi
+
 mkdir -p "$BIN" "$APPS" "$STATE"
 ln -sf "$VENV/bin/hyprtk-iso-creator" "$BIN/hyprtk-iso-creator"
 ln -sf "$VENV/bin/hyprtk-iso-creator-helper" "$BIN/hyprtk-iso-creator-helper"

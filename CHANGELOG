@@ -25,6 +25,22 @@ documented in this file. Dates are in YYYY-MM-DD format.
   docstrings, comments and the iso `python/README.md` (`hyprtk-usb` 0.4.2,
   `hyprtk-iso-creator` 0.2.2).
 
+### Added
+
+- **PySide6 declared in the package lists** (`hypr/packages/system.sh`) — both Qt
+  GUIs (`hyprtk-usb`, `hyprtk-iso-creator`) run on the system PySide6, which the
+  installer never installed. It is now requested per family: `pyside6` (Arch),
+  `python3-pyside6` (Fedora/openSUSE/Void), `py3-pyside6` (Alpine), and
+  `python3-pyside6.qtwidgets` (Debian/Ubuntu, which splits PySide6 into per-module
+  packages; qtwidgets pulls in qtcore + qtgui). Debian 12 and Ubuntu 24.04 (and
+  Mint 22) predate PySide6, so those are allowlisted in the package matrix.
+- **GUI installers fall back to a PyPI PySide6** (`hyprtk-usb` /
+  `hyprtk-iso-creator`) — where the distro packages no PySide6 (Debian 12,
+  Ubuntu 24.04, Mint 22) the installer now `pip install`s `PySide6` into the GUI
+  venv instead of leaving it unlaunchable. `hyprtk-iso-creator` re-vendored at
+  **0.2.8** (its the source repo's `install.sh`, now carrying the fallback);
+  `hyprtk-usb`'s installer is dotfiles-local (`installer/hyprtk-usb/install.sh`).
+
 ### Fixed
 
 - **Widget boundary move fix (`hyprtk-bar-qt` 0.41.8)** — the 0.41.7 boundary

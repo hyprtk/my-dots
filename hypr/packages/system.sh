@@ -8,40 +8,45 @@ case "$HYPRTK_PM" in
 pacman)
     PKGS=(sddm blueman pacman-contrib fzf font-manager awesome-terminal-fonts
           otf-font-awesome ttf-fira-sans ttf-fira-code ttf-firacode-nerd eza
-          python-pip python-psutil python-rich python-click xdg-desktop-portal-gtk
+          python-pip python-psutil python-rich python-click pyside6 xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring pcp
           pcp-gui gtk4-layer-shell hyprpicker)
     AUR=(bibata-cursor-theme trizen sublime-text-4 sddm-theme-sugar-candy-git pacseek
          pamac-all libpamac-full pamac-cli tumbler-extra-thumbnailers)
     ;;
 apt)
+    # Debian/Ubuntu split PySide6 into per-module packages; qtwidgets pulls in
+    # qtcore + qtgui (the modules the hyprtk-usb / iso-creator Qt GUIs import).
     PKGS=(sddm blueman fzf font-manager fonts-font-awesome fonts-firacode eza
           python3-pip python3-psutil python3-rich python3-click python3-venv
+          python3-pyside6.qtwidgets
           xdg-desktop-portal-gtk xdg-user-dirs xdg-user-dirs-gtk os-prober
           policykit-1-gnome gnome-keyring libgtk4-layer-shell0 hyprpicker)
     ;;
 dnf)
     # polkit-gnome is not packaged on Fedora; mate-polkit provides the agent.
     PKGS=(sddm blueman fzf font-manager fontawesome-fonts-all fira-code-fonts eza
-          python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
+          python3-pip python3-psutil python3-rich python3-click python3-pyside6
+          xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober mate-polkit gnome-keyring
           gtk4-layer-shell hyprpicker)
     ;;
 zypper)
     PKGS=(sddm blueman fzf font-manager fontawesome-fonts fira-code-fonts eza
-          python3-pip python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
+          python3-pip python3-psutil python3-rich python3-click python3-pyside6
+          xdg-desktop-portal-gtk
           xdg-user-dirs           xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
           libgtk4-layer-shell0 hyprpicker)
     ;;
 xbps)
     PKGS=(sddm blueman fzf fontmanager font-awesome font-firacode eza python3-pip
-          python3-psutil python3-rich python3-click xdg-desktop-portal-gtk
+          python3-psutil python3-rich python3-click python3-pyside6 xdg-desktop-portal-gtk
           xdg-user-dirs xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring
           gtk4-layer-shell hyprpicker)
     ;;
 apk)
     PKGS=(sddm blueman fzf font-manager font-awesome font-fira-code-nerd eza py3-pip
-          py3-psutil py3-rich py3-click xdg-desktop-portal-gtk xdg-user-dirs
+          py3-psutil py3-rich py3-click py3-pyside6 xdg-desktop-portal-gtk xdg-user-dirs
           xdg-user-dirs-gtk os-prober polkit-gnome gnome-keyring gtk4-layer-shell
           hyprpicker eudev eudev-openrc)
     ;;
