@@ -7,6 +7,19 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ### Added
 
+- **System-tray hover info** — `hyprtk-bar-qt 0.41.13` (re-vendored). Hovering a
+  tray icon now shows what the app reports: the network indicator (nm-applet)
+  shows the active connection, device, IPv4/gateway and live up/down rates;
+  blueman shows the adapter state and the connected devices. A new toolkit-free
+  `trayinfo.py` backend (nmcli + bluetoothctl + the shared net sampler) feeds a
+  `TrayInfo` singleton; the shared tooltip gained multi-line support.
+- **Themed tray context menu** — `hyprtk-bar-qt` (re-vendored). The tray
+  right-click menu is now a frosted, pywal-themed panel matching the bar
+  (separators, dimmed disabled rows, check states, hover highlight) rendered
+  from the item's DBusMenu via `QsMenuOpener`, instead of a native Qt menu. It
+  opens below the bar (not over it), grows inwards from the icon and carries the
+  bar's 2px border; submenus (e.g. nm-applet's *VPN Connections*) drill down in
+  place.
 - **Themer — Lock Screen lists the full lock config** — `hyprtk-bar-qt 0.41.10`
   (re-vendored). The page showed only the pywal colour fragment; it now renders
   every block of the active locker's config, grouped and editable, plus the
