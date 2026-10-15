@@ -3,6 +3,23 @@
 All notable changes to hyprtk-merged (the unified dotfiles installer) are
 documented in this file. Dates are in YYYY-MM-DD format.
 
+## [Unreleased] - 2026-10-15
+
+### Fixed
+
+- **The bar's Lock action now uses hyprlock** — `hyprtk-bar-qt 0.41.9`
+  (re-vendored). The start-menu / quick-settings **Lock** button ran `swaylock`
+  first: the shipped `config.json`'s `menu.power.lock` shadowed the correct
+  `Config.menuPower` default that routes through `~/.config/hypr/scripts/lock.sh`
+  (which prefers hyprlock). Locks started from the bar therefore used swaylock
+  and ignored the pywal-tinted `~/.cache/wal/hyprlock-colors.conf`.
+- **The swaylock fallback lock now follows the wallpaper** — `1-install.sh` no
+  longer leaves `~/.config/swaylock/config` pointing at the static repo config
+  (fixed colours) when `wal` has not rendered the template yet; it renders the
+  pywal template first and always symlinks the rendered
+  `~/.cache/wal/swaylock[-plain]-config`, so the fallback re-tints on every
+  wallpaper change, exactly like hyprlock.
+
 ## [Unreleased] - 2026-10-14
 
 ### Added

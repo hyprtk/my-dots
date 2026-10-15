@@ -921,8 +921,15 @@ else
         # (clock/timestr/datestr, fade-in, effect-pixelate) and refuses to lock.
         # Pick the variant the installed binary accepts, and point
         # ~/.config/swaylock/config at the pywal-rendered config
-        # (configs/wal/templates/swaylock[-plain]-config); the static repo config
-        # is the fallback when pywal has not rendered yet.
+        # (configs/wal/templates/swaylock[-plain]-config) so the fallback locker
+        # follows the wallpaper — wal re-renders that file on every change. The
+        # symlink target must ALWAYS be the rendered file, never the static repo
+        # config: pointing at the static config freezes the lock on its fixed
+        # colours (the fallback lock then never follows pywal). Make sure the
+        # rendered file exists first — wal_init above normally renders it, but a
+        # fresh install can reach here before any wallpaper is set (e.g. the
+        # archcraft wal_init needs ~/.cache/current-wallpaper.png) — and seed it
+        # from the static config only as a last resort so the symlink resolves.
         if command -v swaylock >/dev/null 2>&1 && swaylock --help 2>&1 | grep -q -- '--effect-pixelate'; then
             _swaylock_src="$SCRIPT_DIR/configs/swaylock/config"
             _swaylock_rendered="$HOME/.cache/wal/swaylock-config"
@@ -930,7 +937,9 @@ else
             _swaylock_src="$SCRIPT_DIR/configs/swaylock-plain/config"
             _swaylock_rendered="$HOME/.cache/wal/swaylock-plain-config"
         fi
-        [ -f "$_swaylock_rendered" ] || _swaylock_rendered="$_swaylock_src"
+        mkdir -p "$HOME/.cache/wal"
+        [ -f "$_swaylock_rendered" ] || wal -n -i "$SCRIPT_DIR/assets/Wallpapers/default.png" >/dev/null 2>&1
+        [ -f "$_swaylock_rendered" ] || cp "$_swaylock_src" "$_swaylock_rendered"
         _spin "Installing swaylock (fallback)..." "if [ -L ~/.config/swaylock ]; then rm -f ~/.config/swaylock; fi; mkdir -p ~/.config/swaylock; _installSymLink swaylock-config ~/.config/swaylock/config $_swaylock_rendered ~/.config/swaylock" "$LOG_FILE"
         # hyprlock (preferred) is part of the hypr/ config dir installed above.
         # It reads its colours from the pywal fragment

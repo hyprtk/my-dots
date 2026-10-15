@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.41.9 — unreleased
+
+- **Fix**: the start-menu and quick-settings **Lock** button ran `swaylock`
+  first. The shipped `config.json`'s `menu.power.lock` (`pidof swaylock hyprlock
+  || swaylock || hyprlock`) shadowed the correct default (`Config.menuPower`,
+  which routes through `~/.config/hypr/scripts/lock.sh` and prefers hyprlock),
+  so locks initiated from the bar used swaylock and ignored the pywal-tinted
+  `~/.cache/wal/hyprlock-colors.conf`. The default now matches the `menuPower`
+  command (`pidof hyprlock swaylock || …/lock.sh || hyprlock || swaylock`).
+
 ## 0.41.8 — unreleased
 
 - **Fix**: the widget boundary (0.41.7) made widgets unable to move — they
