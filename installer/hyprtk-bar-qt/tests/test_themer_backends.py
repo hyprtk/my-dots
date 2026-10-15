@@ -84,7 +84,7 @@ class LockSettings(unittest.TestCase):
                 colors = {i["key"]: i for i in data["items"] if i["color"]}
                 self.assertIn("ring-color", colors)
                 self.assertTrue(lock.set_value("ring-color", "FF0000"))
-                self.assertIn("ring-color=FF0000", cfg.read_text())
+                self.assertIn("ring-color = FF0000", cfg.read_text())
             finally:
                 lock.SWAYLOCK, lock.HYPRLOCK_CONF = old_sway, old_hypr
 
@@ -96,7 +96,7 @@ class LockSettings(unittest.TestCase):
             lock.SWAYLOCK, lock.HYPRLOCK_CONF = cfg, Path(tmp) / "nope.conf"
             try:
                 self.assertTrue(lock.set_value("text-color", "FFFFFF"))
-                self.assertIn("text-color=FFFFFF", cfg.read_text())
+                self.assertIn("text-color = FFFFFF", cfg.read_text())
             finally:
                 lock.SWAYLOCK, lock.HYPRLOCK_CONF = old_sway, old_hypr
 
@@ -112,6 +112,81 @@ class LockSettings(unittest.TestCase):
                 self.assertIn("ring-color=2AACCC", cfg.read_text())
             finally:
                 lock.SWAYLOCK, lock.HYPRLOCK_CONF = old_sway, old_hypr
+
+
+class LockGroups(unittest.TestCase):
+    """The lock page lists every hyprlock + hypridle block, not just colours."""
+
+    def _tree(self, base: Path) -> None:
+        (base / "hyprlock.conf").write_text(
+            "$lock_ring = rgb(111111)\n"
+            "source = ~/.cache/wal/hyprlock-colors.conf\n"
+            "general {\n"
+            "  hide_cursor = true\n"
+            "}\n"
+            "# auth {\n"
+            "label {\n"
+            "  text = $TIME\n"
+            "}\n"
+            "label {\n"
+            "  text = hi\n"
+            "}\n"
+        )
+        (base / "hypridle.conf").write_text(
+            "general {\n  lock_cmd = foo\n}\n"
+            "listener {\n  timeout = 600\n}\n"
+            "listener {\n  timeout = 660\n  on-resume = bar\n}\n"
+        )
+        (base / "colors.conf").write_text("$lock_ring = rgb(ABCDEF)\n$lock_text = rgb(123456)\n")
+
+    def test_groups_sections_and_skips(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self._tree(base)
+            old = lock.HYPRLOCK_CONF, lock.HYPRIDLE_CONF, lock.HYPRLOCK_COLORS
+            lock.HYPRLOCK_CONF = base / "hyprlock.conf"
+            lock.HYPRIDLE_CONF = base / "hypridle.conf"
+            lock.HYPRLOCK_COLORS = base / "colors.conf"
+            try:
+                with mock.patch.object(lock, "_hyprlock_active", return_value=True):
+                    data = lock.read()
+            finally:
+                lock.HYPRLOCK_CONF, lock.HYPRIDLE_CONF, lock.HYPRLOCK_COLORS = old
+
+            self.assertEqual(data["kind"], "hyprlock")
+            self.assertEqual([g["title"] for g in data["groups"]],
+                             ["colours (pywal, live)", "hyprlock.conf", "hypridle.conf"])
+            conf = data["groups"][1]
+            self.assertEqual([s["title"] for s in conf["sections"]], ["general", "label 1", "label 2"])
+            keys = [i["key"] for s in conf["sections"] for i in s["items"]]
+            self.assertNotIn("$lock_ring", keys)   # pywal var lives in the colours group
+            self.assertNotIn("source", keys)       # source= plumbing skipped
+            idle = data["groups"][2]
+            self.assertEqual([s["title"] for s in idle["sections"]],
+                             ["general", "listener 1", "listener 2"])
+            colours = data["groups"][0]["sections"][0]["items"]
+            self.assertEqual([i["label"] for i in colours], ["ring", "text"])
+            self.assertTrue(all(i["color"] for i in colours))
+            # total flattened count drives the "Settings (n)" header
+            self.assertEqual(len(data["items"]),
+                             sum(len(s["items"]) for g in data["groups"] for s in g["sections"]))
+
+    def test_set_line_writes_and_guards(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self._tree(base)
+            p = base / "hyprlock.conf"
+            old = lock.HYPRLOCK_CONF
+            lock.HYPRLOCK_CONF = p
+            try:
+                self.assertTrue(lock.set_line(str(p), 4, "hide_cursor", "false"))
+                self.assertIn("hide_cursor = false", p.read_text())
+                self.assertFalse(lock.set_line(str(p), 1, "hide_cursor", "x"))   # wrong key on line
+                self.assertFalse(lock.set_line(str(base / "other.conf"), 1, "k", "v"))  # foreign path
+                self.assertFalse(lock.set_line(str(p), 4, "hide_cursor", "a\nb"))  # injection
+                self.assertIn("hide_cursor = false", p.read_text())
+            finally:
+                lock.HYPRLOCK_CONF = old
 
 
 class LockPywalSync(unittest.TestCase):

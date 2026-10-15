@@ -74,7 +74,6 @@ PanelWindow {
     property string rofiActive: ""
     property string statusMsg: ""
     property string importPath: ""
-    property string lockConf: ""
     property string iconHex: Theme.accent
     property var mwConfig: ({})
     property var mwSections: []
@@ -93,7 +92,8 @@ PanelWindow {
     property var iconPresets: []
     property var iconPreview: []
     property string iconCurrent: ""
-    property var lockItems: []
+    property var lockGroups: []
+    property int lockCount: 0
     property string lockKind: ""
     property string lockPath: ""
 
@@ -240,9 +240,8 @@ PanelWindow {
         path: win.home + "/.cache/wal/hyprlock-colors.conf"
         watchChanges: true
         printErrors: false
-        onLoaded: win.lockConf = lockFile.text()
-        onTextChanged: win.lockConf = lockFile.text()
         onFileChanged: reload()
+        onTextChanged: win.refreshLock()
     }
     Timer { id: statusTimer; interval: 3000; onTriggered: win.statusMsg = "" }
 
@@ -322,7 +321,8 @@ PanelWindow {
             onRead: line => {
                 try {
                     const o = JSON.parse(line);
-                    win.lockItems = o.items || [];
+                    win.lockGroups = o.groups || [];
+                    win.lockCount = (o.items || []).length;
                     win.lockKind = o.kind || "";
                     win.lockPath = o.path || "";
                 } catch (e) {}
@@ -452,9 +452,18 @@ PanelWindow {
         lockRerunProc.running = true;
         win.toast("Re-applying pywal theme");
     }
-    function setLock(key, value) {
-        lockSetProc.command = ["python3", win.base + "lock.py", "set", "--key", key, "--value", value];
+    function setLock(file, line, key, value) {
+        lockSetProc.command = ["python3", win.base + "lock.py", "set", "--file", file, "--line", String(line), "--key", key, "--value", value];
         lockSetProc.running = true;
+    }
+    // Display hex for a lock colour value: #RRGGBB, rgb(RRGGBB) / rgba(RRGGBBAA).
+    function colorHex(v) {
+        const s = String(v).trim();
+        const m = s.match(/rgba?\(\s*#?([0-9a-fA-F]{6})/);
+        if (m)
+            return "#" + m[1];
+        const h = s.replace(/^#/, "");
+        return /^[0-9a-fA-F]{6}/.test(h) ? "#" + h.slice(0, 6) : "#000000";
     }
 
     Timer { id: rofiRefresh; interval: 800; onTriggered: win.refreshRofi() }
@@ -965,7 +974,7 @@ PanelWindow {
                         TButton { text: "Reload"; onClicked: win.refreshLock() }
                         Item { Layout.fillWidth: true }
                     }
-                    Text { text: "Editable settings (" + win.lockItems.length + ")"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(11)}
+                    Text { text: "Settings (" + win.lockCount + ")"; color: Theme.accent; font.bold: true; font.pixelSize: BarConfig.scaled(11)}
                     Flickable {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -976,30 +985,71 @@ PanelWindow {
                             width: parent.width
                             spacing: 4
                             Repeater {
-                                model: win.lockItems
-                                delegate: RowLayout {
-                                    id: lk
+                                model: win.lockGroups
+                                delegate: ColumnLayout {
+                                    id: lkGroup
                                     required property var modelData
                                     Layout.fillWidth: true
-                                    spacing: 8
+                                    spacing: 2
                                     Text {
-                                        text: lk.modelData.label
-                                        color: Theme.foreground
-                                        font.pixelSize: BarConfig.scaled(11)
-                                        Layout.preferredWidth: 170
-                                        elide: Text.ElideRight
-                                    }
-                                    Rectangle {
-                                        visible: lk.modelData.color
-                                        width: 18; height: 18; radius: 4
-                                        color: "#" + String(lk.modelData.value).replace(/^#/, "").slice(0, 6)
-                                        border.color: Theme.alpha(Theme.foreground, 0.3); border.width: 1
-                                    }
-                                    TTextField {
                                         Layout.fillWidth: true
-                                        text: lk.modelData.value
-                                        color: Theme.foreground
-                                        onEditingFinished: win.setLock(lk.modelData.key, text)
+                                        Layout.topMargin: 6
+                                        text: lkGroup.modelData.title
+                                        color: Theme.accent
+                                        font.bold: true
+                                        font.pixelSize: BarConfig.scaled(12)
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: lkGroup.modelData.path
+                                        color: Theme.dim
+                                        font.pixelSize: BarConfig.scaled(9)
+                                        elide: Text.ElideMiddle
+                                    }
+                                    Repeater {
+                                        model: lkGroup.modelData.sections
+                                        delegate: ColumnLayout {
+                                            id: lkSec
+                                            required property var modelData
+                                            Layout.fillWidth: true
+                                            spacing: 2
+                                            Text {
+                                                Layout.fillWidth: true
+                                                Layout.topMargin: 4
+                                                text: lkSec.modelData.title
+                                                color: Theme.foreground
+                                                font.bold: true
+                                                font.pixelSize: BarConfig.scaled(10)
+                                            }
+                                            Repeater {
+                                                model: lkSec.modelData.items
+                                                delegate: RowLayout {
+                                                    id: lkRow
+                                                    required property var modelData
+                                                    Layout.fillWidth: true
+                                                    spacing: 8
+                                                    Text {
+                                                        text: lkRow.modelData.label
+                                                        color: Theme.foreground
+                                                        font.pixelSize: BarConfig.scaled(11)
+                                                        Layout.preferredWidth: 170
+                                                        elide: Text.ElideRight
+                                                    }
+                                                    Rectangle {
+                                                        visible: lkRow.modelData.color
+                                                        width: 18; height: 18; radius: 4
+                                                        color: win.colorHex(lkRow.modelData.value)
+                                                        border.color: Theme.alpha(Theme.foreground, 0.3); border.width: 1
+                                                    }
+                                                    TTextField {
+                                                        Layout.fillWidth: true
+                                                        text: lkRow.modelData.value
+                                                        color: Theme.foreground
+                                                        onEditingFinished: win.setLock(lkRow.modelData.file, lkRow.modelData.line, lkRow.modelData.key, text)
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1007,7 +1057,7 @@ PanelWindow {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: "Editing writes back to the active lock config; pywal regenerates it on the next wallpaper change."
+                        text: "Colours are pywal-managed (regenerated on every wallpaper change); the other settings write back to hyprlock.conf / hypridle.conf line by line."
                         color: Theme.dim
                         font.pixelSize: BarConfig.scaled(9)
                         wrapMode: Text.WordWrap

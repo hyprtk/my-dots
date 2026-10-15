@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.41.10 — unreleased
+
+- **Themer — Lock Screen shows the whole lock config.** The page listed only the
+  pywal colour fragment; it now renders every block of the active locker's config
+  grouped and editable, plus the hypridle daemon:
+  - **hyprlock** — the live pywal colours (`$lock_*`) *and* every block of
+    `~/.config/hypr/hyprlock.conf` (`general`, `auth`, `animations`,
+    `background`, `input-field`, each `label`).
+  - **hypridle** — `~/.config/hypr/hypridle.conf` (`general` and each `listener`).
+  Edits write back to the exact source line (key-guarded; colour values show a
+  swatch). Writes are restricted to the known lock/idle files.
+
 ## 0.41.9 — unreleased
 
 - **Fix**: the start-menu and quick-settings **Lock** button ran `swaylock`
