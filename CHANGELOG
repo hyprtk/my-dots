@@ -5,6 +5,18 @@ documented in this file. Dates are in YYYY-MM-DD format.
 
 ## [Unreleased] - 2026-10-15
 
+### Added
+
+- **Themer — Lock Screen lists the full lock config** — `hyprtk-bar-qt 0.41.10`
+  (re-vendored). The page showed only the pywal colour fragment; it now renders
+  every block of the active locker's config, grouped and editable, plus the
+  hypridle daemon: hyprlock's live `$lock_*` colours and all of
+  `~/.config/hypr/hyprlock.conf` (`general`, `auth`, `animations`,
+  `background`, `input-field`, each `label`), and all of
+  `~/.config/hypr/hypridle.conf` (`general` and each `listener`). Edits write
+  back to the exact source line (key-guarded; colour values show a swatch) and
+  are restricted to the known lock/idle files.
+
 ### Fixed
 
 - **The bar's Lock action now uses hyprlock** — `hyprtk-bar-qt 0.41.9`
