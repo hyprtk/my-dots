@@ -12,12 +12,21 @@ Singleton {
     id: root
 
     property var target: null
-    property string text: ""
+    property var lines: []
     property bool show: false
+
+    // Single-line convenience (every module except the tray uses this).
+    readonly property string text: root.lines.join("\n")
 
     function showTip(item, t) {
         root.target = item;
-        root.text = t;
+        root.lines = (t === undefined || t === null || t === "") ? [] : [String(t)];
+        root.show = true;
+    }
+    // Multi-line tooltip (the tray: network/bluetooth details).
+    function showLines(item, ls) {
+        root.target = item;
+        root.lines = (ls && ls.length) ? ls : [];
         root.show = true;
     }
     function hideTip() {

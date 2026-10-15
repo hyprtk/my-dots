@@ -14,7 +14,7 @@ PopupWindow {
 
     property var anchorWin: null
 
-    visible: Tooltips.show && Tooltips.text.length > 0 && Tooltips.target !== null
+    visible: Tooltips.show && Tooltips.lines.length > 0 && Tooltips.target !== null
     color: "transparent"
 
     property real reveal: 0
@@ -47,6 +47,8 @@ PopupWindow {
             text: Tooltips.text
             color: Theme.foreground
             font.pixelSize: 11
+            horizontalAlignment: Tooltips.lines.length > 1 ? Text.AlignLeft : Text.AlignHCenter
+            lineHeight: 1.15
         }
     }
 }

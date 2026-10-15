@@ -22,9 +22,10 @@ Rectangle {
     radius: BarConfig.radius
 
     // Single shared tooltip + context-menu surfaces (modules register via the
-    // Tooltips / PopupMenu singletons).
+    // Tooltips / PopupMenu / TrayMenu singletons).
     BarTooltip { anchorWin: root.QsWindow.window }
     BarMenuPopup { anchorWin: root.QsWindow.window }
+    TrayMenuPopup { anchorWin: root.QsWindow.window }
     BarCalendar { anchorWin: root.QsWindow.window }
 
     // Animated border (shared `theme.border_animation` + `animations` mode/speed).

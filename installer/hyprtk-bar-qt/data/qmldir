@@ -9,6 +9,8 @@ singleton MenuConfig 1.0 MenuConfig.qml
 singleton BarConfig 1.0 BarConfig.qml
 singleton SignalBridge 1.0 SignalBridge.qml
 singleton Tooltips 1.0 Tooltips.qml
+singleton TrayInfo 1.0 TrayInfo.qml
+singleton TrayMenu 1.0 TrayMenu.qml
 singleton PopupMenu 1.0 PopupMenu.qml
 singleton Hypr 1.0 Hypr.qml
 singleton Cal 1.0 Cal.qml
