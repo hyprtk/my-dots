@@ -7,7 +7,7 @@ build/
 
 # Generated artifacts / internal docs — never published
 output.html
-PLANNING.md
+PLAN*.md
 install.log
 installer/scripts/verify/
 .scratch/
